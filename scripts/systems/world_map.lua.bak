@@ -1,0 +1,2332 @@
+-- ============================================================================
+-- systems/world_map.lua - 三国武灵传：战争版 - 大地图回合策略
+-- 对标三国群英传3: 正式战争地图UI / 内政外交 / 计略系统 / 战前部署
+-- ============================================================================
+
+---@diagnostic disable: undefined-global
+
+WorldMap = WorldMap or {}
+
+-- ============================================================================
+-- 城池定义 (18城, 坐标基于 1024×571 横屏设计分辨率)
+-- ============================================================================
+WORLD_CITIES = {
+    {id=1,  name="邺城", x=560, y=55,  faction="wei", prod=60, def=3, conn={2,3,10},   region="中原", terrain="plain"},
+    {id=2,  name="北平", x=790, y=38,  faction="wei", prod=40, def=2, conn={1,3},       region="河北", terrain="mountain"},
+    {id=3,  name="许昌", x=530, y=115, faction="wei", prod=80, def=4, conn={1,4,5,10},  region="中原", terrain="plain"},
+    {id=4,  name="洛阳", x=340, y=100, faction="wei", prod=70, def=4, conn={3,5,9},     region="中原", terrain="plain"},
+    {id=5,  name="宛城", x=420, y=170, faction="qun", prod=45, def=2, conn={3,4,6,7},   region="荆北", terrain="hill"},
+    {id=6,  name="汝南", x=650, y=170, faction="qun", prod=40, def=2, conn={5,7,14},    region="中原", terrain="plain"},
+    {id=7,  name="襄阳", x=475, y=230, faction="qun", prod=55, def=3, conn={5,6,8,12},  region="荆北", terrain="river"},
+    {id=8,  name="荆州", x=370, y=290, faction="qun", prod=65, def=3, conn={7,9,11,12}, region="荆南", terrain="river"},
+    {id=9,  name="汉中", x=195, y=190, faction="shu", prod=50, def=3, conn={4,8,10,11}, region="蜀地", terrain="mountain"},
+    {id=10, name="西凉", x=130, y=90,  faction="qun", prod=35, def=2, conn={1,3,4,9},   region="西北", terrain="desert"},
+    {id=11, name="成都", x=160, y=280, faction="shu", prod=80, def=4, conn={8,9,17},    region="蜀地", terrain="basin"},
+    {id=12, name="长沙", x=560, y=310, faction="qun", prod=45, def=2, conn={7,8,13,14}, region="荆南", terrain="hill"},
+    {id=13, name="柴桑", x=700, y=260, faction="wu",  prod=50, def=3, conn={12,14,15},  region="江东", terrain="river"},
+    {id=14, name="寿春", x=750, y=200, faction="qun", prod=45, def=2, conn={6,12,13,15},region="中原", terrain="plain"},
+    {id=15, name="建业", x=820, y=270, faction="wu",  prod=80, def=4, conn={13,14,16},  region="江东", terrain="river"},
+    {id=16, name="吴郡", x=860, y=340, faction="wu",  prod=55, def=3, conn={15,18},     region="江东", terrain="plain"},
+    {id=17, name="南蛮", x=230, y=360, faction="qun", prod=30, def=1, conn={11,18},     region="南方", terrain="forest"},
+    {id=18, name="江州", x=530, y=380, faction="qun", prod=40, def=2, conn={16,17,12},  region="南方", terrain="forest"},
+}
+
+-- 山脉数据 (固定地形装饰, 坐标基于 1024×571 横屏)
+local MOUNTAINS = {
+    {x=220, y=180, peaks={{0,0,18},{-12,5,12},{14,3,14},{-6,-8,10}}},  -- 秦岭
+    {x=120, y=290, peaks={{0,0,16},{-10,4,11},{12,6,13}}},             -- 蜀道
+    {x=620, y=100, peaks={{0,0,14},{-8,3,10},{10,5,12}}},              -- 燕山
+    {x=70,  y=200, peaks={{0,0,12},{8,4,9}}},                          -- 祁连
+    {x=480, y=310, peaks={{0,0,13},{-9,3,10},{7,5,9}}},                -- 幕阜
+}
+
+-- 森林数据 (坐标基于 1024×571 横屏)
+local FORESTS = {
+    {x=300, y=280, count=5}, {x=200, y=260, count=4},
+    {x=450, y=300, count=3}, {x=700, y=270, count=4},
+    {x=550, y=250, count=3}, {x=320, y=230, count=3},
+}
+
+-- 阵营颜色体系 (main/light/dark/glow)
+local FC = {
+    shu    = { main={200, 55, 55},   light={255,120,100}, dark={130,25,25},  glow={255,80,60}   },
+    wei    = { main={50, 90, 200},   light={100,145,255}, dark={25,50,140},  glow={70,120,255}  },
+    wu     = { main={45, 160, 55},   light={90,210,100},  dark={20,100,25},  glow={60,200,70}   },
+    qun    = { main={160,140, 55},   light={210,195,100}, dark={100,85,25},  glow={200,180,70}  },
+    player = { main={230,180, 50},   light={255,220,100}, dark={160,120,20}, glow={255,210,60}  },
+}
+
+-- 计略定义
+local STRATAGEMS = {
+    {id="fire",   name="火计",   desc="烧毁敌城粮仓 驻军-20",    cost=120, icon="🔥", successRate=0.5},
+    {id="spy",    name="离间",   desc="降低敌城士气-25",          cost=150, icon="📜", successRate=0.6},
+    {id="defect", name="招降",   desc="尝试策反敌将归我",         cost=300, icon="🏳", successRate=0.2},
+    {id="scout",  name="刺探",   desc="查看敌城详细兵力武将",     cost=50,  icon="👁", successRate=0.9},
+}
+
+-- ============================================================================
+-- 运行时状态
+-- ============================================================================
+worldMapState = worldMapState or {
+    inited = false,
+    turn = 1,
+    playerFaction = "wu",
+    selectedCity = nil,
+    targetCity = nil,
+    phase = "MAP",
+    turnReport = nil,
+    animTimer = 0,
+    scrollY = 0,
+
+    cityData = {},
+    troops = 200,
+    gold = 500,
+    food = 300,
+    totalTurns = 0,
+    affairsCity = nil,
+
+    diplomacy = {},
+    searchResult = nil,
+    deployHeroes = {},
+    deployTroops = 0,
+
+    -- 计略
+    stratagemTarget = nil,   -- 计略目标城id
+
+    -- UI 动画 / 滚动
+    mapPulse = 0,
+    reportScroll = 0,
+    cloudOffset = 0,
+    reportDragging = false,
+    reportDragLastY = nil,
+
+    -- 刺探结果
+    scoutResult = nil,       -- {cityId, garrison, heroes, level}
+}
+
+-- ============================================================================
+-- 初始化
+-- ============================================================================
+function WorldMap.Init()
+    local st = worldMapState
+    if st.inited then
+        st.phase = "MAP"
+        st.selectedCity = nil
+        st.turnReport = nil
+        st.scrollY = 0
+        st.searchResult = nil
+        st.scoutResult = nil
+        return
+    end
+
+    st.turn = 1
+    st.gold = 500
+    st.food = 300
+    st.troops = 200
+    st.phase = "MAP"
+    st.selectedCity = nil
+    st.turnReport = nil
+    st.scrollY = 0
+    st.cityData = {}
+    st.searchResult = nil
+    st.scoutResult = nil
+    st.cloudOffset = 0
+
+    st.diplomacy = {
+        shu = { relation = 30, treaty = nil },
+        wei = { relation = 20, treaty = nil },
+        qun = { relation = 40, treaty = nil },
+    }
+
+    for _, city in ipairs(WORLD_CITIES) do
+        local owner = city.faction
+        if owner == st.playerFaction then owner = "player" end
+        st.cityData[city.id] = {
+            owner = owner,
+            garrison = (owner == "player") and 80 or (40 + city.def * 15),
+            level = city.def,
+            heroes = {},
+            morale = 80,
+        }
+    end
+
+    local playerCities = {}
+    for _, city in ipairs(WORLD_CITIES) do
+        if st.cityData[city.id].owner == "player" then
+            table.insert(playerCities, city.id)
+        end
+    end
+    local heroIdx = 0
+    if rawget(_G, "GameConfig") and GameConfig.INITIAL_HEROES then
+        for _, cardIdx in ipairs(GameConfig.INITIAL_HEROES) do
+            heroIdx = heroIdx + 1
+            local cityId = playerCities[((heroIdx - 1) % #playerCities) + 1]
+            table.insert(st.cityData[cityId].heroes, cardIdx)
+        end
+    end
+
+    local aiFactions = {"wei", "shu", "qun"}
+    for _, fac in ipairs(aiFactions) do
+        local aiHeroes = {}
+        for idx, card in ipairs(HERO_CARDS) do
+            if card.faction == fac and not playerHeroes[idx] then
+                table.insert(aiHeroes, idx)
+            end
+        end
+        local aiCities = {}
+        for _, city in ipairs(WORLD_CITIES) do
+            if st.cityData[city.id].owner == fac then
+                table.insert(aiCities, city.id)
+            end
+        end
+        if #aiCities > 0 then
+            for i, hIdx in ipairs(aiHeroes) do
+                local cid = aiCities[((i - 1) % #aiCities) + 1]
+                table.insert(st.cityData[cid].heroes, hIdx)
+            end
+        end
+    end
+
+    st.inited = true
+    print("[WorldMap] Initialized with " .. #playerCities .. " player cities")
+end
+
+-- ============================================================================
+-- 回合处理
+-- ============================================================================
+function WorldMap.EndTurn()
+    local report = {}
+    local st = worldMapState
+
+    -- 1) 收入
+    local income, foodIncome, playerCityCount = 0, 0, 0
+    for _, city in ipairs(WORLD_CITIES) do
+        local cd = st.cityData[city.id]
+        if cd.owner == "player" then
+            local prod = city.prod + (cd.level - 1) * 10
+            income = income + prod
+            foodIncome = foodIncome + math.floor(prod * 0.5)
+            playerCityCount = playerCityCount + 1
+            cd.morale = math.min(100, cd.morale + 3)
+        end
+    end
+    st.gold = st.gold + income
+    st.food = st.food + foodIncome
+    table.insert(report, {type="income", text="税收 +" .. income .. "金  粮草 +" .. foodIncome})
+
+    -- 2) 自动补兵
+    local recruitFood = playerCityCount * 10
+    if st.food >= recruitFood then
+        st.food = st.food - recruitFood
+        for _, city in ipairs(WORLD_CITIES) do
+            local cd = st.cityData[city.id]
+            if cd.owner == "player" then cd.garrison = cd.garrison + 5 end
+        end
+        table.insert(report, {type="recruit", text="征兵: 各城 +5 (粮 -" .. recruitFood .. ")"})
+    else
+        table.insert(report, {type="warning", text="粮草不足! 无法自动征兵"})
+        for _, city in ipairs(WORLD_CITIES) do
+            local cd = st.cityData[city.id]
+            if cd.owner == "player" then cd.morale = math.max(30, cd.morale - 5) end
+        end
+    end
+
+    -- 3) AI 行动
+    local aiFactions = {"wei", "shu", "qun"}
+    for _, fac in ipairs(aiFactions) do
+        local facCities = {}
+        for _, city in ipairs(WORLD_CITIES) do
+            if st.cityData[city.id].owner == fac then
+                table.insert(facCities, city)
+                st.cityData[city.id].garrison = st.cityData[city.id].garrison + 3
+            end
+        end
+        local aggression = 0.2 + (#facCities / #WORLD_CITIES) * 0.3
+        local diplo = st.diplomacy[fac]
+        if diplo and diplo.treaty == "peace" then aggression = aggression * 0.1 end
+
+        if #facCities > 0 and math.random() < aggression then
+            local srcCity = facCities[math.random(#facCities)]
+            local srcData = st.cityData[srcCity.id]
+            if srcData.garrison >= 30 then
+                local targets = {}
+                for _, connId in ipairs(srcCity.conn) do
+                    local tgtOwner = st.cityData[connId].owner
+                    if tgtOwner ~= fac then
+                        if not (tgtOwner == "player" and diplo and diplo.treaty == "peace") then
+                            table.insert(targets, connId)
+                        end
+                    end
+                end
+                if #targets > 0 then
+                    local tgtId = targets[math.random(#targets)]
+                    local tgtData = st.cityData[tgtId]
+                    local tgtCity = WORLD_CITIES[tgtId]
+                    local atkPower = srcData.garrison * 0.6 + #srcData.heroes * 15
+                    local defPower = tgtData.garrison + tgtData.level * 10 + #tgtData.heroes * 10
+                    local facName = FACTIONS[fac] and FACTIONS[fac].name or fac
+
+                    if atkPower > defPower then
+                        local oldOwner = tgtData.owner
+                        tgtData.owner = fac
+                        tgtData.garrison = math.floor(atkPower - defPower * 0.5)
+                        srcData.garrison = math.floor(srcData.garrison * 0.4)
+                        local movedHeroes = {}
+                        for i = #srcData.heroes, 1, -1 do
+                            if #movedHeroes < 2 then
+                                table.insert(movedHeroes, srcData.heroes[i])
+                                table.remove(srcData.heroes, i)
+                            end
+                        end
+                        for _, h in ipairs(movedHeroes) do table.insert(tgtData.heroes, h) end
+                        if oldOwner == "player" then
+                            table.insert(report, {type="lost", text="失守! " .. facName .. " 攻占 " .. tgtCity.name})
+                        else
+                            table.insert(report, {type="battle", text=facName .. " 攻占 " .. tgtCity.name})
+                        end
+                    else
+                        srcData.garrison = math.floor(srcData.garrison * 0.7)
+                        tgtData.garrison = math.max(5, tgtData.garrison - math.floor(atkPower * 0.3))
+                        table.insert(report, {type="battle", text=facName .. " 攻 " .. tgtCity.name .. " 败退"})
+                    end
+                end
+            end
+        end
+    end
+
+    -- 4) 外交衰减
+    for fac, d in pairs(st.diplomacy) do
+        d.relation = math.max(0, d.relation - 2)
+        if d.treaty == "peace" and d.relation < 15 then
+            d.treaty = nil
+            table.insert(report, {type="diplomacy", text=FACTIONS[fac].name .. " 撕毁和约!"})
+        end
+    end
+
+    st.turn = st.turn + 1
+    st.totalTurns = st.totalTurns + 1
+    st.turnReport = report
+    st.reportScroll = 0
+    st.phase = "TURN_REPORT"
+
+    local pCities = 0
+    for _, city in ipairs(WORLD_CITIES) do
+        if st.cityData[city.id].owner == "player" then pCities = pCities + 1 end
+    end
+    if pCities == 0 then
+        table.insert(st.turnReport, {type="gameover", text="所有城池失守, 大业未成..."})
+    elseif pCities >= #WORLD_CITIES then
+        table.insert(st.turnReport, {type="victory", text="天下一统! 恭喜称帝!"})
+    end
+    print("[WorldMap] Turn " .. st.turn .. " ended. Player cities: " .. pCities)
+end
+
+-- ============================================================================
+-- 玩家行军 / 攻城 / 内政 / 计略
+-- ============================================================================
+function WorldMap.MoveArmy(fromId, toId, troops, heroes)
+    local st = worldMapState
+    local fromData, toData = st.cityData[fromId], st.cityData[toId]
+    if not fromData or not toData then return false, "无效城池" end
+    if fromData.owner ~= "player" then return false, "非我方城池" end
+    if toData.owner ~= "player" then return false, "目标非我方城池" end
+    if fromData.garrison < troops then return false, "兵力不足" end
+    local connected = false
+    for _, connId in ipairs(WORLD_CITIES[fromId].conn) do
+        if connId == toId then connected = true; break end
+    end
+    if not connected then return false, "城池不相邻" end
+    fromData.garrison = fromData.garrison - troops
+    toData.garrison = toData.garrison + troops
+    if heroes then
+        for _, hIdx in ipairs(heroes) do
+            for i, h in ipairs(fromData.heroes) do
+                if h == hIdx then
+                    table.remove(fromData.heroes, i)
+                    table.insert(toData.heroes, hIdx)
+                    break
+                end
+            end
+        end
+    end
+    return true, "调兵完成"
+end
+
+function WorldMap.StartAttack(fromId, toId)
+    local st = worldMapState
+    local fromData, toData = st.cityData[fromId], st.cityData[toId]
+    if not fromData or not toData then return false end
+    if fromData.owner ~= "player" then return false end
+    if toData.owner == "player" then return false end
+    local deployTroops = st.deployTroops
+    if deployTroops < 20 then
+        if rawget(_G, "ShowToast") then ShowToast("至少需要20兵力出征") end
+        return false
+    end
+    local connected = false
+    for _, connId in ipairs(WORLD_CITIES[fromId].conn) do
+        if connId == toId then connected = true; break end
+    end
+    if not connected then
+        if rawget(_G, "ShowToast") then ShowToast("城池不相邻") end
+        return false
+    end
+    local foodCost = math.floor(deployTroops * 0.5)
+    if st.food < foodCost then
+        if rawget(_G, "ShowToast") then ShowToast("粮草不足(需" .. foodCost .. ")") end
+        return false
+    end
+    st.food = st.food - foodCost
+    st.attackContext = {
+        fromId = fromId, toId = toId,
+        attackTroops = deployTroops,
+        defenderFaction = toData.owner,
+        deployHeroes = st.deployHeroes or {},
+    }
+    fromData.garrison = fromData.garrison - deployTroops
+    local defStrength = toData.garrison + toData.level * 20 + #toData.heroes * 15
+    local scale = 0.3 + defStrength / 200
+    if rawget(_G, "stageState") then stageState.enemyScale = math.min(2.5, scale) end
+    if rawget(_G, "PLAYER_SLOTS") and rawget(_G, "HERO_CARDS") then
+        for _, slot in ipairs(PLAYER_SLOTS) do slot.filled = false; slot.card = nil end
+        local heroList = st.deployHeroes
+        if #heroList == 0 then heroList = fromData.heroes end
+        for i, hIdx in ipairs(heroList) do
+            if i > #PLAYER_SLOTS then break end
+            local card = HERO_CARDS[hIdx]
+            if card then
+                local slot = PLAYER_SLOTS[i]
+                local hero = playerHeroes[hIdx]
+                slot.filled = true
+                slot.card = {
+                    idx = hIdx, name = card.name, quality = card.quality,
+                    unitClass = card.unitClass, atk = card.atk, def = card.def, hp = card.hp,
+                    skill = card.skill, skillData = card.skillData, singleImg = card.singleImg,
+                    row = card.row, col = card.col, type = card.type,
+                    faction = card.faction, troopType = card.troopType,
+                    level = hero and hero.level or 1,
+                    constellation = hero and hero.constellation or 0,
+                }
+                slot.spawnCount = 0; slot.deployCD = 0
+            end
+        end
+    end
+    print("[WorldMap] Attack: " .. WORLD_CITIES[fromId].name .. " -> " .. WORLD_CITIES[toId].name)
+    -- 播放行军动画，动画结束后进入战斗
+    WorldMap.StartMarchAnim(fromId, toId, deployTroops, function()
+        if rawget(_G, "InitBattle") then InitBattle() end
+        if rawget(_G, "PushPhase") then PushPhase("BATTLE") end
+        if rawget(_G, "gameState") then
+            gameState.battlePhase = "SHOP"
+            gameState.worldMapBattle = true
+        end
+    end)
+    return true
+end
+
+function WorldMap.OnBattleResult(victory)
+    local st = worldMapState
+    local ctx = st.attackContext
+    if not ctx then return end
+    local fromData, toData = st.cityData[ctx.fromId], st.cityData[ctx.toId]
+    local tgtCity = WORLD_CITIES[ctx.toId]
+    if victory then
+        toData.owner = "player"
+        toData.garrison = math.floor(ctx.attackTroops * 0.5)
+        toData.level = math.max(1, toData.level - 1)
+        toData.morale = 60
+        local moved = ctx.deployHeroes or {}
+        for _, hIdx in ipairs(moved) do
+            for i, h in ipairs(fromData.heroes) do
+                if h == hIdx then table.remove(fromData.heroes, i); break end
+            end
+        end
+        toData.heroes = moved
+        if rawget(_G, "AddFloatText") then
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "攻占 " .. tgtCity.name .. "!", 2.5, {255, 220, 50}, 24)
+        end
+    else
+        if rawget(_G, "AddFloatText") then
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "攻城失败...", 2.0, {200, 60, 60}, 22)
+        end
+    end
+    st.attackContext = nil
+    st.deployHeroes = {}
+    st.deployTroops = 0
+    if rawget(_G, "gameState") then gameState.worldMapBattle = nil end
+end
+
+-- 内政: 征兵
+function WorldMap.Recruit(cityId, amount)
+    local st = worldMapState
+    local cd = st.cityData[cityId]
+    if not cd or cd.owner ~= "player" then return false end
+    local goldCost, foodCost = amount * 3, amount * 1
+    if st.gold < goldCost then
+        if rawget(_G, "ShowToast") then ShowToast("金币不足(需" .. goldCost .. ")") end
+        return false
+    end
+    if st.food < foodCost then
+        if rawget(_G, "ShowToast") then ShowToast("粮草不足") end
+        return false
+    end
+    st.gold = st.gold - goldCost
+    st.food = st.food - foodCost
+    cd.garrison = cd.garrison + amount
+    return true
+end
+
+-- 内政: 升级城防
+function WorldMap.UpgradeCity(cityId)
+    local st = worldMapState
+    local cd = st.cityData[cityId]
+    if not cd or cd.owner ~= "player" then return false end
+    if cd.level >= 5 then
+        if rawget(_G, "ShowToast") then ShowToast("城防已满级") end
+        return false
+    end
+    local cost = cd.level * 200
+    if st.gold < cost then
+        if rawget(_G, "ShowToast") then ShowToast("金币不足(需" .. cost .. ")") end
+        return false
+    end
+    st.gold = st.gold - cost
+    cd.level = cd.level + 1
+    return true
+end
+
+-- 内政: 搜索人才
+function WorldMap.SearchTalent(cityId)
+    local st = worldMapState
+    local cost = 100
+    if st.gold < cost then
+        if rawget(_G, "ShowToast") then ShowToast("金币不足(需100)") end
+        return false
+    end
+    st.gold = st.gold - cost
+    if math.random() < 0.2 and rawget(_G, "HERO_CARDS") then
+        local unowned = {}
+        for idx, _ in ipairs(HERO_CARDS) do
+            if not playerHeroes[idx] then table.insert(unowned, idx) end
+        end
+        if #unowned > 0 then
+            local found = unowned[math.random(#unowned)]
+            playerHeroes[found] = { owned = true, constellation = 0 }
+            table.insert(st.cityData[cityId].heroes, found)
+            st.searchResult = { heroIdx = found, cityId = cityId }
+            return true
+        end
+    end
+    st.searchResult = nil
+    if rawget(_G, "ShowToast") then ShowToast("未发现人才") end
+    return false
+end
+
+-- 内政: 提升士气
+function WorldMap.BoostMorale(cityId)
+    local st = worldMapState
+    local cd = st.cityData[cityId]
+    if not cd or cd.owner ~= "player" then return false end
+    if st.gold < 80 then
+        if rawget(_G, "ShowToast") then ShowToast("金币不足(需80)") end
+        return false
+    end
+    st.gold = st.gold - 80
+    cd.morale = math.min(100, cd.morale + 15)
+    return true
+end
+
+-- 外交: 送礼
+function WorldMap.SendGift(faction)
+    local st = worldMapState
+    if st.gold < 200 then
+        if rawget(_G, "ShowToast") then ShowToast("金币不足(需200)") end
+        return false
+    end
+    st.gold = st.gold - 200
+    local d = st.diplomacy[faction]
+    if d then
+        d.relation = math.min(100, d.relation + 15)
+        if rawget(_G, "ShowToast") then ShowToast(FACTIONS[faction].name .. " 好感 +15") end
+    end
+    return true
+end
+
+-- 外交: 签约
+function WorldMap.SignTreaty(faction)
+    local st = worldMapState
+    local d = st.diplomacy[faction]
+    if not d then return false end
+    if d.relation < 60 then
+        if rawget(_G, "ShowToast") then ShowToast("好感度不足60, 无法缔约") end
+        return false
+    end
+    if st.gold < 500 then
+        if rawget(_G, "ShowToast") then ShowToast("金币不足(需500)") end
+        return false
+    end
+    st.gold = st.gold - 500
+    d.treaty = "peace"
+    if rawget(_G, "ShowToast") then ShowToast("与" .. FACTIONS[faction].name .. "缔结和约!") end
+    return true
+end
+
+-- 计略: 执行
+function WorldMap.ExecuteStratagem(stratagemId, targetCityId)
+    local st = worldMapState
+    local strat = nil
+    for _, s in ipairs(STRATAGEMS) do
+        if s.id == stratagemId then strat = s; break end
+    end
+    if not strat then return false end
+    local td = st.cityData[targetCityId]
+    if not td or td.owner == "player" then return false end
+    if st.gold < strat.cost then
+        if rawget(_G, "ShowToast") then ShowToast("金币不足(需" .. strat.cost .. ")") end
+        return false
+    end
+    st.gold = st.gold - strat.cost
+
+    -- 武将增加成功率: 每个己方武将 +5%
+    local bonusRate = 0
+    for _, city in ipairs(WORLD_CITIES) do
+        local cd = st.cityData[city.id]
+        if cd.owner == "player" then bonusRate = bonusRate + #cd.heroes * 0.02 end
+    end
+    local finalRate = math.min(0.95, strat.successRate + bonusRate)
+
+    if math.random() < finalRate then
+        -- 成功
+        if stratagemId == "fire" then
+            td.garrison = math.max(5, td.garrison - 20)
+            if rawget(_G, "ShowToast") then ShowToast("火计成功! 敌军 -20") end
+        elseif stratagemId == "spy" then
+            td.morale = math.max(20, (td.morale or 80) - 25)
+            if rawget(_G, "ShowToast") then ShowToast("离间成功! 士气 -25") end
+        elseif stratagemId == "defect" then
+            if #td.heroes > 0 then
+                local hi = td.heroes[math.random(#td.heroes)]
+                -- 找到最近的玩家城
+                local bestPCity = nil
+                for _, c2 in ipairs(WORLD_CITIES) do
+                    if st.cityData[c2.id].owner == "player" then bestPCity = c2.id; break end
+                end
+                if bestPCity then
+                    for i, h in ipairs(td.heroes) do
+                        if h == hi then table.remove(td.heroes, i); break end
+                    end
+                    table.insert(st.cityData[bestPCity].heroes, hi)
+                    playerHeroes[hi] = { owned = true, constellation = 0 }
+                    local hName = HERO_CARDS[hi] and HERO_CARDS[hi].name or "武将"
+                    if rawget(_G, "ShowToast") then ShowToast("招降成功! " .. hName .. " 归降") end
+                end
+            else
+                if rawget(_G, "ShowToast") then ShowToast("招降成功但无将可降") end
+            end
+        elseif stratagemId == "scout" then
+            st.scoutResult = {
+                cityId = targetCityId,
+                garrison = td.garrison,
+                level = td.level,
+                morale = td.morale or 80,
+                heroes = {},
+            }
+            for _, hi in ipairs(td.heroes) do
+                local c = HERO_CARDS[hi]
+                if c then table.insert(st.scoutResult.heroes, c.name) end
+            end
+            if rawget(_G, "ShowToast") then ShowToast("刺探成功! 已获取情报") end
+        end
+        return true
+    else
+        if rawget(_G, "ShowToast") then ShowToast(strat.name .. " 失败!") end
+        return false
+    end
+end
+
+-- ============================================================================
+-- 辅助查询
+-- ============================================================================
+function WorldMap.GetPlayerCityCount()
+    local count = 0
+    for _, city in ipairs(WORLD_CITIES) do
+        if worldMapState.cityData[city.id] and worldMapState.cityData[city.id].owner == "player" then
+            count = count + 1
+        end
+    end
+    return count
+end
+
+function WorldMap.GetCityById(id) return WORLD_CITIES[id] end
+function WorldMap.GetCityData(id) return worldMapState.cityData[id] end
+
+function WorldMap.IsConnected(id1, id2)
+    local city = WORLD_CITIES[id1]
+    if not city then return false end
+    for _, connId in ipairs(city.conn) do
+        if connId == id2 then return true end
+    end
+    return false
+end
+
+-- 获取各势力统计
+local function GetFactionStats()
+    local stats = { player={cities=0,troops=0,heroes=0}, wei={cities=0,troops=0,heroes=0},
+                    shu={cities=0,troops=0,heroes=0}, wu={cities=0,troops=0,heroes=0},
+                    qun={cities=0,troops=0,heroes=0} }
+    for _, city in ipairs(WORLD_CITIES) do
+        local cd = worldMapState.cityData[city.id]
+        if cd then
+            local key = cd.owner
+            if stats[key] then
+                stats[key].cities = stats[key].cities + 1
+                stats[key].troops = stats[key].troops + cd.garrison
+                stats[key].heroes = stats[key].heroes + #cd.heroes
+            end
+        end
+    end
+    return stats
+end
+
+local function GetFC(owner) return FC[owner] or FC.qun end
+
+-- ============================================================================
+-- =====================  绘 制 部 分  ======================================
+-- ============================================================================
+
+-- 辅助: 按钮(国风暖色卷轴风)
+local function DrawBtn(x, y, w, h, label, r, g, b, alpha)
+    alpha = alpha or 200
+    local disabled = (alpha <= 150)
+    -- 如果有按钮素材图且可用, 用图片做底
+    if IsImageReady(IMG.wmBtnAction) and not disabled then
+        local pat = nvgImagePattern(vg, x, y, w, h, 0, IMG.wmBtnAction, alpha / 255)
+        nvgBeginPath(vg); nvgRoundedRect(vg, x, y, w, h, 4)
+        nvgFillPaint(vg, pat); nvgFill(vg)
+    else
+        -- 暖色渐变底色
+        nvgBeginPath(vg); nvgRoundedRect(vg, x + 1, y + 1, w, h, 4)
+        nvgFillColor(vg, nvgRGBA(60, 40, 20, 40)); nvgFill(vg)
+        local grad = nvgLinearGradient(vg, x, y, x, y + h,
+            nvgRGBA(math.min(255, r + 40), math.min(255, g + 30), math.min(255, b + 20), alpha),
+            nvgRGBA(r, g, b, alpha))
+        nvgBeginPath(vg); nvgRoundedRect(vg, x, y, w, h, 4)
+        nvgFillPaint(vg, grad); nvgFill(vg)
+    end
+    -- 金色描边
+    nvgStrokeColor(vg, disabled and nvgRGBA(120, 100, 70, 60) or nvgRGBA(200, 170, 90, 140))
+    nvgStrokeWidth(vg, 1); nvgStroke(vg)
+    -- 文字 (暗色 + 金色高亮)
+    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 17)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    if disabled then
+        nvgFillColor(vg, nvgRGBA(120, 100, 80, 120))
+    else
+        -- 文字描边
+        nvgFillColor(vg, nvgRGBA(60, 30, 10, 160))
+        nvgText(vg, x + w / 2 + 1, y + h / 2 + 1, label, nil)
+        nvgFillColor(vg, nvgRGBA(255, 240, 200, 240))
+    end
+    nvgText(vg, x + w / 2, y + h / 2, label, nil)
+    return { x = x, y = y, w = w, h = h }
+end
+
+-- 辅助: 城池图标(图片素材版)
+local function DrawCityIcon(px, py, radius, owner, level, isSelected, isCapital, t)
+    local fc = GetFC(owner)
+    -- 选中光晕
+    if isSelected then
+        local pulse = 0.5 + 0.5 * math.sin(t * 5)
+        nvgBeginPath(vg); nvgCircle(vg, px, py, radius + 12)
+        local glowGrad = nvgRadialGradient(vg, px, py, radius * 0.5, radius + 14,
+            nvgRGBA(255, 220, 100, math.floor(160 * pulse)),
+            nvgRGBA(255, 200, 80, 0))
+        nvgFillPaint(vg, glowGrad); nvgFill(vg)
+    end
+    -- 城池图片
+    local imgSize = radius * 2.4
+    local cityImg = isCapital and IMG.wmCityCapital or IMG.wmCityNormal
+    if IsImageReady(cityImg) then
+        local pat = nvgImagePattern(vg, px - imgSize / 2, py - imgSize / 2, imgSize, imgSize, 0, cityImg, 1.0)
+        nvgBeginPath(vg); nvgCircle(vg, px, py, imgSize / 2)
+        nvgFillPaint(vg, pat); nvgFill(vg)
+    else
+        -- 回退: 圆形城池
+        nvgBeginPath(vg); nvgCircle(vg, px, py, radius)
+        local cityGrad = nvgLinearGradient(vg, px, py - radius, px, py + radius,
+            nvgRGBA(fc.light[1], fc.light[2], fc.light[3], 220),
+            nvgRGBA(fc.dark[1], fc.dark[2], fc.dark[3], 240))
+        nvgFillPaint(vg, cityGrad); nvgFill(vg)
+    end
+    -- 势力颜色环
+    nvgBeginPath(vg); nvgCircle(vg, px, py, imgSize / 2 + 1)
+    nvgStrokeWidth(vg, 2 + level * 0.3)
+    nvgStrokeColor(vg, nvgRGBA(fc.main[1], fc.main[2], fc.main[3], 200)); nvgStroke(vg)
+    -- 城防等级星
+    if level >= 2 then
+        for i = 1, math.min(5, level) do
+            local dotAngle = ((i - 1) / math.min(5, level)) * math.pi * 2 - math.pi / 2
+            local dotR = imgSize / 2 + 5
+            nvgBeginPath(vg); nvgCircle(vg, px + dotR * math.cos(dotAngle), py + dotR * math.sin(dotAngle), 1.8)
+            nvgFillColor(vg, nvgRGBA(255, 220, 100, 200)); nvgFill(vg)
+        end
+    end
+    -- 要塞标记
+    if isCapital then
+        nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 15)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        nvgFillColor(vg, nvgRGBA(255, 200, 50, 255))
+        nvgText(vg, px, py - imgSize / 2 - 8, "★", nil)
+    end
+end
+
+-- 辅助: 势力旗帜(图片素材版)
+local function DrawFlag(px, py, owner, heroCount)
+    local flagW, flagH = 20, 28
+    -- 选择旗帜图片
+    local flagImg = IMG.wmFlagRed -- 默认红旗
+    if owner == "wei" then flagImg = IMG.wmFlagBlue
+    elseif owner == "shu" or owner == "player" then flagImg = IMG.wmFlagGreen
+    elseif owner == "wu" then flagImg = IMG.wmFlagRed
+    elseif owner == "qun" then flagImg = IMG.wmFlagBlue end
+    if IsImageReady(flagImg) then
+        local pat = nvgImagePattern(vg, px - 2, py - flagH + 4, flagW, flagH, 0, flagImg, 1.0)
+        nvgBeginPath(vg); nvgRect(vg, px - 2, py - flagH + 4, flagW, flagH)
+        nvgFillPaint(vg, pat); nvgFill(vg)
+    else
+        -- 回退: 程序化旗帜
+        local fc = GetFC(owner)
+        nvgBeginPath(vg); nvgMoveTo(vg, px, py); nvgLineTo(vg, px, py - 18)
+        nvgStrokeColor(vg, nvgRGBA(180, 160, 120, 200)); nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
+        nvgBeginPath(vg)
+        nvgMoveTo(vg, px, py - 18); nvgLineTo(vg, px + 12, py - 16); nvgLineTo(vg, px + 11, py - 10); nvgLineTo(vg, px, py - 12)
+        nvgClosePath(vg)
+        nvgFillColor(vg, nvgRGBA(fc.main[1], fc.main[2], fc.main[3], 220)); nvgFill(vg)
+    end
+    if heroCount > 0 then
+        nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 12)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        nvgFillColor(vg, nvgRGBA(60, 30, 10, 240))
+        nvgText(vg, px + flagW / 2 - 2, py - flagH / 2 + 4, tostring(heroCount), nil)
+    end
+end
+
+-- 辅助: 绘制山脉
+local function DrawMountains(mapTop)
+    for _, mt in ipairs(MOUNTAINS) do
+        for _, pk in ipairs(mt.peaks) do
+            local mx, my = mt.x + pk[1], mt.y + pk[2] + mapTop
+            local mr = pk[3]
+            -- 三角形山峰
+            nvgBeginPath(vg)
+            nvgMoveTo(vg, mx - mr * 0.7, my + mr * 0.4)
+            nvgLineTo(vg, mx, my - mr * 0.6)
+            nvgLineTo(vg, mx + mr * 0.7, my + mr * 0.4)
+            nvgClosePath(vg)
+            nvgFillColor(vg, nvgRGBA(100, 130, 80, 80)); nvgFill(vg)
+            -- 雪线
+            if mr > 12 then
+                nvgBeginPath(vg)
+                nvgMoveTo(vg, mx - mr * 0.15, my - mr * 0.35)
+                nvgLineTo(vg, mx, my - mr * 0.6)
+                nvgLineTo(vg, mx + mr * 0.15, my - mr * 0.35)
+                nvgClosePath(vg)
+                nvgFillColor(vg, nvgRGBA(240, 240, 250, 80)); nvgFill(vg)
+            end
+        end
+    end
+end
+
+-- 辅助: 绘制森林
+local function DrawForests(mapTop)
+    math.randomseed(77)
+    for _, f in ipairs(FORESTS) do
+        for i = 1, f.count do
+            local tx = f.x + math.random(-15, 15)
+            local ty = f.y + math.random(-8, 8) + mapTop
+            local ts = 4 + math.random(3)
+            -- 小三角树
+            nvgBeginPath(vg)
+            nvgMoveTo(vg, tx, ty - ts)
+            nvgLineTo(vg, tx - ts * 0.5, ty + ts * 0.3)
+            nvgLineTo(vg, tx + ts * 0.5, ty + ts * 0.3)
+            nvgClosePath(vg)
+            nvgFillColor(vg, nvgRGBA(60, 120 + math.random(30), 50, 90 + math.random(30))); nvgFill(vg)
+            -- 树干
+            nvgBeginPath(vg)
+            nvgMoveTo(vg, tx, ty + ts * 0.3); nvgLineTo(vg, tx, ty + ts * 0.5)
+            nvgStrokeColor(vg, nvgRGBA(80, 60, 40, 60)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
+        end
+    end
+    math.randomseed(math.floor(os.clock() * 1000))
+end
+
+-- 辅助: 绘制河流 (长江 + 黄河, 横屏1024宽)
+local function DrawRivers(mapTop)
+    -- 长江 (横跨全图宽度)
+    nvgBeginPath(vg)
+    nvgMoveTo(vg, 0, 280 + mapTop)
+    nvgBezierTo(vg, 180, 260 + mapTop, 360, 300 + mapTop, 540, 290 + mapTop)
+    nvgBezierTo(vg, 720, 280 + mapTop, 870, 310 + mapTop, 1024, 295 + mapTop)
+    nvgStrokeColor(vg, nvgRGBA(80, 140, 200, 50)); nvgStrokeWidth(vg, 10); nvgStroke(vg)
+    nvgBeginPath(vg)
+    nvgMoveTo(vg, 0, 280 + mapTop)
+    nvgBezierTo(vg, 180, 260 + mapTop, 360, 300 + mapTop, 540, 290 + mapTop)
+    nvgBezierTo(vg, 720, 280 + mapTop, 870, 310 + mapTop, 1024, 295 + mapTop)
+    nvgStrokeColor(vg, nvgRGBA(100, 160, 220, 40)); nvgStrokeWidth(vg, 4); nvgStroke(vg)
+    -- 黄河 (横跨全图宽度)
+    nvgBeginPath(vg)
+    nvgMoveTo(vg, 30, 150 + mapTop)
+    nvgBezierTo(vg, 200, 120 + mapTop, 400, 160 + mapTop, 600, 140 + mapTop)
+    nvgBezierTo(vg, 750, 125 + mapTop, 900, 155 + mapTop, 1024, 145 + mapTop)
+    nvgStrokeColor(vg, nvgRGBA(180, 160, 80, 45)); nvgStrokeWidth(vg, 7); nvgStroke(vg)
+    nvgBeginPath(vg)
+    nvgMoveTo(vg, 30, 150 + mapTop)
+    nvgBezierTo(vg, 200, 120 + mapTop, 400, 160 + mapTop, 600, 140 + mapTop)
+    nvgBezierTo(vg, 750, 125 + mapTop, 900, 155 + mapTop, 1024, 145 + mapTop)
+    nvgStrokeColor(vg, nvgRGBA(200, 180, 90, 35)); nvgStrokeWidth(vg, 3); nvgStroke(vg)
+end
+
+-- 辅助: 动态云雾 (横屏1024×571)
+local function DrawClouds(mapTop, t)
+    local coff = (t * 8) % 1100
+    math.randomseed(33)
+    for i = 1, 8 do
+        local cx2 = (math.random(50, 980) + coff) % 1080 - 30
+        local cy2 = math.random(40, 340) + mapTop
+        local cr = 20 + math.random(30)
+        nvgBeginPath(vg); nvgCircle(vg, cx2, cy2, cr)
+        local cloudGrad = nvgRadialGradient(vg, cx2, cy2, cr * 0.3, cr,
+            nvgRGBA(240, 240, 250, 20), nvgRGBA(240, 240, 250, 0))
+        nvgFillPaint(vg, cloudGrad); nvgFill(vg)
+    end
+    math.randomseed(math.floor(os.clock() * 1000))
+end
+
+-- ============================================================================
+-- 主绘制入口
+-- ============================================================================
+function DrawWorldMapScreen()
+    local st = worldMapState
+    local W, H = DESIGN_W, DESIGN_H
+    local cx = W / 2
+    local t = gameState.gameTime or 0
+    st.mapPulse = t
+
+    -- === 背景 (国风地图, 横屏1024×571) ===
+    if IsImageReady(IMG.wmBg) then
+        DrawBgImage(IMG.wmBg, W, H, 1024, 571, 0)
+    else
+        -- 回退: 暖色宣纸底
+        nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
+        local bgGrad = nvgLinearGradient(vg, 0, 0, 0, H,
+            nvgRGBA(235, 220, 185, 255), nvgRGBA(215, 195, 160, 255))
+        nvgFillPaint(vg, bgGrad); nvgFill(vg)
+    end
+
+    local mapTop = 55
+    local mapBot = 360
+
+    -- 地形纹理点
+    math.randomseed(42)
+    for i = 1, 100 do
+        local mx = math.random(5, W - 5)
+        local my = math.random(mapTop + 10, mapBot)
+        local mr = math.random(2, 10)
+        nvgBeginPath(vg); nvgCircle(vg, mx, my, mr)
+        nvgFillColor(vg, nvgRGBA(160 + math.random(30), 140 + math.random(20), 100, 25 + math.random(20)))
+        nvgFill(vg)
+    end
+    math.randomseed(math.floor(os.clock() * 1000))
+
+    -- 地形要素
+    DrawRivers(mapTop)
+    DrawMountains(mapTop)
+    DrawForests(mapTop)
+
+    -- 势力版图底色
+    for _, city in ipairs(WORLD_CITIES) do
+        local cd = st.cityData[city.id]
+        local fc = GetFC(cd.owner)
+        local tr = 45 + city.prod * 0.35
+        nvgBeginPath(vg); nvgCircle(vg, city.x, city.y + mapTop, tr)
+        local terGrad = nvgRadialGradient(vg, city.x, city.y + mapTop, tr * 0.15, tr,
+            nvgRGBA(fc.dark[1], fc.dark[2], fc.dark[3], 40),
+            nvgRGBA(fc.dark[1], fc.dark[2], fc.dark[3], 0))
+        nvgFillPaint(vg, terGrad); nvgFill(vg)
+    end
+
+    -- 道路
+    for _, city in ipairs(WORLD_CITIES) do
+        for _, connId in ipairs(city.conn) do
+            if connId > city.id then
+                local other = WORLD_CITIES[connId]
+                local ownerA = st.cityData[city.id].owner
+                local ownerB = st.cityData[connId].owner
+                local x1, y1 = city.x, city.y + mapTop
+                local x2, y2 = other.x, other.y + mapTop
+                if ownerA == ownerB then
+                    local fc = GetFC(ownerA)
+                    nvgStrokeColor(vg, nvgRGBA(fc.main[1], fc.main[2], fc.main[3], 60))
+                    nvgStrokeWidth(vg, 2)
+                    nvgBeginPath(vg); nvgMoveTo(vg, x1, y1); nvgLineTo(vg, x2, y2); nvgStroke(vg)
+                else
+                    local ddx, ddy = x2 - x1, y2 - y1
+                    local dist = math.sqrt(ddx * ddx + ddy * ddy)
+                    local segments = math.floor(dist / 8)
+                    nvgStrokeColor(vg, nvgRGBA(100, 90, 70, 35))
+                    nvgStrokeWidth(vg, 1)
+                    for s = 0, segments - 1, 2 do
+                        local t1, t2 = s / segments, math.min((s + 1) / segments, 1)
+                        nvgBeginPath(vg)
+                        nvgMoveTo(vg, x1 + ddx * t1, y1 + ddy * t1)
+                        nvgLineTo(vg, x1 + ddx * t2, y1 + ddy * t2)
+                        nvgStroke(vg)
+                    end
+                end
+            end
+        end
+    end
+
+    -- 攻击路线高亮 (选中出征时)
+    if st.phase == "CONFIRM_ATTACK" and st.selectedCity and st.targetCity then
+        local from = WORLD_CITIES[st.selectedCity]
+        local to = WORLD_CITIES[st.targetCity]
+        if from and to then
+            local ax1, ay1 = from.x, from.y + mapTop
+            local ax2, ay2 = to.x, to.y + mapTop
+            local pulse2 = 0.5 + 0.5 * math.sin(t * 4)
+            nvgStrokeColor(vg, nvgRGBA(255, 100, 50, math.floor(120 + 80 * pulse2)))
+            nvgStrokeWidth(vg, 3)
+            nvgBeginPath(vg); nvgMoveTo(vg, ax1, ay1); nvgLineTo(vg, ax2, ay2); nvgStroke(vg)
+            -- 箭头
+            local adx, ady = ax2 - ax1, ay2 - ay1
+            local alen = math.sqrt(adx * adx + ady * ady)
+            if alen > 0 then
+                local unx, uny = adx / alen, ady / alen
+                local arrowX, arrowY = ax2 - unx * 16, ay2 - uny * 16
+                nvgBeginPath(vg)
+                nvgMoveTo(vg, ax2, ay2)
+                nvgLineTo(vg, arrowX - uny * 6, arrowY + unx * 6)
+                nvgLineTo(vg, arrowX + uny * 6, arrowY - unx * 6)
+                nvgClosePath(vg)
+                nvgFillColor(vg, nvgRGBA(255, 100, 50, math.floor(160 + 60 * pulse2))); nvgFill(vg)
+            end
+        end
+    end
+
+    -- 攻击目标选择高亮
+    if st.phase == "ATK_TARGET" and st.selectedCity then
+        local fromCity = WORLD_CITIES[st.selectedCity]
+        for _, connId in ipairs(fromCity.conn) do
+            local cd = st.cityData[connId]
+            if cd.owner ~= "player" then
+                local tgt = WORLD_CITIES[connId]
+                local pulse3 = 0.5 + 0.5 * math.sin(t * 6 + connId)
+                nvgBeginPath(vg); nvgCircle(vg, tgt.x, tgt.y + mapTop, 20)
+                nvgStrokeColor(vg, nvgRGBA(255, 80, 40, math.floor(100 + 80 * pulse3)))
+                nvgStrokeWidth(vg, 2); nvgStroke(vg)
+            end
+        end
+    end
+
+    -- 城池
+    for _, city in ipairs(WORLD_CITIES) do
+        local cd = st.cityData[city.id]
+        local px, py = city.x, city.y + mapTop
+        local isSelected = (st.selectedCity == city.id)
+        local isTarget = (st.targetCity == city.id and (st.phase == "CONFIRM_ATTACK" or st.phase == "ATK_TARGET"))
+        local r = 13 + cd.level * 1.5
+        local isCapital = (city.def >= 4)
+
+        DrawCityIcon(px, py, r, cd.owner, cd.level, isSelected or isTarget, isCapital, t)
+
+        if #cd.heroes > 0 then
+            DrawFlag(px + r + 2, py + r * 0.3, cd.owner, #cd.heroes)
+        end
+
+        -- 城名 (描边文字 - 亮底暗字)
+        nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 14)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
+        nvgFillColor(vg, nvgRGBA(255, 250, 230, 180))
+        nvgText(vg, px + 1, py + r + 3, city.name, nil)
+        nvgFillColor(vg, nvgRGBA(60, 30, 10, 230))
+        nvgText(vg, px, py + r + 2, city.name, nil)
+
+        -- 驻军数
+        nvgFontSize(vg, 13)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        nvgFillColor(vg, nvgRGBA(255, 255, 255, 230))
+        nvgText(vg, px, py + 1, tostring(cd.garrison), nil)
+
+        -- 士气条 (玩家城)
+        if cd.owner == "player" then
+            local barW = r * 1.8
+            local barH2 = 4
+            local barX2 = px - barW / 2
+            local barY2 = py + r + 16
+            nvgBeginPath(vg); nvgRoundedRect(vg, barX2, barY2, barW, barH2, 1)
+            nvgFillColor(vg, nvgRGBA(80, 60, 40, 120)); nvgFill(vg)
+            local moraleRatio = cd.morale / 100
+            local mColor = moraleRatio > 0.6 and {80, 200, 80} or (moraleRatio > 0.3 and {220, 180, 40} or {220, 60, 40})
+            nvgBeginPath(vg); nvgRoundedRect(vg, barX2, barY2, barW * moraleRatio, barH2, 1)
+            nvgFillColor(vg, nvgRGBA(mColor[1], mColor[2], mColor[3], 180)); nvgFill(vg)
+        end
+
+        city._hitRect = { x = px - r - 8, y = py - r - 8, w = (r + 8) * 2, h = (r + 8) * 2 + 22 }
+    end
+
+    -- 动态云雾
+    DrawClouds(mapTop, t)
+
+    -- === 顶部状态栏 (国风卷轴, 横屏) ===
+    local topBarH = 52
+    nvgBeginPath(vg); nvgRect(vg, 0, 0, W, topBarH)
+    local barGrad = nvgLinearGradient(vg, 0, 0, 0, topBarH,
+        nvgRGBA(120, 70, 30, 220), nvgRGBA(90, 50, 20, 235))
+    nvgFillPaint(vg, barGrad); nvgFill(vg)
+    -- 底部金色分隔线
+    nvgBeginPath(vg); nvgMoveTo(vg, 0, topBarH - 1); nvgLineTo(vg, W, topBarH - 1)
+    nvgStrokeColor(vg, nvgRGBA(255, 220, 120, 160)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
+    nvgBeginPath(vg); nvgMoveTo(vg, 0, topBarH + 0.5); nvgLineTo(vg, W, topBarH + 0.5)
+    nvgStrokeColor(vg, nvgRGBA(80, 40, 10, 120)); nvgStrokeWidth(vg, 0.5); nvgStroke(vg)
+
+    -- 标题 (描边金字) - 横屏下放左侧
+    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 22)
+    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(40, 20, 5, 180))
+    nvgText(vg, 9, 15, "天下大势", nil)
+    nvgFillColor(vg, nvgRGBA(255, 235, 170, 255))
+    nvgText(vg, 8, 14, "天下大势", nil)
+
+    -- 资源条 - 横屏下排成一行
+    nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+    local resY = 14
+    nvgFillColor(vg, nvgRGBA(255, 240, 210, 220))
+    nvgText(vg, 120, resY, "第" .. st.turn .. "回合", nil)
+    nvgFillColor(vg, nvgRGBA(255, 230, 100, 255))
+    nvgText(vg, 210, resY, "💰" .. st.gold, nil)
+    nvgFillColor(vg, nvgRGBA(180, 240, 130, 255))
+    nvgText(vg, 300, resY, "🌾" .. st.food, nil)
+    local pc = WorldMap.GetPlayerCityCount()
+    nvgFillColor(vg, nvgRGBA(220, 210, 255, 240))
+    nvgText(vg, 390, resY, "🏯" .. pc .. "/" .. #WORLD_CITIES, nil)
+    -- 势力标识
+    nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
+    local pfac = st.playerFaction
+    local pfName = FACTIONS[pfac] and FACTIONS[pfac].name or pfac
+    local pfc = FC.player
+    nvgFillColor(vg, nvgRGBA(255, 240, 200, 255))
+    nvgFontSize(vg, 14)
+    nvgText(vg, W - 8, resY, pfName .. "·玩家", nil)
+
+    -- 势力实力条 (迷你横条) - 放在顶栏第二行
+    local facStats = GetFactionStats()
+    local totalCities = #WORLD_CITIES
+    local powerY = 36
+    local powerBarW = W - 16
+    local powerBarH = 6
+    nvgBeginPath(vg); nvgRoundedRect(vg, 8, powerY, powerBarW, powerBarH, 2)
+    nvgFillColor(vg, nvgRGBA(60, 30, 10, 100)); nvgFill(vg)
+    local facOrder = {"player", "wei", "shu", "wu", "qun"}
+    local px2 = 8
+    for _, fk in ipairs(facOrder) do
+        local fs = facStats[fk]
+        if fs and fs.cities > 0 then
+            local segW = powerBarW * (fs.cities / totalCities)
+            local fc = GetFC(fk)
+            nvgBeginPath(vg); nvgRoundedRect(vg, px2, powerY, segW, powerBarH, 2)
+            nvgFillColor(vg, nvgRGBA(fc.main[1], fc.main[2], fc.main[3], 200)); nvgFill(vg)
+            px2 = px2 + segW
+        end
+    end
+
+    -- 图例 - 横屏下利用顶栏第二行右侧空间
+    local legendY = 46
+    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 11)
+    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+    local legends = {
+        {name="我方",key="player"}, {name="魏",key="wei"}, {name="蜀",key="shu"},
+        {name="吴",key="wu"}, {name="群",key="qun"},
+    }
+    local lx = 8
+    for _, lg in ipairs(legends) do
+        local fc = GetFC(lg.key)
+        nvgBeginPath(vg)
+        nvgCircle(vg, lx + 4, legendY, 4)
+        nvgFillColor(vg, nvgRGBA(fc.main[1], fc.main[2], fc.main[3], 200)); nvgFill(vg)
+        nvgFillColor(vg, nvgRGBA(220, 200, 170, 220))
+        nvgText(vg, lx + 11, legendY, lg.name, nil)
+        lx = lx + 38
+    end
+    -- 地形图例
+    nvgFillColor(vg, nvgRGBA(180, 160, 130, 160))
+    nvgText(vg, lx + 10, legendY, "▲山 ♣林", nil)
+
+    -- ============================================================
+    -- 底部操作面板 (横屏: 地图占上部, 面板占底部)
+    -- ============================================================
+    local panelY = 375
+    local panelH = H - panelY
+
+    -- 面板底图 (卷轴羊皮纸)
+    if IsImageReady(IMG.wmPanel) then
+        local pat = nvgImagePattern(vg, 0, panelY, W, panelH, 0, IMG.wmPanel, 0.95)
+        nvgBeginPath(vg); nvgRect(vg, 0, panelY, W, panelH)
+        nvgFillPaint(vg, pat); nvgFill(vg)
+    else
+        nvgBeginPath(vg); nvgRect(vg, 0, panelY, W, panelH)
+        local panGrad = nvgLinearGradient(vg, 0, panelY, 0, H,
+            nvgRGBA(230, 210, 170, 245), nvgRGBA(210, 190, 150, 250))
+        nvgFillPaint(vg, panGrad); nvgFill(vg)
+    end
+    -- 顶部金色分隔线
+    nvgBeginPath(vg); nvgMoveTo(vg, 0, panelY); nvgLineTo(vg, W, panelY)
+    nvgStrokeColor(vg, nvgRGBA(180, 140, 60, 160)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
+    nvgBeginPath(vg); nvgMoveTo(vg, 0, panelY + 1.5); nvgLineTo(vg, W, panelY + 1.5)
+    nvgStrokeColor(vg, nvgRGBA(255, 220, 120, 80)); nvgStrokeWidth(vg, 0.5); nvgStroke(vg)
+
+    if st.phase == "MAP" then
+        DrawMapPanel(panelY, panelH, W, t)
+    elseif st.phase == "AFFAIRS" then
+        DrawAffairsPanel(panelY, panelH, W)
+    elseif st.phase == "DIPLOMACY" then
+        DrawDiplomacyPanel(panelY, panelH, W)
+    elseif st.phase == "STRATAGEM" then
+        DrawStratagemPanel(panelY, panelH, W)
+    elseif st.phase == "MOVE_SELECT" then
+        DrawMoveSelectPanel(panelY, panelH, W)
+    elseif st.phase == "ATK_TARGET" then
+        DrawAtkTargetPanel(panelY, panelH, W)
+    elseif st.phase == "CONFIRM_ATTACK" then
+        DrawDeployPanel(panelY, panelH, W)
+    elseif st.phase == "TURN_REPORT" then
+        DrawTurnReportPanel(panelY, panelH, W)
+    end
+end
+
+-- ============================================================================
+-- 底部面板: 地图默认
+-- ============================================================================
+function DrawMapPanel(panelY, panelH, W, t)
+    local st = worldMapState
+
+    if st.selectedCity then
+        local city = WORLD_CITIES[st.selectedCity]
+        local cd = st.cityData[st.selectedCity]
+        if not city or not cd then st.selectedCity = nil; return end
+        local isPlayer = (cd.owner == "player")
+        local fc = GetFC(cd.owner)
+        local facName = isPlayer and "我方" or (FACTIONS[cd.owner] and FACTIONS[cd.owner].name or cd.owner)
+
+        -- 城池信息卡片 (横屏: 左半区域显示信息)
+        local cardX, cardW = 8, W * 0.55
+        local cardY, cardH = panelY + 4, 48
+        nvgBeginPath(vg); nvgRoundedRect(vg, cardX, cardY, cardW, cardH, 5)
+        nvgFillColor(vg, nvgRGBA(fc.main[1], fc.main[2], fc.main[3], 35)); nvgFill(vg)
+        nvgStrokeColor(vg, nvgRGBA(fc.main[1], fc.main[2], fc.main[3], 80))
+        nvgStrokeWidth(vg, 1); nvgStroke(vg)
+
+        nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
+        nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+        nvgFillColor(vg, nvgRGBA(80, 40, 10, 255))
+        nvgText(vg, cardX + 8, cardY + 4, city.name, nil)
+        nvgFontSize(vg, 13)
+        nvgFillColor(vg, nvgRGBA(100, 70, 40, 180))
+        nvgText(vg, cardX + 65, cardY + 6, facName .. " · " .. city.region, nil)
+
+        nvgFontSize(vg, 13)
+        nvgFillColor(vg, nvgRGBA(70, 50, 30, 210))
+        local infoY = cardY + 22
+        nvgText(vg, cardX + 8, infoY, "驻军:" .. cd.garrison, nil)
+        nvgText(vg, cardX + 80, infoY, "城防:Lv" .. cd.level, nil)
+        nvgText(vg, cardX + 165, infoY, "产出:" .. city.prod, nil)
+        if isPlayer then
+            nvgText(vg, cardX + 245, infoY, "士气:" .. cd.morale, nil)
+        end
+        -- 武将
+        if #cd.heroes > 0 then
+            nvgFontSize(vg, 13)
+            nvgFillColor(vg, nvgRGBA(40, 80, 140, 220))
+            local hNames = {}
+            for _, hIdx in ipairs(cd.heroes) do
+                local card = HERO_CARDS[hIdx]
+                if card then
+                    local tt = card.troopType and TROOP_TYPES[card.troopType]
+                    table.insert(hNames, card.name .. (tt and tt.icon or ""))
+                end
+            end
+            nvgText(vg, cardX + 325, infoY, "将:" .. table.concat(hNames, " "), nil)
+        end
+
+        -- 刺探情报显示
+        if st.scoutResult and st.scoutResult.cityId == st.selectedCity and not isPlayer then
+            nvgFontSize(vg, 13)
+            nvgFillColor(vg, nvgRGBA(180, 100, 20, 230))
+            local sr = st.scoutResult
+            nvgText(vg, cardX + 8, infoY + 15, "【情报】兵:" .. sr.garrison .. " 防:Lv" .. sr.level .. " 气:" .. sr.morale, nil)
+            if #sr.heroes > 0 then
+                nvgText(vg, cardX + 240, infoY + 15, "将:" .. table.concat(sr.heroes, " "), nil)
+            end
+        end
+
+        -- 操作按钮 (横屏: 右半区域放按钮)
+        local btnY = panelY + 6
+        local btnH = 32
+        local btnGap = 4
+        local btnAreaX = W * 0.57
+
+        if isPlayer then
+            local btns = {
+                {label="内政", key="affairs",   c={60,120,75}},
+                {label="外交", key="diplomacy", c={80,90,150}},
+                {label="计略", key="stratagem", c={140,80,60}},
+                {label="调兵", key="move",      c={70,110,160}},
+                {label="出征", key="attack",    c={170,55,40}},
+            }
+            local btnW = (W - btnAreaX - 8 - (#btns - 1) * btnGap) / #btns
+            for i, btn in ipairs(btns) do
+                local bx = btnAreaX + (i - 1) * (btnW + btnGap)
+                st["btn_" .. btn.key] = DrawBtn(bx, btnY, btnW, btnH, btn.label, btn.c[1], btn.c[2], btn.c[3])
+            end
+        else
+            nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 14)
+            nvgFillColor(vg, nvgRGBA(120, 80, 40, 180))
+            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            nvgText(vg, btnAreaX + (W - btnAreaX) / 2, btnY + btnH / 2, "敌方城池 — 可从相邻城池出征", nil)
+        end
+    else
+        nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 16)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        nvgFillColor(vg, nvgRGBA(100, 70, 40, 160))
+        nvgText(vg, W / 2, panelY + 25, "— 点击城池查看详情 —", nil)
+    end
+
+    -- 结束回合 + 返回 (横屏: 底部一行)
+    local endW, endH = 90, 32
+    local endX = W - endW - 8
+    local endY = panelY + panelH - endH - 6
+    local pulse = 0.8 + 0.2 * math.sin(t * 3)
+    st.btn_endTurn = DrawBtn(endX, endY, endW, endH, "结束回合",
+        math.floor(160 * pulse), math.floor(130 * pulse), 30)
+
+    -- 返回
+    st.btn_back = DrawBtn(8, endY, 60, 32, "返回", 60, 55, 50)
+end
+
+-- ============================================================================
+-- 内政面板
+-- ============================================================================
+function DrawAffairsPanel(panelY, panelH, W)
+    local st = worldMapState
+    local cityId = st.affairsCity
+    if not cityId then st.phase = "MAP"; return end
+    local city, cd = WORLD_CITIES[cityId], st.cityData[cityId]
+    if not city or not cd then st.phase = "MAP"; return end
+
+    -- 横屏布局: 标题+资源在一行, 操作分两列
+    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
+    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+    nvgFillColor(vg, nvgRGBA(80, 40, 10, 255))
+    nvgText(vg, 12, panelY + 5, city.name .. " · 内政", nil)
+
+    nvgFontSize(vg, 13)
+    nvgFillColor(vg, nvgRGBA(100, 70, 40, 200))
+    nvgText(vg, 160, panelY + 7, "金:" .. st.gold .. "  粮:" .. st.food .. "  驻军:" .. cd.garrison .. "  士气:" .. cd.morale, nil)
+
+    local startY = panelY + 26
+    local rowH = 34
+    local btnW, btnH = 80, 28
+    local ops = {
+        {label="征兵+50", desc="花费150金+50粮", key="recruit",
+         enabled=st.gold>=150 and st.food>=50, color={60,130,75}},
+        {label="升级城防", desc="Lv"..cd.level.."→"..math.min(5,cd.level+1).." "..(cd.level*200).."金",
+         key="upgrade", enabled=cd.level<5 and st.gold>=cd.level*200, color={70,100,160}},
+        {label="搜索人才", desc="100金 (20%发现)", key="search",
+         enabled=st.gold>=100, color={140,100,60}},
+        {label="犒赏三军", desc="80金 士气+15", key="morale",
+         enabled=st.gold>=80 and cd.morale<95, color={160,120,40}},
+    }
+    -- 横屏: 操作分两列显示
+    local colW = (W - 24) / 2
+    for i, op in ipairs(ops) do
+        local col = (i - 1) % 2
+        local row = math.floor((i - 1) / 2)
+        local ox = 12 + col * (colW + 8)
+        local oy = startY + row * rowH
+        nvgFontSize(vg, 13)
+        nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+        nvgFillColor(vg, nvgRGBA(70, 50, 30, op.enabled and 220 or 120))
+        nvgText(vg, ox, oy + rowH / 2, op.desc, nil)
+        local bx = ox + colW - btnW
+        local by = oy + (rowH - btnH) / 2
+        if op.enabled then
+            st["btn_" .. op.key] = DrawBtn(bx, by, btnW, btnH, op.label, op.color[1], op.color[2], op.color[3])
+        else
+            st["btn_" .. op.key] = DrawBtn(bx, by, btnW, btnH, op.label, 60, 60, 60, 120)
+        end
+    end
+    if st.searchResult then
+        local card = HERO_CARDS[st.searchResult.heroIdx]
+        if card then
+            nvgFontSize(vg, 15)
+            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            nvgFillColor(vg, nvgRGBA(180, 100, 20, 255))
+            nvgText(vg, W / 2, startY + 2 * rowH + 8, "发现人才: " .. card.name .. "!", nil)
+        end
+    end
+    st.btn_affairsBack = DrawBtn(W / 2 - 40, panelY + panelH - 34, 80, 28, "返回", 60, 55, 50)
+end
+
+-- ============================================================================
+-- 外交面板
+-- ============================================================================
+function DrawDiplomacyPanel(panelY, panelH, W)
+    local st = worldMapState
+    -- 横屏布局: 标题+金币在一行, 3个阵营用更紧凑的行高
+    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
+    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+    nvgFillColor(vg, nvgRGBA(80, 40, 10, 255))
+    nvgText(vg, 12, panelY + 5, "外交", nil)
+    nvgFontSize(vg, 13)
+    nvgFillColor(vg, nvgRGBA(100, 70, 40, 200))
+    nvgText(vg, 60, panelY + 7, "金:" .. st.gold, nil)
+
+    local startY, rowH = panelY + 24, 42
+    local factions = {"wei", "shu", "qun"}
+    local fs = GetFactionStats()
+    for i, fac in ipairs(factions) do
+        local d = st.diplomacy[fac] or {relation=0, treaty=nil}
+        local fy = startY + (i - 1) * rowH
+        local facInfo = FACTIONS[fac]
+        local fc = GetFC(fac)
+
+        -- 阵营名+关系条+数值 在同一行
+        nvgFontSize(vg, 15)
+        nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+        nvgFillColor(vg, nvgRGBA(fc.light[1], fc.light[2], fc.light[3], 240))
+        local rowMid = fy + rowH / 2
+        nvgText(vg, 12, rowMid - 7, facInfo.name, nil)
+
+        local barX, barW2, barH2 = 46, 100, 6
+        nvgBeginPath(vg); nvgRoundedRect(vg, barX, rowMid - 10, barW2, barH2, 2)
+        nvgFillColor(vg, nvgRGBA(80, 60, 40, 100)); nvgFill(vg)
+        local rel = d.relation / 100
+        local relColor = rel > 0.5 and {60, 180, 80} or (rel > 0.25 and {200, 180, 40} or {200, 60, 40})
+        nvgBeginPath(vg); nvgRoundedRect(vg, barX, rowMid - 10, barW2 * rel, barH2, 2)
+        nvgFillColor(vg, nvgRGBA(relColor[1], relColor[2], relColor[3], 200)); nvgFill(vg)
+        nvgFontSize(vg, 13)
+        nvgFillColor(vg, nvgRGBA(70, 50, 30, 210))
+        nvgText(vg, barX + barW2 + 4, rowMid - 7, tostring(d.relation), nil)
+        if d.treaty then
+            nvgFillColor(vg, nvgRGBA(40, 130, 60, 230))
+            nvgText(vg, barX + barW2 + 28, rowMid - 7, "[和约]", nil)
+        end
+        nvgFillColor(vg, nvgRGBA(100, 80, 50, 180))
+        nvgText(vg, barX + barW2 + (d.treaty and 70 or 28), rowMid - 7, "城:" .. (fs[fac] and fs[fac].cities or 0), nil)
+
+        -- 按钮放在同一行右侧
+        local btnW2, btnH2 = 70, 26
+        st["btn_gift_" .. fac] = DrawBtn(W - btnW2 * 2 - 16, rowMid - btnH2 / 2, btnW2, btnH2, "送礼200金",
+            80, 100, 60, st.gold >= 200 and 200 or 100)
+        if not d.treaty then
+            st["btn_treaty_" .. fac] = DrawBtn(W - btnW2 - 8, rowMid - btnH2 / 2, btnW2, btnH2, "缔约500金",
+                80, 80, 140, (d.relation >= 60 and st.gold >= 500) and 200 or 100)
+        else
+            st["btn_treaty_" .. fac] = nil
+        end
+    end
+    st.btn_diploBack = DrawBtn(W / 2 - 40, panelY + panelH - 32, 80, 28, "返回", 60, 55, 50)
+end
+
+-- ============================================================================
+-- 计略面板
+-- ============================================================================
+function DrawStratagemPanel(panelY, panelH, W)
+    local st = worldMapState
+    -- 横屏布局: 标题+目标+金币在一行, 计略分两列显示
+    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
+    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+    nvgFillColor(vg, nvgRGBA(80, 40, 10, 255))
+    nvgText(vg, 12, panelY + 5, "计略", nil)
+
+    local tgtId = st.stratagemTarget
+    local tgtName = "未选择"
+    if tgtId then
+        local tc = WORLD_CITIES[tgtId]
+        if tc then tgtName = tc.name end
+    end
+    nvgFontSize(vg, 13)
+    nvgFillColor(vg, nvgRGBA(100, 70, 40, 200))
+    nvgText(vg, 60, panelY + 7, "目标:" .. tgtName .. "  金:" .. st.gold, nil)
+
+    -- 横屏: 2列显示4个计略
+    local startY, rowH = panelY + 24, 36
+    local colW = (W - 24) / 2
+    local btnW3, btnH3 = 70, 26
+    for i, strat in ipairs(STRATAGEMS) do
+        local col = (i - 1) % 2
+        local row = math.floor((i - 1) / 2)
+        local ox = 12 + col * (colW + 8)
+        local oy = startY + row * rowH
+        local canUse = tgtId and st.gold >= strat.cost
+        nvgFontSize(vg, 13)
+        nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+        nvgFillColor(vg, nvgRGBA(70, 50, 30, canUse and 220 or 100))
+        nvgText(vg, ox, oy + rowH / 2, strat.icon .. " " .. strat.desc .. " " .. strat.cost .. "金", nil)
+        local bx = ox + colW - btnW3
+        local by = oy + (rowH - btnH3) / 2
+        if canUse then
+            st["btn_strat_" .. strat.id] = DrawBtn(bx, by, btnW3, btnH3, strat.name, 140, 80, 50)
+        else
+            st["btn_strat_" .. strat.id] = DrawBtn(bx, by, btnW3, btnH3, strat.name, 60, 60, 60, 100)
+        end
+    end
+
+    -- 提示
+    if not tgtId then
+        nvgFontSize(vg, 13)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        nvgFillColor(vg, nvgRGBA(180, 100, 20, 200))
+        nvgText(vg, W / 2, startY + 2 * rowH + 8, "请先在地图上点选敌方城池", nil)
+    end
+
+    st.btn_stratBack = DrawBtn(W / 2 - 40, panelY + panelH - 32, 80, 28, "返回", 60, 55, 50)
+end
+
+-- ============================================================================
+-- 调兵面板
+-- ============================================================================
+function DrawMoveSelectPanel(panelY, panelH, W)
+    local st = worldMapState
+    local fromCity = WORLD_CITIES[st.selectedCity]
+    if not fromCity then st.phase = "MAP"; return end
+    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
+    nvgFillColor(vg, nvgRGBA(80, 40, 10, 255))
+    nvgText(vg, W / 2, panelY + 6, fromCity.name .. " · 调兵", nil)
+    nvgFontSize(vg, 14)
+    nvgFillColor(vg, nvgRGBA(100, 70, 40, 200))
+    nvgText(vg, W / 2, panelY + 26, "点击相邻我方城池 (调50%兵力+全部武将)", nil)
+    st.btn_moveBack = DrawBtn(W / 2 - 40, panelY + panelH - 32, 80, 28, "取消", 60, 55, 50)
+end
+
+-- ============================================================================
+-- 攻击目标选择面板
+-- ============================================================================
+function DrawAtkTargetPanel(panelY, panelH, W)
+    local st = worldMapState
+    local fromCity = WORLD_CITIES[st.selectedCity]
+    if not fromCity then st.phase = "MAP"; return end
+    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
+    nvgFillColor(vg, nvgRGBA(160, 50, 20, 255))
+    nvgText(vg, W / 2, panelY + 5, fromCity.name .. " · 选择攻击目标", nil)
+    nvgFontSize(vg, 13)
+    nvgFillColor(vg, nvgRGBA(180, 80, 30, 220))
+    nvgText(vg, W / 2, panelY + 24, "点击地图上高亮的敌方城池", nil)
+
+    -- 横屏: 敌方目标横向排列
+    local enemies = {}
+    for _, connId in ipairs(fromCity.conn) do
+        local cd = st.cityData[connId]
+        if cd.owner ~= "player" then table.insert(enemies, connId) end
+    end
+    if #enemies > 0 then
+        nvgFontSize(vg, 13)
+        nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+        local ex = 15
+        for i, eid in ipairs(enemies) do
+            local ec = WORLD_CITIES[eid]
+            local ed = st.cityData[eid]
+            local efc = GetFC(ed.owner)
+            nvgFillColor(vg, nvgRGBA(efc.dark[1], efc.dark[2], efc.dark[3], 220))
+            local txt = ec.name .. "(" .. (FACTIONS[ed.owner] and FACTIONS[ed.owner].name or ed.owner) .. " " .. ed.garrison .. "兵)"
+            nvgText(vg, ex, panelY + 42, txt, nil)
+            ex = ex + 180
+        end
+    end
+
+    st.btn_atkTargetBack = DrawBtn(W / 2 - 40, panelY + panelH - 32, 80, 28, "取消", 60, 55, 50)
+end
+
+-- ============================================================================
+-- 战前部署面板
+-- ============================================================================
+function DrawDeployPanel(panelY, panelH, W)
+    local st = worldMapState
+    if not st.selectedCity or not st.targetCity then st.phase = "MAP"; return end
+    local fromCity, toCity = WORLD_CITIES[st.selectedCity], WORLD_CITIES[st.targetCity]
+    local fromData, toData = st.cityData[st.selectedCity], st.cityData[st.targetCity]
+    if not fromCity or not toCity then st.phase = "MAP"; return end
+
+    local defFac = toData.owner
+    local defFacName = FACTIONS[defFac] and FACTIONS[defFac].name or defFac
+    local dfc = GetFC(defFac)
+
+    -- 横屏布局: 左半区=对阵信息+兵力条, 右半区=兵力选择+武将+按钮
+    nvgFontFaceId(vg, GetMainFont())
+    local midX = W * 0.48
+
+    -- === 左半区: 对阵信息 ===
+    nvgFontSize(vg, 16)
+    nvgFillColor(vg, nvgRGBA(160, 50, 20, 255))
+    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+    nvgText(vg, 12, panelY + 4, "战前部署", nil)
+
+    -- 对阵名称
+    nvgFontSize(vg, 14)
+    nvgFillColor(vg, nvgRGBA(40, 80, 40, 240))
+    nvgText(vg, 12, panelY + 22, fromCity.name, nil)
+    nvgFillColor(vg, nvgRGBA(80, 50, 20, 220))
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
+    nvgText(vg, midX / 2, panelY + 22, "⚔", nil)
+    nvgFillColor(vg, nvgRGBA(dfc.dark[1], dfc.dark[2], dfc.dark[3], 240))
+    nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
+    nvgText(vg, midX - 8, panelY + 22, toCity.name .. "(" .. defFacName .. ")", nil)
+
+    -- 兵力对比条
+    local barY3, barH3 = panelY + 38, 10
+    local barW = midX - 24
+    local totalForce = fromData.garrison + toData.garrison + 1
+    local atkRatio = fromData.garrison / totalForce
+    nvgBeginPath(vg); nvgRoundedRect(vg, 12, barY3, barW * atkRatio, barH3, 3)
+    nvgFillColor(vg, nvgRGBA(FC.player.main[1], FC.player.main[2], FC.player.main[3], 200)); nvgFill(vg)
+    nvgBeginPath(vg); nvgRoundedRect(vg, 12 + barW * atkRatio, barY3, barW * (1 - atkRatio), barH3, 3)
+    nvgFillColor(vg, nvgRGBA(dfc.main[1], dfc.main[2], dfc.main[3], 200)); nvgFill(vg)
+    nvgFontSize(vg, 11)
+    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(255, 255, 255, 220))
+    nvgText(vg, 15, barY3 + barH3 / 2, tostring(fromData.garrison), nil)
+    nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
+    nvgText(vg, midX - 12, barY3 + barH3 / 2, tostring(toData.garrison) .. "+Lv" .. toData.level, nil)
+
+    -- 武将卡牌列表 (左半区下部)
+    local heroY = panelY + 54
+    nvgFontSize(vg, 13)
+    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+    if #fromData.heroes > 0 then
+        nvgFillColor(vg, nvgRGBA(40, 80, 140, 220))
+        nvgText(vg, 12, heroY, "武将(点击切换出战):", nil)
+        local cardW, cardH = 62, 82
+        local cardGap = 6
+        local cardStartY = heroY + 17
+        local maxCards = math.min(#fromData.heroes, 5)
+        local cardStartX = 12
+        for i = 1, maxCards do
+            local hIdx = fromData.heroes[i]
+            local card = HERO_CARDS[hIdx]
+            if card then
+                local cx = cardStartX + (i - 1) * (cardW + cardGap)
+                local cy = cardStartY
+                local hero = playerHeroes[hIdx]
+                local cons = hero and hero.constellation or 0
+                local deployed = false
+                for _, dh in ipairs(st.deployHeroes) do if dh == hIdx then deployed = true; break end end
+
+                -- 绘制卡牌
+                DrawInventoryCard(cx, cy, cardW, cardH, card, cons, false, false)
+
+                -- 已选中: 高亮边框 + "出战" 标签
+                if deployed then
+                    nvgBeginPath(vg); nvgRoundedRect(vg, cx - 2, cy - 2, cardW + 4, cardH + 4, 5)
+                    nvgStrokeColor(vg, nvgRGBA(255, 200, 50, 220))
+                    nvgStrokeWidth(vg, 2.0); nvgStroke(vg)
+                    -- 出战标签
+                    nvgBeginPath(vg); nvgRoundedRect(vg, cx + cardW - 24, cy + 1, 22, 13, 2)
+                    nvgFillColor(vg, nvgRGBA(220, 160, 30, 220)); nvgFill(vg)
+                    nvgFontSize(vg, 9); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                    nvgFillColor(vg, nvgRGBA(60, 30, 0, 255))
+                    nvgText(vg, cx + cardW - 13, cy + 7.5, "出战", nil)
+                else
+                    -- 未选中: 暗色遮罩
+                    nvgBeginPath(vg); nvgRoundedRect(vg, cx, cy, cardW, cardH, 4)
+                    nvgFillColor(vg, nvgRGBA(0, 0, 0, 100)); nvgFill(vg)
+                end
+
+                -- 兵种图标 (左下角)
+                local tt = card.troopType and TROOP_TYPES[card.troopType]
+                if tt and tt.icon then
+                    nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_BOTTOM)
+                    nvgFillColor(vg, nvgRGBA(255, 255, 255, 200))
+                    nvgText(vg, cx + 3, cy + cardH - 2, tt.icon, nil)
+                end
+
+                st["btn_hero_" .. i] = { x = cx, y = cy, w = cardW, h = cardH }
+            end
+        end
+        -- 恢复字体状态
+        nvgFontFaceId(vg, GetMainFont())
+    else
+        nvgFillColor(vg, nvgRGBA(200, 80, 30, 200))
+        nvgText(vg, 12, heroY, "无武将出战!(战力大减)", nil)
+    end
+
+    -- === 右半区: 兵力选择+粮草+按钮 ===
+    local rightX = midX + 8
+
+    -- 出征兵力
+    nvgFontSize(vg, 14)
+    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+    nvgFillColor(vg, nvgRGBA(70, 50, 30, 220))
+    nvgText(vg, rightX, panelY + 6, "出征兵力:", nil)
+
+    local ratios = {{label="30%",ratio=0.3},{label="50%",ratio=0.5},{label="70%",ratio=0.7}}
+    local rbtnW, rbtnH = 75, 26
+    local rbtnX = rightX
+    for i, r in ipairs(ratios) do
+        local troops = math.floor(fromData.garrison * r.ratio)
+        local isActive = (st.deployTroops == troops)
+        local bx2 = rbtnX + (i - 1) * (rbtnW + 4)
+        if isActive then
+            st["btn_ratio" .. i] = DrawBtn(bx2, panelY + 22, rbtnW, rbtnH, r.label.."("..troops..")", 180, 140, 40)
+        else
+            st["btn_ratio" .. i] = DrawBtn(bx2, panelY + 22, rbtnW, rbtnH, r.label.."("..troops..")", 60, 55, 50)
+        end
+    end
+    if st.deployTroops == 0 then st.deployTroops = math.floor(fromData.garrison * 0.5) end
+
+    -- 粮草
+    local foodCost = math.floor(st.deployTroops * 0.5)
+    nvgFontSize(vg, 13)
+    nvgFillColor(vg, st.food >= foodCost and nvgRGBA(140, 220, 100, 200) or nvgRGBA(255, 80, 60, 220))
+    nvgText(vg, rightX, panelY + 54, "粮草:" .. foodCost .. " (现有:" .. st.food .. ")", nil)
+
+    -- 按钮 (右半区底部)
+    local btnW3, btnH3 = 90, 30
+    local btnY3 = panelY + panelH - btnH3 - 6
+    local canAtk = st.deployTroops >= 20 and st.food >= foodCost
+    if canAtk then
+        st.btn_confirmAtk = DrawBtn(rightX + (W - rightX - btnW3 * 2 - 12) / 2 + btnW3 + 8, btnY3, btnW3, btnH3, "出征!", 170, 55, 40)
+    else
+        st.btn_confirmAtk = DrawBtn(rightX + (W - rightX - btnW3 * 2 - 12) / 2 + btnW3 + 8, btnY3, btnW3, btnH3, "出征!", 60, 60, 60, 120)
+    end
+    st.btn_cancelAtk = DrawBtn(rightX + (W - rightX - btnW3 * 2 - 12) / 2, btnY3, btnW3, btnH3, "取消", 60, 55, 50)
+end
+
+-- ============================================================================
+-- 回合报告面板 (支持滚动)
+-- ============================================================================
+function DrawTurnReportPanel(panelY, panelH, W)
+    local st = worldMapState
+    -- 横屏布局: 标题一行, 战报列表用更紧凑的行高, 按钮在底部
+    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
+    nvgFillColor(vg, nvgRGBA(80, 40, 10, 255))
+    nvgText(vg, W / 2, panelY + 4, "第 " .. (st.turn - 1) .. " 回合 · 战报", nil)
+
+    nvgBeginPath(vg)
+    nvgMoveTo(vg, 30, panelY + 20); nvgLineTo(vg, W - 30, panelY + 20)
+    nvgStrokeColor(vg, nvgRGBA(180, 140, 60, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
+
+    if st.turnReport then
+        local lineH = 20
+        local contentTop = panelY + 22
+        local contentBot = panelY + panelH - 34
+        local maxVisible = math.floor((contentBot - contentTop) / lineH)
+        local totalItems = #st.turnReport
+        local scrollOff = st.reportScroll or 0
+
+        nvgSave(vg)
+        nvgScissor(vg, 0, contentTop, W, contentBot - contentTop)
+
+        for i, item in ipairs(st.turnReport) do
+            local lineY = contentTop + (i - 1 - scrollOff) * lineH
+            if lineY >= contentTop - lineH and lineY < contentBot then
+                local text = type(item) == "table" and item.text or tostring(item)
+                local itype = type(item) == "table" and item.type or "info"
+                local icon = "·"
+                if itype == "income" then icon = "💰"
+                elseif itype == "recruit" then icon = "⚔"
+                elseif itype == "battle" then icon = "🏴"
+                elseif itype == "lost" then icon = "🔥"
+                elseif itype == "warning" then icon = "⚠"
+                elseif itype == "diplomacy" then icon = "📜"
+                elseif itype == "victory" then icon = "👑"
+                elseif itype == "gameover" then icon = "💀"
+                end
+                nvgFontSize(vg, 13)
+                nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+                if itype == "lost" or itype == "gameover" then
+                    nvgFillColor(vg, nvgRGBA(190, 40, 40, 240))
+                elseif itype == "victory" then
+                    nvgFillColor(vg, nvgRGBA(160, 100, 10, 255))
+                elseif itype == "warning" then
+                    nvgFillColor(vg, nvgRGBA(180, 100, 20, 230))
+                elseif itype == "income" or itype == "recruit" then
+                    nvgFillColor(vg, nvgRGBA(40, 120, 50, 220))
+                elseif itype == "diplomacy" then
+                    nvgFillColor(vg, nvgRGBA(50, 60, 150, 220))
+                else
+                    nvgFillColor(vg, nvgRGBA(80, 60, 40, 210))
+                end
+                nvgText(vg, 15, lineY, icon .. " " .. text, nil)
+            end
+        end
+
+        nvgRestore(vg)
+
+        -- 滚动指示
+        if totalItems > maxVisible then
+            nvgFontSize(vg, 11)
+            nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
+            nvgFillColor(vg, nvgRGBA(120, 90, 50, 160))
+            nvgText(vg, W - 10, contentBot - 6, "↕滑动", nil)
+        end
+    end
+
+    st.btn_continue = DrawBtn(W / 2 - 45, panelY + panelH - 32, 90, 28, "继 续", 160, 130, 40)
+end
+
+-- ============================================================================
+-- 输入处理
+-- ============================================================================
+function WorldMap.HandleInput(dx, dy)
+    local st = worldMapState
+
+    local function HitRect(r)
+        return r and dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h
+    end
+
+    -- 回合报告
+    if st.phase == "TURN_REPORT" then
+        if st.btn_continue and HitRect(st.btn_continue) then
+            st.phase = "MAP"; st.turnReport = nil
+            PlaySFX(AUDIO.sfx_click)
+        end
+        return
+    end
+
+    -- 内政
+    if st.phase == "AFFAIRS" then
+        if st.btn_recruit and HitRect(st.btn_recruit) then WorldMap.Recruit(st.affairsCity, 50); PlaySFX(AUDIO.sfx_click)
+        elseif st.btn_upgrade and HitRect(st.btn_upgrade) then WorldMap.UpgradeCity(st.affairsCity); PlaySFX(AUDIO.sfx_click)
+        elseif st.btn_search and HitRect(st.btn_search) then WorldMap.SearchTalent(st.affairsCity); PlaySFX(AUDIO.sfx_click)
+        elseif st.btn_morale and HitRect(st.btn_morale) then WorldMap.BoostMorale(st.affairsCity); PlaySFX(AUDIO.sfx_click)
+        elseif st.btn_affairsBack and HitRect(st.btn_affairsBack) then st.phase = "MAP"; st.searchResult = nil; PlaySFX(AUDIO.sfx_click)
+        end
+        return
+    end
+
+    -- 外交
+    if st.phase == "DIPLOMACY" then
+        for _, fac in ipairs({"wei", "shu", "qun"}) do
+            if st["btn_gift_" .. fac] and HitRect(st["btn_gift_" .. fac]) then
+                WorldMap.SendGift(fac); PlaySFX(AUDIO.sfx_click); return
+            end
+            if st["btn_treaty_" .. fac] and HitRect(st["btn_treaty_" .. fac]) then
+                WorldMap.SignTreaty(fac); PlaySFX(AUDIO.sfx_click); return
+            end
+        end
+        if st.btn_diploBack and HitRect(st.btn_diploBack) then st.phase = "MAP"; PlaySFX(AUDIO.sfx_click) end
+        return
+    end
+
+    -- 计略
+    if st.phase == "STRATAGEM" then
+        for _, strat in ipairs(STRATAGEMS) do
+            if st["btn_strat_" .. strat.id] and HitRect(st["btn_strat_" .. strat.id]) then
+                if st.stratagemTarget then
+                    WorldMap.ExecuteStratagem(strat.id, st.stratagemTarget)
+                    PlaySFX(AUDIO.sfx_click)
+                end
+                return
+            end
+        end
+        if st.btn_stratBack and HitRect(st.btn_stratBack) then
+            st.phase = "MAP"; st.stratagemTarget = nil; PlaySFX(AUDIO.sfx_click); return
+        end
+        -- 点击地图选敌城作为计略目标
+        for _, city in ipairs(WORLD_CITIES) do
+            if city._hitRect and HitRect(city._hitRect) then
+                local cd = st.cityData[city.id]
+                if cd.owner ~= "player" then
+                    st.stratagemTarget = city.id
+                    PlaySFX(AUDIO.sfx_click)
+                end
+                return
+            end
+        end
+        return
+    end
+
+    -- 调兵
+    if st.phase == "MOVE_SELECT" then
+        if st.btn_moveBack and HitRect(st.btn_moveBack) then st.phase = "MAP"; PlaySFX(AUDIO.sfx_click); return end
+        for _, city in ipairs(WORLD_CITIES) do
+            if city._hitRect and HitRect(city._hitRect) then
+                local cd = st.cityData[city.id]
+                if cd.owner == "player" and city.id ~= st.selectedCity then
+                    if WorldMap.IsConnected(st.selectedCity, city.id) then
+                        local fromData = st.cityData[st.selectedCity]
+                        local moveTroops = math.floor(fromData.garrison * 0.5)
+                        if moveTroops > 0 then
+                            local fId, tId = st.selectedCity, city.id
+                            local tName = city.name
+                            local heroList = {}
+                            for _, h in ipairs(fromData.heroes) do table.insert(heroList, h) end
+                            WorldMap.StartMarchAnim(fId, tId, moveTroops, function()
+                                WorldMap.MoveArmy(fId, tId, moveTroops, heroList)
+                                if rawget(_G, "ShowToast") then ShowToast("调兵" .. moveTroops .. "至" .. tName) end
+                            end)
+                        end
+                        st.phase = "MAP"; PlaySFX(AUDIO.sfx_click)
+                    else
+                        if rawget(_G, "ShowToast") then ShowToast("城池不相邻") end
+                    end
+                end
+                return
+            end
+        end
+        return
+    end
+
+    -- 攻击目标选择
+    if st.phase == "ATK_TARGET" then
+        if st.btn_atkTargetBack and HitRect(st.btn_atkTargetBack) then
+            st.phase = "MAP"; PlaySFX(AUDIO.sfx_click); return
+        end
+        for _, city in ipairs(WORLD_CITIES) do
+            if city._hitRect and HitRect(city._hitRect) then
+                local cd = st.cityData[city.id]
+                if cd.owner ~= "player" and WorldMap.IsConnected(st.selectedCity, city.id) then
+                    st.targetCity = city.id
+                    st.deployHeroes = {}
+                    st.deployTroops = 0
+                    st.phase = "CONFIRM_ATTACK"
+                    PlaySFX(AUDIO.sfx_click)
+                end
+                return
+            end
+        end
+        return
+    end
+
+    -- 战前部署
+    if st.phase == "CONFIRM_ATTACK" then
+        local fromData = st.cityData[st.selectedCity]
+        if fromData then
+            for i, ratio in ipairs({0.3, 0.5, 0.7}) do
+                if st["btn_ratio" .. i] and HitRect(st["btn_ratio" .. i]) then
+                    st.deployTroops = math.floor(fromData.garrison * ratio)
+                    PlaySFX(AUDIO.sfx_click); return
+                end
+            end
+            for i, hIdx in ipairs(fromData.heroes) do
+                if st["btn_hero_" .. i] and HitRect(st["btn_hero_" .. i]) then
+                    local found = false
+                    for j, dh in ipairs(st.deployHeroes) do
+                        if dh == hIdx then table.remove(st.deployHeroes, j); found = true; break end
+                    end
+                    if not found then table.insert(st.deployHeroes, hIdx) end
+                    PlaySFX(AUDIO.sfx_click); return
+                end
+            end
+        end
+        if st.btn_confirmAtk and HitRect(st.btn_confirmAtk) then
+            local foodCost = math.floor(st.deployTroops * 0.5)
+            if st.deployTroops >= 20 and st.food >= foodCost then
+                if #st.deployHeroes == 0 and fromData then
+                    for _, h in ipairs(fromData.heroes) do table.insert(st.deployHeroes, h) end
+                end
+                WorldMap.StartAttack(st.selectedCity, st.targetCity)
+                PlaySFX(AUDIO.sfx_click)
+            end
+            return
+        end
+        if st.btn_cancelAtk and HitRect(st.btn_cancelAtk) then
+            st.phase = "MAP"; st.targetCity = nil; st.deployHeroes = {}; st.deployTroops = 0
+            PlaySFX(AUDIO.sfx_click)
+        end
+        return
+    end
+
+    -- 默认地图
+    if st.phase == "MAP" then
+        if st.selectedCity then
+            local cd = st.cityData[st.selectedCity]
+            if cd and cd.owner == "player" then
+                if st.btn_affairs and HitRect(st.btn_affairs) then
+                    st.affairsCity = st.selectedCity; st.phase = "AFFAIRS"; st.searchResult = nil
+                    PlaySFX(AUDIO.sfx_click); return
+                end
+                if st.btn_diplomacy and HitRect(st.btn_diplomacy) then
+                    st.phase = "DIPLOMACY"; PlaySFX(AUDIO.sfx_click); return
+                end
+                if st.btn_stratagem and HitRect(st.btn_stratagem) then
+                    st.phase = "STRATAGEM"; st.stratagemTarget = nil
+                    PlaySFX(AUDIO.sfx_click); return
+                end
+                if st.btn_move and HitRect(st.btn_move) then
+                    st.phase = "MOVE_SELECT"; PlaySFX(AUDIO.sfx_click); return
+                end
+                if st.btn_attack and HitRect(st.btn_attack) then
+                    local fromCity = WORLD_CITIES[st.selectedCity]
+                    local enemies = {}
+                    for _, connId in ipairs(fromCity.conn) do
+                        if st.cityData[connId].owner ~= "player" then table.insert(enemies, connId) end
+                    end
+                    if #enemies > 0 then
+                        if #enemies == 1 then
+                            st.targetCity = enemies[1]; st.deployHeroes = {}; st.deployTroops = 0
+                            st.phase = "CONFIRM_ATTACK"
+                        else
+                            st.phase = "ATK_TARGET"
+                        end
+                    else
+                        if rawget(_G, "ShowToast") then ShowToast("周围无可攻击城池") end
+                    end
+                    PlaySFX(AUDIO.sfx_click); return
+                end
+            end
+        end
+
+        if st.btn_endTurn and HitRect(st.btn_endTurn) then
+            WorldMap.EndTurn(); PlaySFX(AUDIO.sfx_click); return
+        end
+        if st.btn_back and HitRect(st.btn_back) then
+            PopPhase("MENU"); PlaySFX(AUDIO.sfx_click); return
+        end
+
+        -- 点击城池
+        for _, city in ipairs(WORLD_CITIES) do
+            if city._hitRect and HitRect(city._hitRect) then
+                if st.selectedCity == city.id then st.selectedCity = nil
+                else st.selectedCity = city.id; st.scoutResult = nil end
+                PlaySFX(AUDIO.sfx_click); return
+            end
+        end
+    end
+end
+
+-- 滚动处理 (回合报告)
+function WorldMap.HandleScroll(delta)
+    local st = worldMapState
+    if st.phase == "TURN_REPORT" and st.turnReport then
+        st.reportScroll = math.max(0, math.min(#st.turnReport - 5, (st.reportScroll or 0) + delta))
+    end
+end
+
+-- ============================================================================
+-- 行军动画系统
+-- ============================================================================
+local marchAnim = {
+    active = false,
+    fromCity = nil,
+    toCity = nil,
+    progress = 0,     -- 0~1
+    duration = 1.2,   -- 秒
+    callback = nil,   -- 动画结束后回调
+    troops = 0,
+}
+
+function WorldMap.StartMarchAnim(fromId, toId, troops, cb)
+    local from = WORLD_CITIES[fromId]
+    local to = WORLD_CITIES[toId]
+    if not from or not to then if cb then cb() end; return end
+    marchAnim.active = true
+    marchAnim.fromCity = from
+    marchAnim.toCity = to
+    marchAnim.progress = 0
+    marchAnim.troops = troops or 0
+    marchAnim.callback = cb
+    marchAnim.duration = 1.2
+end
+
+function WorldMap.IsMarchActive()
+    return marchAnim.active
+end
+
+function WorldMap.UpdateMarch(dt)
+    if not marchAnim.active then return end
+    marchAnim.progress = marchAnim.progress + dt / marchAnim.duration
+    if marchAnim.progress >= 1.0 then
+        marchAnim.active = false
+        marchAnim.progress = 1.0
+        if marchAnim.callback then marchAnim.callback() end
+        marchAnim.callback = nil
+    end
+end
+
+function WorldMap.DrawMarch()
+    if not marchAnim.active then return end
+    local from = marchAnim.fromCity
+    local to = marchAnim.toCity
+    if not from or not to then return end
+    local mapTop = 55
+    local fx, fy = from.x, from.y + mapTop
+    local tx, ty = to.x, to.y + mapTop
+    local p = marchAnim.progress
+
+    -- 行军路线（虚线+发光）
+    nvgBeginPath(vg)
+    nvgMoveTo(vg, fx, fy); nvgLineTo(vg, tx, ty)
+    nvgStrokeColor(vg, nvgRGBA(255, 200, 60, 120)); nvgStrokeWidth(vg, 3); nvgStroke(vg)
+
+    -- 部队位置
+    local cx = fx + (tx - fx) * p
+    local cy = fy + (ty - fy) * p
+
+    -- 部队图标 - 旗帜+士兵
+    local pulse = 0.8 + 0.2 * math.sin(p * 20)
+    -- 外圈光晕
+    nvgBeginPath(vg); nvgCircle(vg, cx, cy, 18 * pulse)
+    local glow = nvgRadialGradient(vg, cx, cy, 5, 18,
+        nvgRGBA(255, 220, 80, 160), nvgRGBA(255, 180, 40, 0))
+    nvgFillPaint(vg, glow); nvgFill(vg)
+    -- 部队主体
+    nvgBeginPath(vg); nvgCircle(vg, cx, cy, 10)
+    nvgFillColor(vg, nvgRGBA(230, 180, 50, 240)); nvgFill(vg)
+    nvgStrokeColor(vg, nvgRGBA(160, 100, 20, 200)); nvgStrokeWidth(vg, 2); nvgStroke(vg)
+    -- 旗帜图标
+    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 20)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(80, 30, 10, 255))
+    nvgText(vg, cx, cy, "⚔", nil)
+    -- 兵力数字
+    if marchAnim.troops > 0 then
+        nvgFontSize(vg, 13); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
+        nvgFillColor(vg, nvgRGBA(255, 240, 180, 220))
+        nvgText(vg, cx, cy + 14, tostring(marchAnim.troops), nil)
+    end
+
+    -- 目标城池闪烁标记
+    local tPulse = 0.5 + 0.5 * math.sin(p * 15)
+    nvgBeginPath(vg); nvgCircle(vg, tx, ty, 22 * tPulse)
+    nvgStrokeColor(vg, nvgRGBA(255, 80, 60, math.floor(180 * tPulse)))
+    nvgStrokeWidth(vg, 2); nvgStroke(vg)
+end
+
+-- ============================================================================
+-- 世界地图新手引导系统（交互式）
+-- ============================================================================
+local wmGuide = {
+    active = false,
+    step = 0,       -- 0=未开始, 1~5=引导步骤
+    timer = 0,
+    fingerY = 0,
+    btnRect = nil,
+    skipRect = nil,
+    waitAction = false,  -- 是否等待玩家操作
+}
+
+-- 引导步骤：交互式，玩家按提示操作后自动推进
+local WM_GUIDE_STEPS = {
+    {
+        title = "① 选择城池",
+        desc = "点击金色城池查看详情",
+        hint = "👆 点击你的城池（金色标记）",
+        highlight = "player_city",
+        waitFor = "select_city",  -- 等待玩家选中一个己方城池
+    },
+    {
+        title = "② 内政经营",
+        desc = "征兵、升级、搜索人才",
+        hint = "👆 点击【内政】按钮试试",
+        highlight = "affairs_btn",
+        waitFor = "enter_affairs",
+    },
+    {
+        title = "③ 出征攻城",
+        desc = "从己方城出发攻打敌城",
+        hint = "👆 返回后点击【出征】开战！",
+        highlight = "attack_btn",
+        waitFor = "enter_attack",
+    },
+    {
+        title = "④ 结束回合",
+        desc = "获得金粮收入，推进时间",
+        hint = "👆 点击【结束回合】推进",
+        highlight = "end_turn_btn",
+        waitFor = "end_turn",
+    },
+    {
+        title = "⑤ 统一天下！",
+        desc = "占领全部18城即可获胜\n善用内政、外交和计略！",
+        hint = nil,
+        highlight = "none",
+        waitFor = nil,  -- 最后一步，点按钮结束
+    },
+}
+
+function WorldMap.StartGuide()
+    wmGuide.active = true
+    wmGuide.step = 1
+    wmGuide.timer = 0
+    wmGuide.waitAction = true
+    print("=== 世界地图引导: 开始(交互式) ===")
+end
+
+function WorldMap.IsGuideActive()
+    return wmGuide.active
+end
+
+-- 引导条件检查：玩家操作完成后自动推进到下一步
+function WorldMap.CheckGuideProgress()
+    if not wmGuide.active then return end
+    local st = worldMapState
+    local stepData = WM_GUIDE_STEPS[wmGuide.step]
+    if not stepData or not stepData.waitFor then return end
+
+    local done = false
+    if stepData.waitFor == "select_city" then
+        done = (st.selectedCity ~= nil and st.cityData[st.selectedCity] and st.cityData[st.selectedCity].owner == "player")
+    elseif stepData.waitFor == "enter_affairs" then
+        done = (st.phase == "AFFAIRS")
+    elseif stepData.waitFor == "enter_attack" then
+        done = (st.phase == "ATK_TARGET" or st.phase == "CONFIRM_ATTACK")
+    elseif stepData.waitFor == "end_turn" then
+        done = (st.phase == "TURN_REPORT")
+    end
+
+    if done then
+        if wmGuide.step < #WM_GUIDE_STEPS then
+            wmGuide.step = wmGuide.step + 1
+            wmGuide.timer = 0
+            wmGuide.waitAction = true
+            if rawget(_G, "PlaySFX") then PlaySFX(AUDIO.sfx_click) end
+            print("=== 世界地图引导: 自动推进到步骤 " .. wmGuide.step .. " ===")
+        else
+            wmGuide.active = false
+            wmGuide.step = 0
+        end
+    end
+end
+
+function WorldMap.UpdateGuide(dt)
+    if not wmGuide.active then return end
+    wmGuide.timer = wmGuide.timer + dt
+    wmGuide.fingerY = math.sin(wmGuide.timer * 3) * 5
+    WorldMap.CheckGuideProgress()
+end
+
+-- 绘制引导提示条（不再全屏遮罩，只画底部提示条+高亮）
+function WorldMap.DrawGuide()
+    if not wmGuide.active or wmGuide.step < 1 then return end
+    local W, H = DESIGN_W, DESIGN_H
+    local stepData = WM_GUIDE_STEPS[wmGuide.step]
+    if not stepData then wmGuide.active = false; return end
+
+    local st = worldMapState
+
+    -- 高亮区域
+    local hlRect = nil
+    if stepData.highlight == "player_city" then
+        for _, city in ipairs(WORLD_CITIES) do
+            local cd = st.cityData[city.id]
+            if cd and cd.owner == "player" then
+                local mapTop = 55
+                hlRect = { x = city.x - 28, y = city.y + mapTop - 28, w = 56, h = 56 }
+                break
+            end
+        end
+    elseif stepData.highlight == "affairs_btn" and st.btn_affairs then
+        hlRect = st.btn_affairs
+    elseif stepData.highlight == "end_turn_btn" and st.btn_endTurn then
+        hlRect = st.btn_endTurn
+    elseif stepData.highlight == "attack_btn" and st.btn_attack then
+        hlRect = st.btn_attack
+    end
+
+    -- 高亮闪烁边框（不遮罩其他区域）
+    if hlRect then
+        local pad = 6
+        local rx, ry = hlRect.x - pad, hlRect.y - pad
+        local rw, rh = hlRect.w + pad * 2, hlRect.h + pad * 2
+        local pulse = 0.5 + 0.5 * math.sin(wmGuide.timer * 4)
+
+        -- 外发光
+        nvgBeginPath(vg); nvgRoundedRect(vg, rx - 3, ry - 3, rw + 6, rh + 6, 10)
+        nvgStrokeColor(vg, nvgRGBA(255, 220, 80, math.floor(100 * pulse)))
+        nvgStrokeWidth(vg, 4); nvgStroke(vg)
+        -- 主边框
+        nvgBeginPath(vg); nvgRoundedRect(vg, rx, ry, rw, rh, 8)
+        nvgStrokeColor(vg, nvgRGBA(255, 220, 80, math.floor(220 * pulse)))
+        nvgStrokeWidth(vg, 2.5); nvgStroke(vg)
+
+        -- 手指动画
+        nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 30)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        nvgFillColor(vg, nvgRGBA(255, 255, 255, math.floor(200 * pulse)))
+        nvgText(vg, rx + rw / 2, ry - 20 + wmGuide.fingerY, "👆", nil)
+    end
+
+    -- 底部引导提示条
+    local barH = 56
+    local barY = H - barH
+    -- 背景
+    nvgBeginPath(vg); nvgRect(vg, 0, barY, W, barH)
+    nvgFillColor(vg, nvgRGBA(30, 18, 8, 220)); nvgFill(vg)
+    nvgBeginPath(vg); nvgMoveTo(vg, 0, barY); nvgLineTo(vg, W, barY)
+    nvgStrokeColor(vg, nvgRGBA(255, 210, 100, 150)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
+
+    -- 步骤标题
+    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 20)
+    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(255, 230, 140, 255))
+    nvgText(vg, 14, barY + barH / 2 - 12, stepData.title, nil)
+
+    -- 描述/提示
+    local hintText = stepData.hint or stepData.desc
+    nvgFontSize(vg, 15)
+    nvgFillColor(vg, nvgRGBA(220, 210, 180, 200))
+    nvgText(vg, 14, barY + barH / 2 + 12, hintText, nil)
+
+    -- 步骤指示器 (点点)
+    local dotStartX = W - 90
+    for i = 1, #WM_GUIDE_STEPS do
+        local dotX = dotStartX + (i - 1) * 14
+        nvgBeginPath(vg); nvgCircle(vg, dotX, barY + barH / 2 - 12, i == wmGuide.step and 5 or 3)
+        nvgFillColor(vg, i <= wmGuide.step
+            and nvgRGBA(255, 210, 80, 255)
+            or nvgRGBA(120, 100, 70, 150))
+        nvgFill(vg)
+    end
+
+    -- 最后一步：显示"开始游戏"按钮
+    if not stepData.waitFor then
+        local gbtnW, gbtnH = 110, 34
+        local gbtnX = W - gbtnW - 14
+        local gbtnY = barY + (barH - gbtnH) / 2
+        wmGuide.btnRect = DrawBtn(gbtnX, gbtnY, gbtnW, gbtnH, "开始游戏！", 180, 130, 30)
+    else
+        wmGuide.btnRect = nil
+    end
+
+    -- 跳过按钮
+    nvgFontSize(vg, 12)
+    nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_BOTTOM)
+    nvgFillColor(vg, nvgRGBA(160, 150, 130, 130))
+    nvgText(vg, W - 8, barY - 4, "跳过引导", nil)
+    wmGuide.skipRect = { x = W - 90, y = barY - 22, w = 90, h = 22 }
+end
+
+-- 引导点击处理 — 交互式：只拦截跳过/完成按钮，其他操作放行
+function WorldMap.HandleGuideInput(dx, dy)
+    if not wmGuide.active then return false end
+
+    local function HitR(r)
+        return r and dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h
+    end
+
+    -- 跳过
+    if wmGuide.skipRect and HitR(wmGuide.skipRect) then
+        wmGuide.active = false
+        wmGuide.step = 0
+        if rawget(_G, "PlaySFX") then PlaySFX(AUDIO.sfx_click) end
+        print("=== 世界地图引导: 跳过 ===")
+        return true
+    end
+
+    -- 最后一步的"开始游戏"按钮
+    if wmGuide.btnRect and HitR(wmGuide.btnRect) then
+        wmGuide.active = false
+        wmGuide.step = 0
+        if rawget(_G, "PlaySFX") then PlaySFX(AUDIO.sfx_click) end
+        print("=== 世界地图引导: 完成 ===")
+        return true
+    end
+
+    -- 其他点击不拦截 — 让玩家正常操作地图！
+    return false
+end
