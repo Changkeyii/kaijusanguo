@@ -55,6 +55,36 @@ end
 
 
 --- 获取当前主字体 ID (统一使用 MiSans)
+--- Resolve a rank-list entry's owner across different payload shapes.
+--- @param item table?
+--- @return integer
+function ResolveRankListUserId(item)
+    if type(item) ~= "table" then return 0 end
+    local candidates = {
+        item.userId,
+        item.player,
+        item.uid,
+        item.UserId,
+        item.Player,
+        item.UID,
+    }
+    for _, value in ipairs(candidates) do
+        local uid = tonumber(value)
+        if uid then
+            return math.floor(uid)
+        end
+    end
+    return 0
+end
+
+
+--- Network-ranked mode uses the server as the only score authority.
+--- @return boolean
+function IsServerAuthoritativeRankedMode()
+    return rawget(_G, "IsNetworkMode") and IsNetworkMode()
+end
+
+
 function GetMainFont()
     local style = gameSettings.fontStyle or "misans"
     if style == "kuaile" and fontGame >= 0 then return fontGame end

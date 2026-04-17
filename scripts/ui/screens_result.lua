@@ -205,6 +205,7 @@ function DrawRewardPopup()
 
     -- ★ 排位模式: 显示积分变化和段位信息
     if gameState.isRanked then
+        local awaitingRankedResult = gameState.awaitingRankedResult == true
         local rDelta = gameState.rankedDelta or 0
         local rTier = GetRankedTier(rankedState.score)
         local rColor = rTier.color
@@ -231,7 +232,10 @@ function DrawRewardPopup()
         -- 积分变化（大号）
         local deltaY = iconCy + iconR + 60
         local deltaStr, deltaColor
-        if rDelta > 0 then
+        if awaitingRankedResult then
+            deltaStr = "..."
+            deltaColor = { 200, 200, 200 }
+        elseif rDelta > 0 then
             deltaStr = "+" .. rDelta .. " 分"
             deltaColor = { 100, 255, 140 }
         elseif rDelta < 0 then
@@ -252,34 +256,40 @@ function DrawRewardPopup()
         nvgText(vg, centerX, deltaY + 36, "当前积分: " .. rankedState.score, nil)
 
         -- 下一段位进度
-        local nextTier = nil
-        for i, ti in ipairs(RANKED_TIERS) do
-            if ti.minScore > rankedState.score then
-                nextTier = ti
-                break
-            end
-        end
-        if nextTier then
-            local prevMin = rTier.minScore
-            local progress = (rankedState.score - prevMin) / (nextTier.minScore - prevMin)
-            progress = math.max(0, math.min(1, progress))
-            local barW2 = panelW * 0.6
-            local barH2 = 10
-            local barX2 = centerX - barW2 / 2
-            local barY2 = deltaY + 62
-            nvgBeginPath(vg); nvgRoundedRect(vg, barX2, barY2, barW2, barH2, 5)
-            nvgFillColor(vg, nvgRGBA(40, 40, 50, math.floor(200 * popAlpha))); nvgFill(vg)
-            if progress > 0 then
-                nvgBeginPath(vg); nvgRoundedRect(vg, barX2, barY2, barW2 * progress, barH2, 5)
-                nvgFillColor(vg, nvgRGBA(rColor[1], rColor[2], rColor[3], math.floor(220 * popAlpha))); nvgFill(vg)
-            end
-            nvgFontSize(vg, 22)
-            nvgFillColor(vg, nvgRGBA(180, 170, 140, math.floor(180 * popAlpha)))
-            nvgText(vg, centerX, barY2 + barH2 + 16, "距 " .. nextTier.name .. " 还需 " .. (nextTier.minScore - rankedState.score) .. " 分", nil)
+        if awaitingRankedResult then
+            nvgFontSize(vg, 20)
+            nvgFillColor(vg, nvgRGBA(190, 185, 170, math.floor(180 * popAlpha)))
+            nvgText(vg, centerX, deltaY + 62, "等待服务端结算...", nil)
         else
-            nvgFontSize(vg, 26)
-            nvgFillColor(vg, nvgRGBA(255, 200, 80, math.floor(200 * popAlpha)))
-            nvgText(vg, centerX, deltaY + 62, "已达最高段位!", nil)
+            local nextTier = nil
+            for i, ti in ipairs(RANKED_TIERS) do
+                if ti.minScore > rankedState.score then
+                    nextTier = ti
+                    break
+                end
+            end
+            if nextTier then
+                local prevMin = rTier.minScore
+                local progress = (rankedState.score - prevMin) / (nextTier.minScore - prevMin)
+                progress = math.max(0, math.min(1, progress))
+                local barW2 = panelW * 0.6
+                local barH2 = 10
+                local barX2 = centerX - barW2 / 2
+                local barY2 = deltaY + 62
+                nvgBeginPath(vg); nvgRoundedRect(vg, barX2, barY2, barW2, barH2, 5)
+                nvgFillColor(vg, nvgRGBA(40, 40, 50, math.floor(200 * popAlpha))); nvgFill(vg)
+                if progress > 0 then
+                    nvgBeginPath(vg); nvgRoundedRect(vg, barX2, barY2, barW2 * progress, barH2, 5)
+                    nvgFillColor(vg, nvgRGBA(rColor[1], rColor[2], rColor[3], math.floor(220 * popAlpha))); nvgFill(vg)
+                end
+                nvgFontSize(vg, 22)
+                nvgFillColor(vg, nvgRGBA(180, 170, 140, math.floor(180 * popAlpha)))
+                nvgText(vg, centerX, barY2 + barH2 + 16, "距 " .. nextTier.name .. " 还需 " .. (nextTier.minScore - rankedState.score) .. " 分", nil)
+            else
+                nvgFontSize(vg, 26)
+                nvgFillColor(vg, nvgRGBA(255, 200, 80, math.floor(200 * popAlpha)))
+                nvgText(vg, centerX, deltaY + 62, "已达最高段位!", nil)
+            end
         end
 
         -- 战绩

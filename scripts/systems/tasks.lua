@@ -5,6 +5,13 @@
 
 --- 检查并执行每周排行榜奖励结算
 --- 在游戏启动/存档加载后调用一次
+local function _getRankItemUserId(item)
+    if rawget(_G, "ResolveRankListUserId") then
+        return ResolveRankListUserId(item)
+    end
+    return tonumber(item and (item.userId or item.player or item.uid)) or 0
+end
+
 function CheckWeeklyRankRewards()
     if not rawget(_G, "clientCloud") then return end
 
@@ -25,7 +32,7 @@ function CheckWeeklyRankRewards()
                 -- 找到自己的排名
                 local myRank = 0
                 for ri, item in ipairs(rankList) do
-                    if item.uid == myUid then
+                    if _getRankItemUserId(item) == myUid then
                         myRank = ri
                         break
                     end

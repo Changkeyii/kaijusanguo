@@ -1,7 +1,7 @@
 -- ============================================================================
--- Client.lua - 排位对战客户端网络层
--- 仅在排位匹配成功后（ServerReady 事件）才初始化连接
--- 房间生命周期：ServerReady → Start → 战斗 → 结算 → Disconnect
+-- Client.lua - 鎺掍綅瀵规垬瀹㈡埛绔綉缁滃眰
+-- 浠呭湪鎺掍綅鍖归厤鎴愬姛鍚庯紙ServerReady 浜嬩欢锛夋墠鍒濆鍖栬繛鎺?
+-- 鎴块棿鐢熷懡鍛ㄦ湡锛歋erverReady 鈫?Start 鈫?鎴樻枟 鈫?缁撶畻 鈫?Disconnect
 -- ============================================================================
 
 ---@diagnostic disable: undefined-global
@@ -15,57 +15,78 @@ local Protocol = require("network.Protocol")
 local EVENTS = Protocol.EVENTS
 
 -- ============================================================================
--- 状态
+-- 鐘舵€?
 -- ============================================================================
 
--- 网络状态（全局，供其他模块访问）
+-- 缃戠粶鐘舵€侊紙鍏ㄥ眬锛屼緵鍏朵粬妯″潡璁块棶锛?
 netState = netState or {
-    connected = false,         -- 是否已连接房间服务端
-    userId = 0,                -- 自己的 userId
-    serverReady = false,       -- 是否收到 Welcome
+    connected = false,         -- 鏄惁宸茶繛鎺ユ埧闂存湇鍔＄
+    userId = 0,                -- 鑷繁鐨?userId
+    serverReady = false,       -- 鏄惁鏀跺埌 Welcome
     elo = 1000,
     wins = 0,
     losses = 0,
-    lastError = nil,           -- 最近的错误消息
+    lastError = nil,           -- 鏈€杩戠殑閿欒娑堟伅
 }
 
 ---@type Scene
 local scene_ = nil
 local serverConnection_ = nil
+local eventsSubscribed_ = false
+
+local function ensureServerConnection()
+    if serverConnection_ then
+        return true
+    end
+    return Client.Start()
+end
 
 -- ============================================================================
--- 入口（排位匹配成功后调用）
+-- 鍏ュ彛锛堟帓浣嶅尮閰嶆垚鍔熷悗璋冪敤锛?
 -- ============================================================================
 
 function Client.Start()
+    if serverConnection_ then
+        netState.connected = true
+        return true
+    end
+
     Shared.RegisterEvents()
 
-    -- 创建空场景（网络必需）
-    scene_ = Scene()
-    scene_:CreateComponent("Octree", LOCAL)
+    -- 鍒涘缓绌哄満鏅紙缃戠粶蹇呴渶锛?
+    if not scene_ then
+        scene_ = Scene()
+        scene_:CreateComponent("Octree", LOCAL)
+    end
 
-    -- 获取服务端连接
+    -- 鑾峰彇鏈嶅姟绔繛鎺?
     serverConnection_ = network:GetServerConnection()
     if not serverConnection_ then
         print("[Client] ERROR: No server connection")
-        return
+        return false
     end
 
-    -- 设置场景
+    -- 璁剧疆鍦烘櫙
     serverConnection_.scene = scene_
 
-    -- 订阅服务端事件
-    SubscribeToEvent(EVENTS.WELCOME, "HandleWelcome")
-    SubscribeToEvent(EVENTS.ERROR, "HandleServerError")
-    SubscribeToEvent(EVENTS.RANKED_MATCHED, "HandleRankedMatched")
-    SubscribeToEvent(EVENTS.RANKED_START, "HandleRankedStart")
-    SubscribeToEvent(EVENTS.RANKED_UPDATE, "HandleRankedUpdate")
-    SubscribeToEvent(EVENTS.RANKED_END, "HandleRankedEnd")
+    -- 璁㈤槄鏈嶅姟绔簨浠?
+    if not eventsSubscribed_ then
+        SubscribeToEvent(EVENTS.WELCOME, "HandleWelcome")
+        SubscribeToEvent(EVENTS.ERROR, "HandleServerError")
+        SubscribeToEvent(EVENTS.RANKED_MATCHED, "HandleRankedMatched")
+        SubscribeToEvent(EVENTS.RANKED_START, "HandleRankedStart")
+        SubscribeToEvent(EVENTS.RANKED_UPDATE, "HandleRankedUpdate")
+        SubscribeToEvent(EVENTS.RANKED_END, "HandleRankedEnd")
+        eventsSubscribed_ = true
+    end
 
-    -- 发送就绪
-    serverConnection_:SendRemoteEvent(EVENTS.CLIENT_READY, true)
+    -- 鍙戦€佸氨缁?
+    if not netState.connected then
+        serverConnection_:SendRemoteEvent(EVENTS.CLIENT_READY, true)
+    end
     netState.connected = true
-    print("[Client] 已连接排位房间服务端，发送 ClientReady")
+    print("[Client] 宸茶繛鎺ユ帓浣嶆埧闂存湇鍔＄锛屽彂閫?ClientReady")
+    return true
 end
 
 function Client.Stop()
@@ -73,11 +94,11 @@ function Client.Stop()
     netState.serverReady = false
     serverConnection_ = nil
     scene_ = nil
-    print("[Client] 断开排位房间连接")
+    print("[Client] 鏂紑鎺掍綅鎴块棿杩炴帴")
 end
 
 -- ============================================================================
--- 事件处理
+-- 浜嬩欢澶勭悊
 -- ============================================================================
 
 function HandleWelcome(eventType, eventData)
@@ -90,7 +111,7 @@ function HandleWelcome(eventType, eventData)
     print("[Client] Welcome: userId=" .. tostring(netState.userId)
         .. " elo=" .. netState.elo)
 
-    -- 通知游戏系统房间就绪
+    -- 閫氱煡娓告垙绯荤粺鎴块棿灏辩华
     if rawget(_G, "OnServerReady") then
         OnServerReady(netState)
     end
@@ -103,7 +124,7 @@ function HandleServerError(eventType, eventData)
 end
 
 -- ============================================================================
--- 排位事件处理
+-- 鎺掍綅浜嬩欢澶勭悊
 -- ============================================================================
 
 function HandleRankedMatched(eventType, eventData)
@@ -128,14 +149,14 @@ function HandleRankedUpdate(eventType, eventData)
 end
 
 function HandleRankedEnd(eventType, eventData)
-    -- 取消匹配响应
+    -- 鍙栨秷鍖归厤鍝嶅簲
     local cancelledVar = eventData["Cancelled"]
     if cancelledVar and cancelledVar:GetBool() then
         print("[Client] RankedEnd: cancelled")
         return
     end
 
-    -- 战斗结算结果（服务端权威）
+    -- 鎴樻枟缁撶畻缁撴灉锛堟湇鍔＄鏉冨▉锛?
     local isWin = eventData["IsWin"]:GetBool()
     local serverDelta = eventData["ServerDelta"]:GetInt()
     local newElo = eventData["NewElo"]:GetInt()
@@ -149,7 +170,7 @@ function HandleRankedEnd(eventType, eventData)
     print("[Client] RankedEnd: " .. (isWin and "WIN" or "LOSE")
         .. " serverDelta=" .. serverDelta .. " newElo=" .. newElo)
 
-    -- 通知游戏系统服务端确认的排位结果
+    -- 閫氱煡娓告垙绯荤粺鏈嶅姟绔‘璁ょ殑鎺掍綅缁撴灉
     if rawget(_G, "OnRankedResult") then
         OnRankedResult({
             isWin = isWin,
@@ -162,35 +183,47 @@ function HandleRankedEnd(eventType, eventData)
 end
 
 -- ============================================================================
--- 发送请求的公共接口（仅排位相关）
+-- 鍙戦€佽姹傜殑鍏叡鎺ュ彛锛堜粎鎺掍綅鐩稿叧锛?
 -- ============================================================================
 
---- 请求加入排位
+--- 璇锋眰鍔犲叆鎺掍綅
 function Client.JoinRanked()
-    if not serverConnection_ then return end
+    if not ensureServerConnection() then
+        print("[Client] JoinRanked aborted: no server connection")
+        return false
+    end
     serverConnection_:SendRemoteEvent(EVENTS.RANKED_JOIN, true)
     print("[Client] Sent RankedJoin")
+    return true
 end
 
---- 取消排位匹配
+--- 鍙栨秷鎺掍綅鍖归厤
 function Client.CancelRanked()
-    if not serverConnection_ then return end
+    if not ensureServerConnection() then
+        print("[Client] CancelRanked aborted: no server connection")
+        return false
+    end
     serverConnection_:SendRemoteEvent(EVENTS.RANKED_CANCEL, true)
     print("[Client] Sent RankedCancel")
+    return true
 end
 
---- 发送排位操作（战斗结果等）
+--- 鍙戦€佹帓浣嶆搷浣滐紙鎴樻枟缁撴灉绛夛級
 function Client.SendRankedAction(params)
-    if not serverConnection_ then return end
+    if not ensureServerConnection() then
+        print("[Client] RankedAction aborted: no server connection")
+        return false
+    end
     local data = VariantMap()
     data["Params"] = Variant(cjson.encode(params))
     serverConnection_:SendRemoteEvent(EVENTS.RANKED_ACTION, true, data)
     print("[Client] Sent RankedAction: " .. tostring(params.subAction))
+    return true
 end
 
---- 提交排位战斗结果到服务端
+--- 鎻愪氦鎺掍綅鎴樻枟缁撴灉鍒版湇鍔＄
 function Client.ReportRankedBattleResult(isWin, score, delta, streak)
-    Client.SendRankedAction({
+    return Client.SendRankedAction({
         subAction = "battle_result",
         isWin = isWin,
         score = score,
@@ -199,14 +232,14 @@ function Client.ReportRankedBattleResult(isWin, score, delta, streak)
     })
 end
 
---- 排位投降/退出
+--- 鎺掍綅鎶曢檷/閫€鍑?
 function Client.ForfeitRanked()
-    Client.SendRankedAction({
+    return Client.SendRankedAction({
         subAction = "forfeit",
     })
 end
 
---- 检查是否已连接并就绪
+--- 妫€鏌ユ槸鍚﹀凡杩炴帴骞跺氨缁?
 function Client.IsReady()
     return netState.connected and netState.serverReady
 end

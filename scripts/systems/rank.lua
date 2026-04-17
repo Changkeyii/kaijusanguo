@@ -5,6 +5,13 @@
 
 --- 上报一次有效广告观看到云排行榜
 --- 本地先行更新贡献榜数据（保证看完广告后立即有数据可看）
+local function _getRankItemUserId(item)
+    if rawget(_G, "ResolveRankListUserId") then
+        return ResolveRankListUserId(item)
+    end
+    return tonumber(item and (item.userId or item.player or item.uid)) or 0
+end
+
 function UpdateContribRankLocally()
     if not welfareState.contribRank then
         welfareState.contribRank = {}
@@ -89,7 +96,8 @@ function LoadPowerRank()
             -- 过滤封禁玩家并截取前50
             local filtered = {}
             for _, item in ipairs(rankList) do
-                if not CloudManager.IsPlayerRankHidden(item.player) then
+                local uid = _getRankItemUserId(item)
+                if uid > 0 and not CloudManager.IsPlayerRankHidden(uid) then
                     filtered[#filtered + 1] = item
                     if #filtered >= 50 then break end
                 end
@@ -97,7 +105,7 @@ function LoadPowerRank()
             rankList = filtered
             local userIds = {}
             for _, item in ipairs(rankList) do
-                table.insert(userIds, item.player)
+                table.insert(userIds, _getRankItemUserId(item))
             end
             if #userIds == 0 then
                 welfareState.powerRank = {}
@@ -114,11 +122,12 @@ function LoadPowerRank()
                     end
                     local result = {}
                     for _, item in ipairs(rankList) do
+                        local uid = _getRankItemUserId(item)
                         local sc = item.iscore or {}
                         local power = sc[PROJECT_PREFIX .. "combat_power"] or 0
-                        local name = nameMap[item.player] or ("玩家" .. tostring(item.player))
+                        local name = nameMap[uid] or ("Player " .. tostring(uid))
                         table.insert(result, {
-                            name = name, power = power, userId = item.player,
+                            name = name, power = power, userId = uid,
                             skillCount = sc[PROJECT_PREFIX .. "skill_count"] or 0,
                             heroCount = sc[PROJECT_PREFIX .. "hero_count"] or 0,
                             realmIdx = sc[PROJECT_PREFIX .. "realm_level"] or 1,
@@ -131,10 +140,11 @@ function LoadPowerRank()
                 onError = function()
                     local result = {}
                     for _, item in ipairs(rankList) do
+                        local uid = _getRankItemUserId(item)
                         local sc = item.iscore or {}
                         local power = sc[PROJECT_PREFIX .. "combat_power"] or 0
                         table.insert(result, {
-                            name = "玩家" .. tostring(item.player), power = power, userId = item.player,
+                            name = "Player " .. tostring(uid), power = power, userId = uid,
                             skillCount = sc[PROJECT_PREFIX .. "skill_count"] or 0,
                             heroCount = sc[PROJECT_PREFIX .. "hero_count"] or 0,
                             realmIdx = sc[PROJECT_PREFIX .. "realm_level"] or 1,
@@ -187,7 +197,8 @@ function LoadRealmRank()
             -- 过滤封禁玩家并截取前50
             local filtered = {}
             for _, item in ipairs(rankList) do
-                if not CloudManager.IsPlayerRankHidden(item.player) then
+                local uid = _getRankItemUserId(item)
+                if uid > 0 and not CloudManager.IsPlayerRankHidden(uid) then
                     filtered[#filtered + 1] = item
                     if #filtered >= 50 then break end
                 end
@@ -195,7 +206,7 @@ function LoadRealmRank()
             rankList = filtered
             local userIds = {}
             for _, item in ipairs(rankList) do
-                table.insert(userIds, item.player)
+                table.insert(userIds, _getRankItemUserId(item))
             end
             if #userIds == 0 then
                 welfareState.realmRank = {}
@@ -212,11 +223,12 @@ function LoadRealmRank()
                     end
                     local result = {}
                     for _, item in ipairs(rankList) do
+                        local uid = _getRankItemUserId(item)
                         local sc = item.iscore or {}
                         local rIdx = sc[PROJECT_PREFIX .. "realm_level"] or 1
-                        local name = nameMap[item.player] or ("玩家" .. tostring(item.player))
+                        local name = nameMap[uid] or ("Player " .. tostring(uid))
                         table.insert(result, {
-                            name = name, rankIdx = rIdx, userId = item.player,
+                            name = name, rankIdx = rIdx, userId = uid,
                             power = sc[PROJECT_PREFIX .. "combat_power"] or 0,
                             skillCount = sc[PROJECT_PREFIX .. "skill_count"] or 0,
                             heroCount = sc[PROJECT_PREFIX .. "hero_count"] or 0,
@@ -229,10 +241,11 @@ function LoadRealmRank()
                 onError = function()
                     local result = {}
                     for _, item in ipairs(rankList) do
+                        local uid = _getRankItemUserId(item)
                         local sc = item.iscore or {}
                         local rIdx = sc[PROJECT_PREFIX .. "realm_level"] or 1
                         table.insert(result, {
-                            name = "玩家" .. tostring(item.player), rankIdx = rIdx, userId = item.player,
+                            name = "Player " .. tostring(uid), rankIdx = rIdx, userId = uid,
                             power = sc[PROJECT_PREFIX .. "combat_power"] or 0,
                             skillCount = sc[PROJECT_PREFIX .. "skill_count"] or 0,
                             heroCount = sc[PROJECT_PREFIX .. "hero_count"] or 0,
@@ -283,7 +296,8 @@ function LoadDummyRank()
             -- 过滤封禁玩家并截取前50
             local filtered = {}
             for _, item in ipairs(rankList) do
-                if not CloudManager.IsPlayerRankHidden(item.player) then
+                local uid = _getRankItemUserId(item)
+                if uid > 0 and not CloudManager.IsPlayerRankHidden(uid) then
                     filtered[#filtered + 1] = item
                     if #filtered >= 50 then break end
                 end
@@ -291,7 +305,7 @@ function LoadDummyRank()
             rankList = filtered
             local userIds = {}
             for _, item in ipairs(rankList) do
-                table.insert(userIds, item.player)
+                table.insert(userIds, _getRankItemUserId(item))
             end
             if #userIds == 0 then
                 welfareState.dummyRank = {}
@@ -308,11 +322,12 @@ function LoadDummyRank()
                     end
                     local result = {}
                     for _, item in ipairs(rankList) do
+                        local uid = _getRankItemUserId(item)
                         local sc = item.iscore or {}
                         local dmg = sc[PROJECT_PREFIX .. "dummy_damage"] or 0
-                        local name = nameMap[item.player] or ("玩家" .. tostring(item.player))
+                        local name = nameMap[uid] or ("Player " .. tostring(uid))
                         table.insert(result, {
-                            name = name, damage = dmg, userId = item.player,
+                            name = name, damage = dmg, userId = uid,
                             power = sc[PROJECT_PREFIX .. "combat_power"] or 0,
                         })
                     end
@@ -323,10 +338,11 @@ function LoadDummyRank()
                 onError = function()
                     local result = {}
                     for _, item in ipairs(rankList) do
+                        local uid = _getRankItemUserId(item)
                         local sc = item.iscore or {}
                         local dmg = sc[PROJECT_PREFIX .. "dummy_damage"] or 0
                         table.insert(result, {
-                            name = "玩家" .. tostring(item.player), damage = dmg, userId = item.player,
+                            name = "Player " .. tostring(uid), damage = dmg, userId = uid,
                             power = sc[PROJECT_PREFIX .. "combat_power"] or 0,
                         })
                     end
@@ -396,7 +412,8 @@ function LoadTowerLeaderboard()
             -- 过滤封禁玩家并截取前50
             local filtered = {}
             for _, item in ipairs(rankList) do
-                if not CloudManager.IsPlayerRankHidden(item.player) then
+                local uid = _getRankItemUserId(item)
+                if uid > 0 and not CloudManager.IsPlayerRankHidden(uid) then
                     filtered[#filtered + 1] = item
                     if #filtered >= 50 then break end
                 end
@@ -404,7 +421,7 @@ function LoadTowerLeaderboard()
             rankList = filtered
             local userIds = {}
             for _, item in ipairs(rankList) do
-                table.insert(userIds, item.player)
+                table.insert(userIds, _getRankItemUserId(item))
             end
             if #userIds == 0 then
                 towerState.rankList = {}
@@ -421,9 +438,10 @@ function LoadTowerLeaderboard()
                     end
                     local result = {}
                     for _, item in ipairs(rankList) do
+                        local uid = _getRankItemUserId(item)
                         local fl = item.iscore and item.iscore[PROJECT_PREFIX .. "tower_floor"] or 0
-                        local name = nameMap[item.player] or ("玩家" .. tostring(item.player))
-                        table.insert(result, { name = name, floor = fl, userId = item.player })
+                        local name = nameMap[uid] or ("Player " .. tostring(uid))
+                        table.insert(result, { name = name, floor = fl, userId = uid })
                     end
                     towerState.rankList = result
                     towerState.rankLoading = false
@@ -432,8 +450,9 @@ function LoadTowerLeaderboard()
                 onError = function()
                     local result = {}
                     for _, item in ipairs(rankList) do
+                        local uid = _getRankItemUserId(item)
                         local fl = item.iscore and item.iscore[PROJECT_PREFIX .. "tower_floor"] or 0
-                        table.insert(result, { name = "玩家" .. tostring(item.player), floor = fl, userId = item.player })
+                        table.insert(result, { name = "Player " .. tostring(uid), floor = fl, userId = uid })
                     end
                     towerState.rankList = result
                     towerState.rankLoading = false
@@ -452,6 +471,10 @@ end
 
 function ReportRankedScore()
     local score = rankedState.score
+    if IsServerAuthoritativeRankedMode and IsServerAuthoritativeRankedMode() then
+        print("[鎺掍綅] Skipping clientCloud ranked upload in server-authoritative mode")
+        return
+    end
     if rawget(_G, "clientCloud") then
         clientCloud:SetInt(PROJECT_PREFIX .. "ranked_score", score, {
             ok = function()
@@ -472,6 +495,7 @@ end
 ---@param result table {isWin, serverDelta, newElo, wins, losses}
 function OnRankedResult(result)
     if not result then return end
+    local awaitingResult = gameState and gameState.awaitingRankedResult == true
     print("[排位] 服务端权威结算: Elo=" .. tostring(result.newElo)
         .. " delta=" .. tostring(result.serverDelta)
         .. " wins=" .. tostring(result.wins)
@@ -480,6 +504,17 @@ function OnRankedResult(result)
     rankedState.score = result.newElo or rankedState.score
     rankedState.wins = result.wins or rankedState.wins
     rankedState.losses = result.losses or rankedState.losses
+    if awaitingResult then
+        playerInfo.totalRankedBattles = (playerInfo.totalRankedBattles or 0) + 1
+        if result.isWin then
+            playerInfo.totalRankedWins = (playerInfo.totalRankedWins or 0) + 1
+            if rankedState.streak < 0 then rankedState.streak = 0 end
+            rankedState.streak = rankedState.streak + 1
+        else
+            if rankedState.streak > 0 then rankedState.streak = 0 end
+            rankedState.streak = rankedState.streak - 1
+        end
+    end
     if rankedState.score > rankedState.highestScore then
         rankedState.highestScore = rankedState.score
     end
@@ -487,13 +522,35 @@ function OnRankedResult(result)
     if result.serverDelta then
         gameState.rankedDelta = result.serverDelta
     end
+    if gameState then
+        gameState.awaitingRankedResult = false
+    end
     -- 刷新排行榜
     rankedState.rankLoaded = false
     rankedState.rankLoading = false
+    SaveGameProgress()
 end
 
 
 function LoadRankedLeaderboard()
+    if IsServerAuthoritativeRankedMode and IsServerAuthoritativeRankedMode() then
+        local myUid = 0
+        if rawget(_G, "netState") and netState.userId then
+            myUid = netState.userId
+        elseif rawget(_G, "clientCloud") then
+            myUid = clientCloud.userId or 0
+        end
+        rankedState.rankList = {
+            {
+                name = playerInfo.name or "Player",
+                score = rankedState.score or 0,
+                userId = myUid,
+            }
+        }
+        rankedState.rankLoaded = true
+        rankedState.rankLoading = false
+        return
+    end
     if not rawget(_G, "clientCloud") then
         rankedState.rankLoaded = true
         rankedState.rankLoading = false
@@ -506,7 +563,8 @@ function LoadRankedLeaderboard()
             -- 过滤封禁玩家并截取前50
             local filtered = {}
             for _, item in ipairs(rankList) do
-                if not CloudManager.IsPlayerRankHidden(item.player) then
+                local uid = _getRankItemUserId(item)
+                if uid > 0 and not CloudManager.IsPlayerRankHidden(uid) then
                     filtered[#filtered + 1] = item
                     if #filtered >= 50 then break end
                 end
@@ -514,7 +572,7 @@ function LoadRankedLeaderboard()
             rankList = filtered
             local userIds = {}
             for _, item in ipairs(rankList) do
-                table.insert(userIds, item.player)
+                table.insert(userIds, _getRankItemUserId(item))
             end
             if #userIds == 0 then
                 rankedState.rankList = {}
@@ -531,9 +589,10 @@ function LoadRankedLeaderboard()
                     end
                     local result = {}
                     for _, item in ipairs(rankList) do
+                        local uid = _getRankItemUserId(item)
                         local sc = item.iscore and item.iscore[PROJECT_PREFIX .. "ranked_score"] or 0
-                        local name = nameMap[item.player] or ("玩家" .. tostring(item.player))
-                        table.insert(result, { name = name, score = sc, userId = item.player })
+                        local name = nameMap[uid] or ("Player " .. tostring(uid))
+                        table.insert(result, { name = name, score = sc, userId = uid })
                     end
                     rankedState.rankList = result
                     rankedState.rankLoading = false
@@ -542,8 +601,9 @@ function LoadRankedLeaderboard()
                 onError = function()
                     local result = {}
                     for _, item in ipairs(rankList) do
+                        local uid = _getRankItemUserId(item)
                         local sc = item.iscore and item.iscore[PROJECT_PREFIX .. "ranked_score"] or 0
-                        table.insert(result, { name = "玩家" .. tostring(item.player), score = sc, userId = item.player })
+                        table.insert(result, { name = "Player " .. tostring(uid), score = sc, userId = uid })
                     end
                     rankedState.rankList = result
                     rankedState.rankLoading = false

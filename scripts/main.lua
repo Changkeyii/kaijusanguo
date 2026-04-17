@@ -563,16 +563,17 @@ function Start()
     end
 
     -- 加载存档 & 每日/周重置
-    LoadGameProgress()
-    CheckDailyReset()
-    CheckWeeklyReset()
-    CheckWeeklyRankRewards()
+    LoadGameProgress(function()
+        CheckDailyReset()
+        CheckWeeklyReset()
+        CheckWeeklyRankRewards()
 
     -- 上报战力和境界到排行榜（启动时一次）
-    ReportPowerScore()
-    ReportRealmScore()
+        ReportPowerScore()
+        ReportRealmScore()
     -- 加载战力排行榜数据（首页展示用）
-    LoadPowerRank()
+        LoadPowerRank()
+    end)
 
     -- 播放菜单 BGM
     PlayBGM(AUDIO.bgm_menu)

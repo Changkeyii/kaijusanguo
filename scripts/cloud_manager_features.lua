@@ -22,6 +22,13 @@ local HASH_SECRET = C.HASH_SECRET
 local _getRoleLevel = C._getRoleLevel
 local _getRoleName = C._getRoleName
 
+local function _getRankItemUserId(item)
+    if rawget(_G, "ResolveRankListUserId") then
+        return ResolveRankListUserId(item)
+    end
+    return tonumber(item and (item.userId or item.player or item.uid)) or 0
+end
+
 -- ============================================================================
 -- 阵营聊天 (云端同步)
 -- ============================================================================
@@ -100,7 +107,7 @@ function CloudManager.PollFactionChat(callback)
             for _, item in ipairs(rankList) do
                 local chatData = item.score[KEYS.camp_chat]
                 if type(chatData) == "table" then
-                    local senderUid = item.uid or 0
+                    local senderUid = _getRankItemUserId(item)
                     local seenTs = CloudManager._chatSeenTs[senderUid] or 0
                     for _, m in ipairs(chatData) do
                         if type(m) == "table" and m.ts and m.ts > seenTs then
@@ -232,7 +239,7 @@ function CloudManager.PollWorldChat(callback)
             for _, item in ipairs(rankList) do
                 local chatData = item.score[KEYS.world_chat]
                 if type(chatData) == "table" then
-                    local senderUid = item.uid or 0
+                    local senderUid = _getRankItemUserId(item)
                     local seenTs = CloudManager._worldChatSeenTs[senderUid] or 0
                     for _, m in ipairs(chatData) do
                         if type(m) == "table" and m.ts and m.ts > seenTs then
@@ -1371,7 +1378,7 @@ function CloudManager.PollInbox(callback)
             local inbox = {}
             local expireThreshold = now - MAIL_EXPIRE_DAYS * 86400
             for _, entry in ipairs(rankList) do
-                local senderId = entry.player or entry.userId
+                local senderId = _getRankItemUserId(entry)
                 local outbox = entry.score and entry.score[KEYS.mail_outbox]
                 if outbox and type(outbox) == "table" then
                     for _, m in ipairs(outbox) do

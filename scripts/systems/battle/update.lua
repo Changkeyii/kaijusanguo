@@ -99,6 +99,20 @@ function OnBattleVictory()
 
     -- 3.8) 排位胜利
     if gameState.isRanked then
+        if IsServerAuthoritativeRankedMode and IsServerAuthoritativeRankedMode() then
+            local pendingStreak = rankedState.streak or 0
+            if pendingStreak < 0 then pendingStreak = 0 end
+            pendingStreak = pendingStreak + 1
+            local delta = CalcRankedScoreChange(true, pendingStreak)
+            gameState.awaitingRankedResult = true
+            gameState.rankedDelta = nil
+            local Client = require("network.Client")
+            local ok = Client.ReportRankedBattleResult(true, rankedState.score, delta, pendingStreak)
+            if not ok then
+                gameState.awaitingRankedResult = false
+                if rawget(_G, "ShowToast") then ShowToast("鎺掍綅缁撶畻涓婃姤澶辫触", 2.0) end
+            end
+        else
         playerInfo.totalRankedBattles = (playerInfo.totalRankedBattles or 0) + 1
         playerInfo.totalRankedWins = (playerInfo.totalRankedWins or 0) + 1
         rankedState.wins = rankedState.wins + 1
@@ -112,9 +126,6 @@ function OnBattleVictory()
         gameState.rankedDelta = delta  -- 保存用于弹窗展示
         ReportRankedScore()
         -- 网络模式: 上报服务端进行权威 Elo 结算
-        if rawget(_G, "IsNetworkMode") and IsNetworkMode() then
-            local Client = require("network.Client")
-            Client.ReportRankedBattleResult(true, rankedState.score, delta, rankedState.streak)
         end
     end
 
@@ -204,6 +215,20 @@ function OnBattleEnd()
     end
     -- 排位失败
     if gameState.isRanked then
+        if IsServerAuthoritativeRankedMode and IsServerAuthoritativeRankedMode() then
+            local pendingStreak = rankedState.streak or 0
+            if pendingStreak > 0 then pendingStreak = 0 end
+            pendingStreak = pendingStreak - 1
+            local delta = CalcRankedScoreChange(false, pendingStreak)
+            gameState.awaitingRankedResult = true
+            gameState.rankedDelta = nil
+            local Client = require("network.Client")
+            local ok = Client.ReportRankedBattleResult(false, rankedState.score, delta, pendingStreak)
+            if not ok then
+                gameState.awaitingRankedResult = false
+                if rawget(_G, "ShowToast") then ShowToast("鎺掍綅缁撶畻涓婃姤澶辫触", 2.0) end
+            end
+        else
         playerInfo.totalRankedBattles = (playerInfo.totalRankedBattles or 0) + 1
         rankedState.losses = rankedState.losses + 1
         if rankedState.streak > 0 then rankedState.streak = 0 end
@@ -213,9 +238,6 @@ function OnBattleEnd()
         gameState.rankedDelta = delta  -- 保存用于弹窗展示
         ReportRankedScore()
         -- 网络模式: 上报服务端进行权威 Elo 结算
-        if rawget(_G, "IsNetworkMode") and IsNetworkMode() then
-            local Client = require("network.Client")
-            Client.ReportRankedBattleResult(false, rankedState.score, delta, rankedState.streak)
         end
     end
     -- 大地图战斗失败回调

@@ -4629,7 +4629,12 @@ function BeginPress(sx, sy, touchId)
             -- 网络模式: 通知服务端创建排位会话（战斗结算时需要）
             if rawget(_G, "IsNetworkMode") and IsNetworkMode() then
                 local Client = require("network.Client")
-                Client.JoinRanked()
+                local ok = Client.JoinRanked()
+                if not ok then
+                    rankedState.isMatching = false
+                    if rawget(_G, "ShowToast") then ShowToast("鎺掍綅杩炴帴澶辫触", 2.0) end
+                    return
+                end
             end
             PlaySFX(AUDIO.sfx_click)
             print("=== 排位匹配开始 ===")
@@ -4904,7 +4909,21 @@ function BeginPress(sx, sy, touchId)
             return
         elseif gameState.isRanked then
             -- 排位中途退出 = 判负扣分
-            if rankedState.score > 0 then
+            local shouldLeaveRankedBattle = true
+            if IsServerAuthoritativeRankedMode and IsServerAuthoritativeRankedMode() then
+                gameState.awaitingRankedResult = true
+                gameState.rankedDelta = nil
+                local Client = require("network.Client")
+                local ok = Client.ForfeitRanked()
+                if not ok then
+                    gameState.awaitingRankedResult = false
+                    shouldLeaveRankedBattle = false
+                    if rawget(_G, "ShowToast") then ShowToast("鎺掍綅鎶曢檷鎻愪氦澶辫触", 2.0) end
+                else
+                    SaveGameProgress()
+                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "鎶曢檷缁撶畻宸叉彁浜?", 2.0, { 255, 180, 120 }, 18)
+                end
+            elseif rankedState.score > 0 then
                 rankedState.losses = rankedState.losses + 1
                 if rankedState.streak > 0 then rankedState.streak = 0 end
                 rankedState.streak = rankedState.streak - 1
@@ -4912,17 +4931,15 @@ function BeginPress(sx, sy, touchId)
                 rankedState.score = math.max(0, rankedState.score + delta)
                 ReportRankedScore()
                 -- 网络模式: 通知服务端弃权
-                if rawget(_G, "IsNetworkMode") and IsNetworkMode() then
-                    local Client = require("network.Client")
-                    Client.ForfeitRanked()
-                end
                 SaveGameProgress()
                 AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "退出判负 " .. delta .. "分", 2.0, { 255, 100, 80 }, 18)
             end
-            PopPhase("RANKED_SELECT")
-            gameState.isRanked = false
-            gameState.rankedDelta = nil
-            rankedState.showPreview = false
+            if shouldLeaveRankedBattle then
+                PopPhase("RANKED_SELECT")
+                gameState.isRanked = false
+                gameState.rankedDelta = nil
+                rankedState.showPreview = false
+            end
         elseif gameState.abyssFloor then
             PopPhase("ABYSS_SELECT")
             abyssState.showPreview = false

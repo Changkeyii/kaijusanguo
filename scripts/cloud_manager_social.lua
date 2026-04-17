@@ -26,6 +26,13 @@ local _getRoleName = C._getRoleName
 local _hasAuthorityOver = C._hasAuthorityOver
 local _countRole = C._countRole
 
+local function _getRankItemUserId(item)
+    if rawget(_G, "ResolveRankListUserId") then
+        return ResolveRankListUserId(item)
+    end
+    return tonumber(item and (item.userId or item.player or item.uid)) or 0
+end
+
 -- ============================================================================
 -- 公开档案
 -- ============================================================================
@@ -120,14 +127,15 @@ function CloudManager.GetPublicProfiles(start, count, callback)
 
             for i, item in ipairs(rankList) do
                 local profile = item.score[KEYS.pub_profile] or {}
+                local uid = _getRankItemUserId(item)
                 local entry = {
                     rank = start + i,
-                    userId = item.userId or item.player,
+                    userId = uid,
                     combatPower = (item.iscore and item.iscore[KEYS.combat_power]) or 0,
                     realmLevel = (item.iscore and item.iscore[KEYS.realm_level]) or 1,
                     profile = profile,
                     nickname = "",
-                    isMe = (item.userId or item.player) == clientCloud.userId,
+                    isMe = uid == clientCloud.userId,
                 }
                 profiles[#profiles + 1] = entry
                 userIds[#userIds + 1] = entry.userId
@@ -343,7 +351,7 @@ function CloudManager.CheckIncomingRequests(callback)
             local myUidStr = tostring(myUid)
 
             for _, item in ipairs(rankList) do
-                local senderId = item.userId or item.player
+                local senderId = _getRankItemUserId(item)
                 if senderId ~= myUid then
                     local outbox = item.score[KEYS.freq_outbox]
                     if type(outbox) == "table" and outbox[myUidStr] then
@@ -465,7 +473,7 @@ function CloudManager.CheckMyRequestResponses(callback)
             local completedUids = {}
 
             for _, item in ipairs(rankList) do
-                local responder = item.userId or item.player
+                local responder = _getRankItemUserId(item)
                 local respData = item.score[KEYS.freq_resp]
                 if type(respData) == "table" and respData[myUidStr] then
                     local resp = respData[myUidStr]
@@ -1127,7 +1135,7 @@ function CloudManager.ListFactions(callback)
                             campId = cid,
                             name = meta.name or "未命名",
                             desc = meta.desc or "",
-                            leaderId = meta.leaderId or (item.userId or item.player),
+                            leaderId = meta.leaderId or _getRankItemUserId(item),
                             leaderNickname = "",
                             createdAt = meta.createdAt or 0,
                             maxMembers = meta.maxMembers or MAX_CAMP_MEMBERS,
@@ -1242,7 +1250,7 @@ function CloudManager.CheckFactionApplications(callback)
             for _, item in ipairs(rankList) do
                 local applyData = item.score[KEYS.camp_apply]
                 if type(applyData) == "table" and applyData.campId == myCampId then
-                    local applicantId = item.userId or item.player
+                    local applicantId = _getRankItemUserId(item)
                     -- 排除过期 & 已在成员列表中
                     if applyData.time and (os.time() - applyData.time) <= REQUEST_EXPIRE_SECONDS then
                         local alreadyMember = false

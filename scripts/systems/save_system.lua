@@ -466,11 +466,12 @@ function IsSaveValid(data)
 end
 
 
-function LoadGameProgress()
+function LoadGameProgress(callback)
     -- 委托给 CloudManager 多domain加载 (本地优先 + 云端对比)
     local CloudMgr = rawget(_G, 'CloudManager')
     if CloudMgr then
         CloudMgr.LoadAll(function(source)
+            if callback then callback(source) end
             print("[存档] 加载完成, source=" .. tostring(source))
         end)
         return
@@ -493,4 +494,5 @@ function LoadGameProgress()
         ApplySaveData(localData)
         print("[存档] 本地存档已加载(降级模式)")
     end
+    if callback then callback(localData and "local" or "none") end
 end
