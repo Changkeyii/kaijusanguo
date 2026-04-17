@@ -501,12 +501,13 @@ function DrawInfoPopup()
     end
     contentH = contentH + 19 + 6         -- 等级/命格/费用 + 分割线间距
 
-    -- 技能描述高度
+    -- 技能描述高度 (使用武技系统)
     local descH = 0
-    if card.skill and card.skillData then
+    local cardSkillDef = card.techIdx and SKILL_DEFS[card.techIdx]
+    if cardSkillDef then
         contentH = contentH + 18         -- 技能标题
         nvgFontSize(vg, 13)
-        local descText = card.skillData.desc or ""
+        local descText = cardSkillDef.desc or ""
         local bounds = nvgTextBoxBounds(vg, 0, 0, innerW, descText, nil)
         descH = bounds and (bounds[4] - bounds[2]) or 14
         contentH = contentH + descH + 6  -- 技能描述
@@ -670,19 +671,19 @@ function DrawInfoPopup()
     nvgStrokeColor(vg, nvgRGBA(160, 130, 80, 60)); nvgStrokeWidth(vg, 0.5); nvgStroke(vg)
     ly = ly + 6
 
-    -- ⑤ 技能信息
-    if card.skill and card.skillData then
+    -- ⑤ 技能信息 (使用武技系统)
+    if cardSkillDef then
         nvgFontSize(vg, 15)
         nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
         nvgFillColor(vg, nvgRGBA(255, 200, 80, 240))
-        nvgText(vg, axLx, ly, "技能: " .. card.skill, nil)
+        nvgText(vg, axLx, ly, "武技: " .. cardSkillDef.name, nil)
         nvgFillColor(vg, nvgRGBA(180, 170, 150, 180))
-        nvgText(vg, tipX + tipW - pad - 50, ly, "CD:" .. (card.skillData.cd or "?") .. "s", nil)
+        nvgText(vg, tipX + tipW - pad - 50, ly, "CD:" .. (cardSkillDef.maxCooldown or "?") .. "s", nil)
         ly = ly + 18
         -- 技能描述 (自动换行)
         nvgFontSize(vg, 13)
         nvgFillColor(vg, nvgRGBA(200, 195, 180, 200))
-        local descText2 = card.skillData.desc or ""
+        local descText2 = cardSkillDef.desc or ""
         nvgTextBox(vg, axLx, ly, innerW, descText2, nil)
         ly = ly + descH + 6
     end

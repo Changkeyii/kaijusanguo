@@ -127,10 +127,9 @@ function UpdateAISkills(dt)
     -- 计算目标位置
     local targetX, targetY
     if skill.skillType == "line" then
-        -- 线型技能: 随机选一个车道
-        local laneIdx = math.random(1, NUM_LANES)
-        targetX = GetLaneCenterX(laneIdx)
-        targetY = BATTLE_ZONE.centerY
+        -- 线型技能: 随机Y位置(已去除车道吸附)
+        targetX = BATTLE_ZONE.centerX
+        targetY = BATTLE_ZONE.top + math.random() * (BATTLE_ZONE.bottom - BATTLE_ZONE.top)
     else
         -- AOE/矩形/区域技能: 优先瞄准玩家单位密集区域
         if #playerUnits > 0 then
@@ -157,10 +156,7 @@ function UpdateAISkills(dt)
 
     -- 创建技能特效 (标记 isEnemySkill = true)
     if skill.skillType == "line" then
-        -- 横屏: 车道沿Y轴排列, 用targetY确定车道
-        local laneIdx = math.floor((targetY - BATTLE_ZONE.top) / LANE_WIDTH) + 1
-        laneIdx = math.max(1, math.min(NUM_LANES, laneIdx))
-        local laneCY = GetLaneCenterY(laneIdx)
+        -- 线型技能: 直接使用targetY(已去除车道吸附)
         -- AI线型技能: 从敌方线出发向玩家线飞行 (横屏: X减小=向左)
         local startX = BATTLE_ZONE.enemyLine - 20
         local endX   = BATTLE_ZONE.playerLine - 30
@@ -172,7 +168,7 @@ function UpdateAISkills(dt)
         local speed  = dist / dur
         table.insert(activeSkillEffects, {
             x = startX,
-            y = laneCY,
+            y = targetY,
             startX = startX,
             endX = endX,
             skillIdx = chosenIdx,
@@ -182,7 +178,6 @@ function UpdateAISkills(dt)
             duration = dur,
             lineSpeed = speed,
             isLine = true,
-            laneIdx = laneIdx,
             hitUnits = {},
             isEnemySkill = true,  -- 标记为AI技能
         })
@@ -223,10 +218,7 @@ function CastSkill(skillIdx, targetX, targetY)
 
     -- 创建技能特效
     if skill.skillType == "line" then
-        -- 线型技能: 横屏吸附到最近车道中心(Y轴), 从玩家线出发向敌方飞行(X轴向右)
-        local laneIdx = math.floor((targetY - BATTLE_ZONE.top) / LANE_WIDTH) + 1
-        laneIdx = math.max(1, math.min(NUM_LANES, laneIdx))
-        local laneCY = GetLaneCenterY(laneIdx)
+        -- 线型技能: 直接使用targetY(已去除车道吸附), 从玩家线出发向敌方飞行(X轴向右)
         local startX = BATTLE_ZONE.playerLine + 20
         local endX   = BATTLE_ZONE.enemyLine + 30
         local dist   = endX - startX  -- 飞行总距离 (像素)
@@ -238,7 +230,7 @@ function CastSkill(skillIdx, targetX, targetY)
         local speed  = dist / dur                -- 自动算出飞行速度
         table.insert(activeSkillEffects, {
             x = startX,
-            y = laneCY,
+            y = targetY,
             startX = startX,
             endX = endX,
             skillIdx = skillIdx,
@@ -248,7 +240,6 @@ function CastSkill(skillIdx, targetX, targetY)
             duration = dur,
             lineSpeed = speed,
             isLine = true,
-            laneIdx = laneIdx,
             hitUnits = {},
         })
     else

@@ -53,7 +53,7 @@ worldMapState = worldMapState or {
     -- 地图平移/缩放
     mapCenterX = 512,       -- 地图视口中心 (地图坐标系 1024×571)
     mapCenterY = 285,
-    mapZoom = 1.0,          -- 缩放倍率 (1.0 = 适配整个地图)
+    mapZoom = 1.8,          -- 缩放倍率 (1.0 = 适配整个地图, 默认放大到1.8)
     mapDragging = false,    -- 是否正在拖拽
     mapDragMoved = false,   -- 拖拽中是否发生了移动(区分点击和拖拽)
     mapDragLastPX = 0,      -- 上一帧鼠标物理坐标
@@ -63,11 +63,42 @@ worldMapState = worldMapState or {
     mapTargetZoom = nil,    -- 自动缩放目标 (nil=不改变)
     mapAnimTimer = 0,       -- 缩放动画计时器
 
+    -- 面板折叠状态
+    leftPanelCollapsed = false,   -- 左侧城池列表是否折叠
+    rightPanelCollapsed = false,  -- 右侧操作面板是否折叠
+    leftPanelAnim = 1.0,          -- 左面板动画进度 (0=折叠, 1=展开)
+    rightPanelAnim = 1.0,         -- 右面板动画进度
+
     -- 武将弹窗
     heroPopup = nil,        -- 弹窗显示的武将索引 (nil=不显示)
 
     -- 刺探结果
     scoutResult = nil,
+
+    -- 武将忠诚度 (被俘后每次放走降20, 越低越容易招降)
+    heroLoyalty = {},   -- [heroIdx] = 0~100, 默认100
+
+    -- 随机事件历史 (记录最近发生的事件, 避免连续重复)
+    eventHistory = {},  -- {{id="harvest", turn=3}, ...}
+
+    -- 建设面板
+    buildingsCity = nil,        -- 当前查看建设的城池ID
+    buildingsScroll = 0,        -- 建设面板滚动
+
+    -- 断粮效果 (一回合临时减产)
+    cutoffCities = {},          -- {[cityId]=true} 被断粮的城池
+
+    -- 武将统计 (用于事件/转职条件)
+    heroStats = {},             -- [heroIdx] = {wins=N, battles=N}
+    heroBonusAtk = {},          -- [heroIdx] = 永久攻击加成
+    heroBonusDef = {},          -- [heroIdx] = 永久防御加成
+    triggeredEvents = {},       -- {[eventId]=true} 已触发的武将事件
+    classChanged = {},          -- {[heroIdx]=true} 已转职的武将
+
+    -- 任务系统
+    questCompleted = {},        -- {[questId]=true} 已完成的任务
+    questCounters = {},         -- {stratSuccess=N, battleWins=N} 计数器
+    questScroll = 0,            -- 任务面板滚动
 }
 
 --- 获取状态引用
@@ -90,6 +121,9 @@ function M.ResetView()
     st.heroManageScroll = 0
     st.heroPopup = nil
     st.mapPanelHeroScroll = 0
+    st.buildingsCity = nil
+    st.buildingsScroll = 0
+    st.questScroll = 0
 end
 
 --- 完整重置（新游戏）
@@ -123,7 +157,7 @@ function M.FullReset()
     st.cloudOffset = 0
     st.mapCenterX = 512
     st.mapCenterY = 285
-    st.mapZoom = 1.0
+    st.mapZoom = 1.8
     st.mapDragging = false
     st.mapDragMoved = false
     st.mapTargetX = nil
@@ -132,6 +166,18 @@ function M.FullReset()
     st.heroPopup = nil
     st.scoutResult = nil
     st.mapPanelHeroScroll = 0
+    st.eventHistory = {}
+    st.buildingsCity = nil
+    st.buildingsScroll = 0
+    st.cutoffCities = {}
+    st.heroStats = {}
+    st.heroBonusAtk = {}
+    st.heroBonusDef = {}
+    st.triggeredEvents = {}
+    st.classChanged = {}
+    st.questCompleted = {}
+    st.questCounters = {}
+    st.questScroll = 0
 end
 
 return M

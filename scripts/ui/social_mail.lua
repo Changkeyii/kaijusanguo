@@ -195,7 +195,7 @@ function DrawMailBoxScreen()
     DrawWhiteInkText(cx, 32, "邮件")
 
     -- 右上角显示玩家UID (方便管理员确认身份)
-    local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+    local myUid = GetMyUid()
     nvgFontSize(vg, 11)
     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
     nvgFillColor(vg, nvgRGBA(100, 100, 110, 140))

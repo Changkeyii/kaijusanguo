@@ -599,7 +599,7 @@ function DrawMenuScreen()
                 local addBtnX = ppTxtX
                 local addBtnY = ppY + ppH / 2 + 6
                 local isFriend = CloudManager.IsFriend(pp.uid)
-                local isMe = (rawget(_G, "clientCloud") and pp.uid == clientCloud.userId)
+                local isMe = (pp.uid == GetMyUid())
                 if isMe then
                     nvgFontSize(vg, 12); nvgFillColor(vg, nvgRGBA(120, 90, 50, 180))
                     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
@@ -1453,10 +1453,19 @@ function DrawFormationScreen()
                 if not canManualEdit then
                     nvgBeginPath(vg); nvgRoundedRect(vg, cx, cy, cardW, cardH, 4)
                     nvgFillColor(vg, nvgRGBA(10, 10, 15, 100)); nvgFill(vg)
-                    nvgFontSize(vg, 20)
-                    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-                    nvgFillColor(vg, nvgRGBA(160, 140, 100, 120))
-                    nvgText(vg, cx + cardW / 2, cy + cardH / 2, "🔒")
+                    -- 锁定图标
+                    local lockSz = 20
+                    local lockCx = cx + cardW / 2
+                    local lockCy = cy + cardH / 2
+                    if IMG.bpIconLock and IMG.bpIconLock ~= -1 and IsImageReady(IMG.bpIconLock) then
+                        local lp = nvgImagePattern(vg, lockCx - lockSz/2, lockCy - lockSz/2, lockSz, lockSz, 0, IMG.bpIconLock, 0.5)
+                        nvgBeginPath(vg); nvgRect(vg, lockCx - lockSz/2, lockCy - lockSz/2, lockSz, lockSz)
+                        nvgFillPaint(vg, lp); nvgFill(vg)
+                    else
+                        nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                        nvgFillColor(vg, nvgRGBA(160, 140, 100, 120))
+                        nvgText(vg, lockCx, lockCy, "X", nil)
+                    end
                 end
             end
         end

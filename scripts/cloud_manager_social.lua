@@ -110,58 +110,62 @@ end
 ---@param count number 获取数量
 ---@param callback fun(profiles: table[])
 function CloudManager.GetPublicProfiles(start, count, callback)
-    if not rawget(_G, "clientCloud") then
+    if not rawget(_G, "cl_state") then
         if callback then callback({}) end
         return
     end
 
-    clientCloud:GetRankList(KEYS.combat_power, start, count, {
-        ok = function(rankList)
-            local profiles = {}
-            local userIds = {}
-
-            for i, item in ipairs(rankList) do
-                local profile = item.score[KEYS.pub_profile] or {}
-                local entry = {
-                    rank = start + i,
-                    userId = item.userId or item.player,
-                    combatPower = (item.iscore and item.iscore[KEYS.combat_power]) or 0,
-                    realmLevel = (item.iscore and item.iscore[KEYS.realm_level]) or 1,
-                    profile = profile,
-                    nickname = "",
-                    isMe = (item.userId or item.player) == clientCloud.userId,
-                }
-                profiles[#profiles + 1] = entry
-                userIds[#userIds + 1] = entry.userId
-            end
-
-            -- 批量查询昵称
-            if #userIds > 0 and rawget(_G, "GetUserNickname") then
-                GetUserNickname({
-                    userIds = userIds,
-                    onSuccess = function(nicknames)
-                        local map = {}
-                        for _, info in ipairs(nicknames) do
-                            map[info.userId] = info.nickname or ""
-                        end
-                        for _, entry in ipairs(profiles) do
-                            entry.nickname = map[entry.userId] or "未知"
-                        end
-                        if callback then callback(profiles) end
-                    end,
-                    onError = function()
-                        if callback then callback(profiles) end
-                    end,
-                })
-            else
-                if callback then callback(profiles) end
-            end
-        end,
-        error = function(code, reason)
-            print("[CloudManager] 获取排行榜失败: " .. tostring(reason))
+    local ClientNet = require("network.Client")
+    ClientNet.Request("get_rank_list", {
+        key = KEYS.combat_power,
+        start = start, count = count,
+    }, function(ok, code, data, msg)
+        if not ok or not data or not data.list then
+            print("[CloudManager] 获取排行榜失败: " .. tostring(msg))
             if callback then callback({}) end
-        end,
-    }, KEYS.pub_profile, KEYS.realm_level)
+            return
+        end
+
+        local profiles = {}
+        local userIds = {}
+
+        for i, item in ipairs(data.list) do
+            local profile = (item.score and item.score[KEYS.pub_profile]) or {}
+            local entry = {
+                rank = start + i,
+                userId = item.userId,
+                combatPower = (item.iscore and item.iscore[KEYS.combat_power]) or 0,
+                realmLevel = (item.iscore and item.iscore[KEYS.realm_level]) or 1,
+                profile = profile,
+                nickname = item.name or "",
+                isMe = item.userId == GetMyUid(),
+            }
+            profiles[#profiles + 1] = entry
+            userIds[#userIds + 1] = entry.userId
+        end
+
+        -- 批量查询昵称
+        if #userIds > 0 and rawget(_G, "GetUserNickname") then
+            GetUserNickname({
+                userIds = userIds,
+                onSuccess = function(nicknames)
+                    local map = {}
+                    for _, info in ipairs(nicknames) do
+                        map[info.userId] = info.nickname or ""
+                    end
+                    for _, entry in ipairs(profiles) do
+                        entry.nickname = map[entry.userId] or entry.nickname or "未知"
+                    end
+                    if callback then callback(profiles) end
+                end,
+                onError = function()
+                    if callback then callback(profiles) end
+                end,
+            })
+        else
+            if callback then callback(profiles) end
+        end
+    end)
 end
 
 -- ============================================================================
@@ -196,54 +200,53 @@ end
 -- ── 初始化时从云端拉取自己的出站信箱 ──
 
 function CloudManager._loadMyOutbox(callback)
-    if not rawget(_G, "clientCloud") then
+    if not rawget(_G, "cl_state") then
         if callback then callback() end
         return
     end
-    clientCloud:BatchGet()
-        :Key(KEYS.freq_outbox)
-        :Key(KEYS.freq_resp)
-        :Key(KEYS.camp_apply)
-        :Key(KEYS.camp_resp)
-        :Key(KEYS.camp_meta)
-        :Fetch({
-            ok = function(values, _)
-                -- 好友出站
-                if values[KEYS.freq_outbox] then
-                    CloudManager._outgoingRequests = values[KEYS.freq_outbox] or {}
-                    _purgeExpired(CloudManager._outgoingRequests)
-                end
-                if values[KEYS.freq_resp] then
-                    CloudManager._outgoingResponses = values[KEYS.freq_resp] or {}
-                    _purgeExpired(CloudManager._outgoingResponses)
-                end
-                -- 阵营出站
-                if values[KEYS.camp_apply] and type(values[KEYS.camp_apply]) == "table"
-                   and values[KEYS.camp_apply].campId then
-                    CloudManager._campOutApply = values[KEYS.camp_apply]
-                end
-                if values[KEYS.camp_resp] and type(values[KEYS.camp_resp]) == "table" then
-                    CloudManager._campOutResp = values[KEYS.camp_resp]
-                end
-                -- 盟主阵营元数据
-                if values[KEYS.camp_meta] and type(values[KEYS.camp_meta]) == "table"
-                   and values[KEYS.camp_meta].id then
-                    CloudManager._factionMeta = values[KEYS.camp_meta]
-                end
-                print("[社交] 出站信箱已加载: 好友申请=" .. _tableCount(CloudManager._outgoingRequests)
-                    .. " 好友回复=" .. _tableCount(CloudManager._outgoingResponses)
-                    .. " 阵营申请=" .. (CloudManager._campOutApply and "有" or "无"))
-                -- 阵营继位检测: 如果有阵营归属, 自动检查是否发生了盟主转让
-                if CloudManager._factionId ~= 0 then
-                    CloudManager._refreshFactionStatus()
-                end
-                if callback then callback() end
-            end,
-            error = function(_, reason)
-                print("[社交] 加载出站信箱失败: " .. tostring(reason))
-                if callback then callback() end
-            end,
-        })
+
+    local ClientNet = require("network.Client")
+    ClientNet.Request("cloud_batch_get", {
+        keys = { KEYS.freq_outbox, KEYS.freq_resp, KEYS.camp_apply, KEYS.camp_resp, KEYS.camp_meta },
+    }, function(ok, code, data, msg)
+        if not ok or not data then
+            print("[社交] 加载出站信箱失败: " .. tostring(msg))
+            if callback then callback() end
+            return
+        end
+
+        local values = data.scores or {}
+        -- 好友出站
+        if values[KEYS.freq_outbox] then
+            CloudManager._outgoingRequests = values[KEYS.freq_outbox] or {}
+            _purgeExpired(CloudManager._outgoingRequests)
+        end
+        if values[KEYS.freq_resp] then
+            CloudManager._outgoingResponses = values[KEYS.freq_resp] or {}
+            _purgeExpired(CloudManager._outgoingResponses)
+        end
+        -- 阵营出站
+        if values[KEYS.camp_apply] and type(values[KEYS.camp_apply]) == "table"
+           and values[KEYS.camp_apply].campId then
+            CloudManager._campOutApply = values[KEYS.camp_apply]
+        end
+        if values[KEYS.camp_resp] and type(values[KEYS.camp_resp]) == "table" then
+            CloudManager._campOutResp = values[KEYS.camp_resp]
+        end
+        -- 盟主阵营元数据
+        if values[KEYS.camp_meta] and type(values[KEYS.camp_meta]) == "table"
+           and values[KEYS.camp_meta].id then
+            CloudManager._factionMeta = values[KEYS.camp_meta]
+        end
+        print("[社交] 出站信箱已加载: 好友申请=" .. _tableCount(CloudManager._outgoingRequests)
+            .. " 好友回复=" .. _tableCount(CloudManager._outgoingResponses)
+            .. " 阵营申请=" .. (CloudManager._campOutApply and "有" or "无"))
+        -- 阵营继位检测: 如果有阵营归属, 自动检查是否发生了盟主转让
+        if CloudManager._factionId ~= 0 then
+            CloudManager._refreshFactionStatus()
+        end
+        if callback then callback() end
+    end)
 end
 
 -- ── 发布自己的出站信箱到排行榜 ──
@@ -281,7 +284,7 @@ function CloudManager.SendFriendRequest(targetUserId, message)
     if not targetUserId or targetUserId == 0 then
         return false, "无效的用户ID"
     end
-    local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+    local myUid = GetMyUid()
     if targetUserId == myUid then
         return false, "不能添加自己"
     end
@@ -331,70 +334,73 @@ function CloudManager.CheckIncomingRequests(callback)
         if callback then callback({}) end
         return
     end
-    if not rawget(_G, "clientCloud") then
+    if not rawget(_G, "cl_state") then
         if callback then callback({}) end
         return
     end
-    local myUid = clientCloud.userId
+    local myUid = GetMyUid()
 
     -- 扫描 freq_outbox_ts 排行榜 (按最近更新排序, 拉200人)
-    clientCloud:GetRankList(KEYS.freq_outbox_ts, 0, 200, {
-        ok = function(rankList)
-            local incoming = {}
-            local senderIds = {}
-            local myUidStr = tostring(myUid)
+    local ClientNet = require("network.Client")
+    ClientNet.Request("get_rank_list", {
+        key = KEYS.freq_outbox_ts, start = 0, count = 200,
+    }, function(ok, code, data, msg)
+        if not ok or not data or not data.list then
+            print("[好友] 扫描入站申请失败: " .. tostring(msg))
+            if callback then callback({}) end
+            return
+        end
 
-            for _, item in ipairs(rankList) do
-                local senderId = item.userId or item.player
-                if senderId ~= myUid then
-                    local outbox = item.score[KEYS.freq_outbox]
-                    if type(outbox) == "table" and outbox[myUidStr] then
-                        local req = outbox[myUidStr]
-                        -- 检查过期
-                        if req.time and (os.time() - req.time) <= REQUEST_EXPIRE_SECONDS then
-                            -- 排除已是好友 & 已回复的
-                            if not CloudManager.IsFriend(senderId)
-                               and not CloudManager._outgoingResponses[tostring(senderId)] then
-                                table.insert(incoming, {
-                                    fromUid = senderId,
-                                    time = req.time,
-                                    msg = req.msg or "",
-                                    nickname = "",
-                                })
-                                table.insert(senderIds, senderId)
-                            end
+        local incoming = {}
+        local senderIds = {}
+        local myUidStr = tostring(myUid)
+
+        for _, item in ipairs(data.list) do
+            local senderId = item.userId
+            if senderId ~= myUid then
+                local outbox = item.score and item.score[KEYS.freq_outbox]
+                if type(outbox) == "table" and outbox[myUidStr] then
+                    local req = outbox[myUidStr]
+                    -- 检查过期
+                    if req.time and (os.time() - req.time) <= REQUEST_EXPIRE_SECONDS then
+                        -- 排除已是好友 & 已回复的
+                        if not CloudManager.IsFriend(senderId)
+                           and not CloudManager._outgoingResponses[tostring(senderId)] then
+                            table.insert(incoming, {
+                                fromUid = senderId,
+                                time = req.time,
+                                msg = req.msg or "",
+                                nickname = item.name or "",
+                            })
+                            table.insert(senderIds, senderId)
                         end
                     end
                 end
             end
+        end
 
-            -- 批量查昵称
-            if #senderIds > 0 and rawget(_G, "GetUserNickname") then
-                GetUserNickname({
-                    userIds = senderIds,
-                    onSuccess = function(nicknames)
-                        local map = {}
-                        for _, info in ipairs(nicknames) do
-                            map[info.userId] = info.nickname or ""
-                        end
-                        for _, r in ipairs(incoming) do
-                            r.nickname = map[r.fromUid] or "未知"
-                        end
-                        if callback then callback(incoming) end
-                    end,
-                    onError = function()
-                        if callback then callback(incoming) end
-                    end,
-                })
-            else
-                if callback then callback(incoming) end
-            end
-        end,
-        error = function(_, reason)
-            print("[好友] 扫描入站申请失败: " .. tostring(reason))
-            if callback then callback({}) end
-        end,
-    }, KEYS.freq_outbox)
+        -- 批量查昵称
+        if #senderIds > 0 and rawget(_G, "GetUserNickname") then
+            GetUserNickname({
+                userIds = senderIds,
+                onSuccess = function(nicknames)
+                    local map = {}
+                    for _, info in ipairs(nicknames) do
+                        map[info.userId] = info.nickname or ""
+                    end
+                    for _, r in ipairs(incoming) do
+                        r.nickname = map[r.fromUid] or r.nickname or "未知"
+                    end
+                    if callback then callback(incoming) end
+                end,
+                onError = function()
+                    if callback then callback(incoming) end
+                end,
+            })
+        else
+            if callback then callback(incoming) end
+        end
+    end)
 end
 
 -- ── 同意好友申请 ──
@@ -443,11 +449,11 @@ end
 --- 检查我发出的申请是否被对方回复, 自动完成互加
 ---@param callback? fun(results: table[]) {toUid, accepted, nickname}
 function CloudManager.CheckMyRequestResponses(callback)
-    if not rawget(_G, "clientCloud") then
+    if not rawget(_G, "cl_state") then
         if callback then callback({}) end
         return
     end
-    local myUid = clientCloud.userId
+    local myUid = GetMyUid()
     local myUidStr = tostring(myUid)
 
     -- 我有哪些待处理的出站申请?
@@ -461,50 +467,53 @@ function CloudManager.CheckMyRequestResponses(callback)
     end
 
     -- 扫描 freq_resp_ts 排行榜, 找对方的回复
-    clientCloud:GetRankList(KEYS.freq_resp_ts, 0, 200, {
-        ok = function(rankList)
-            local results = {}
-            local completedUids = {}
-
-            for _, item in ipairs(rankList) do
-                local responder = item.userId or item.player
-                local respData = item.score[KEYS.freq_resp]
-                if type(respData) == "table" and respData[myUidStr] then
-                    local resp = respData[myUidStr]
-                    if resp.accepted then
-                        -- 对方同意了! 加入我的好友列表
-                        if not CloudManager.IsFriend(responder)
-                           and #CloudManager._friendIds < MAX_FRIENDS then
-                            table.insert(CloudManager._friendIds, responder)
-                            table.insert(completedUids, responder)
-                        end
-                    else
-                        -- 对方拒绝了, 记录到被拒缓存 (24h冷却)
-                        S.rejectedByCache[tostring(responder)] = os.time()
-                    end
-                    table.insert(results, {
-                        toUid = responder,
-                        accepted = resp.accepted or false,
-                    })
-                    -- 从出站信箱移除已处理的
-                    CloudManager._outgoingRequests[tostring(responder)] = nil
-                end
-            end
-
-            -- 如果有新增好友, 同步
-            if #completedUids > 0 then
-                CloudManager._publishOutbox()  -- 更新出站 (移除已处理)
-                CloudManager._syncSocialDomain()
-                print("[好友] 自动互加完成: +" .. #completedUids .. " 人")
-            end
-
-            if callback then callback(results) end
-        end,
-        error = function(_, reason)
-            print("[好友] 扫描回复失败: " .. tostring(reason))
+    local ClientNet = require("network.Client")
+    ClientNet.Request("get_rank_list", {
+        key = KEYS.freq_resp_ts, start = 0, count = 200,
+    }, function(ok, code, data, msg)
+        if not ok or not data or not data.list then
+            print("[好友] 扫描回复失败: " .. tostring(msg))
             if callback then callback({}) end
-        end,
-    }, KEYS.freq_resp)
+            return
+        end
+
+        local results = {}
+        local completedUids = {}
+
+        for _, item in ipairs(data.list) do
+            local responder = item.userId
+            local respData = item.score and item.score[KEYS.freq_resp]
+            if type(respData) == "table" and respData[myUidStr] then
+                local resp = respData[myUidStr]
+                if resp.accepted then
+                    -- 对方同意了! 加入我的好友列表
+                    if not CloudManager.IsFriend(responder)
+                       and #CloudManager._friendIds < MAX_FRIENDS then
+                        table.insert(CloudManager._friendIds, responder)
+                        table.insert(completedUids, responder)
+                    end
+                else
+                    -- 对方拒绝了, 记录到被拒缓存 (24h冷却)
+                    S.rejectedByCache[tostring(responder)] = os.time()
+                end
+                table.insert(results, {
+                    toUid = responder,
+                    accepted = resp.accepted or false,
+                })
+                -- 从出站信箱移除已处理的
+                CloudManager._outgoingRequests[tostring(responder)] = nil
+            end
+        end
+
+        -- 如果有新增好友, 同步
+        if #completedUids > 0 then
+            CloudManager._publishOutbox()  -- 更新出站 (移除已处理)
+            CloudManager._syncSocialDomain()
+            print("[好友] 自动互加完成: +" .. #completedUids .. " 人")
+        end
+
+        if callback then callback(results) end
+    end)
 end
 
 -- ── 随机推荐玩家 ──
@@ -514,91 +523,84 @@ end
 ---@param callback fun(players: table[])
 function CloudManager.GetRandomPlayers(count, callback)
     count = count or 10
-    if not rawget(_G, "clientCloud") then
+
+    -- 通过服务端 RPC 获取战力排行榜玩家（多人联网游戏）
+    if not rawget(_G, "cl_state") then
+        print("[推荐玩家] 服务端未连接，跳过")
         if callback then callback({}) end
         return
     end
 
-    -- 先获取排行榜总人数
-    clientCloud:GetRankTotal(KEYS.combat_power, {
-        ok = function(total)
-            if total <= 0 then
-                if callback then callback({}) end
-                return
-            end
-            -- 随机偏移, 拉 count*3 条 (留余量过滤)
-            local fetchCount = math.min(total, count * 3, 200)
-            local maxStart = math.max(0, total - fetchCount)
-            local startPos = math.random(0, maxStart)
-
-            CloudManager.GetPublicProfiles(startPos, fetchCount, function(profiles)
-                -- 过滤自己、好友、3天未在线
-                local myUid = clientCloud.userId
-                local now = os.time()
-                local friendSet = {}
-                for _, fid in ipairs(CloudManager._friendIds) do friendSet[fid] = true end
-
-                local candidates = {}
-                for _, p in ipairs(profiles) do
-                    if p.userId ~= myUid and not friendSet[p.userId] then
-                        local updatedAt = (p.profile and p.profile.updatedAt) or 0
-                        if updatedAt > 0 and (now - updatedAt) <= 3 * 86400 then
-                            table.insert(candidates, p)
-                        end
-                    end
-                end
-
-                -- 随机打乱 & 截取
-                for i = #candidates, 2, -1 do
-                    local j = math.random(1, i)
-                    candidates[i], candidates[j] = candidates[j], candidates[i]
-                end
-                local result = {}
-                for i = 1, math.min(count, #candidates) do
-                    result[i] = candidates[i]
-                end
-                if callback then callback(result) end
-            end)
-        end,
-        error = function()
+    local ClientNet = require("network.Client")
+    ClientNet.Request("get_rank_list", {
+        key = PROJECT_PREFIX .. "combat_power",
+        start = 0, count = 100,
+    }, function(ok, code, data, msg)
+        if not ok or not data or not data.list then
+            print("[推荐玩家] 服务端排行榜查询失败: " .. tostring(msg))
             if callback then callback({}) end
-        end,
-    })
+            return
+        end
+        -- 过滤自己和已有好友
+        local myUid = GetMyUid()
+        local friendSet = {}
+        for _, fid in ipairs(CloudManager._friendIds) do friendSet[fid] = true end
+
+        local candidates = {}
+        for _, e in ipairs(data.list) do
+            if e.userId ~= myUid and not friendSet[e.userId] then
+                table.insert(candidates, {
+                    userId   = e.userId,
+                    nickname = e.name or "",
+                })
+            end
+        end
+
+        -- 随机打乱 & 截取
+        for i = #candidates, 2, -1 do
+            local j = math.random(1, i)
+            candidates[i], candidates[j] = candidates[j], candidates[i]
+        end
+        local result = {}
+        for i = 1, math.min(count, #candidates) do
+            result[i] = candidates[i]
+        end
+        if callback then callback(result) end
+    end)
 end
 
 --- 搜索玩家 (按userId精确匹配)
 ---@param targetUserId number
 ---@param callback fun(player: table|nil)
 function CloudManager.SearchPlayer(targetUserId, callback)
-    if not rawget(_G, "clientCloud") or not targetUserId then
+    if not rawget(_G, "cl_state") or not targetUserId then
         if callback then callback(nil) end
         return
     end
 
-    -- 通过 GetUserRank 查找
-    clientCloud:GetUserRank(targetUserId, KEYS.combat_power, {
-        ok = function(rank, scoreValue)
-            if not rank then
-                if callback then callback(nil) end
-                return
-            end
-            -- 找到了, 拉取详细资料 (从排行榜偏移)
-            local startPos = math.max(0, rank - 1)
-            CloudManager.GetPublicProfiles(startPos, 1, function(profiles)
-                local found = nil
-                for _, p in ipairs(profiles) do
-                    if p.userId == targetUserId then
-                        found = p
-                        break
-                    end
-                end
-                if callback then callback(found) end
-            end)
-        end,
-        error = function()
+    -- 通过 get_user_rank 查找
+    local ClientNet = require("network.Client")
+    ClientNet.Request("get_user_rank", {
+        userId = targetUserId,
+        key = KEYS.combat_power,
+    }, function(ok, code, data, msg)
+        if not ok or not data or not data.rank then
             if callback then callback(nil) end
-        end,
-    })
+            return
+        end
+        -- 找到了, 拉取详细资料 (从排行榜偏移)
+        local startPos = math.max(0, data.rank - 1)
+        CloudManager.GetPublicProfiles(startPos, 1, function(profiles)
+            local found = nil
+            for _, p in ipairs(profiles) do
+                if p.userId == targetUserId then
+                    found = p
+                    break
+                end
+            end
+            if callback then callback(found) end
+        end)
+    end)
 end
 
 -- ── 好友管理 ──
@@ -693,7 +695,7 @@ end
 function CloudManager.GetTodayDonation()
     local meta = CloudManager._factionMeta
     if not meta then return 0 end
-    local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+    local myUid = GetMyUid()
     local uidStr = tostring(myUid)
     local today = os.date("%Y%m%d")
     if not meta.donateDaily then return 0 end
@@ -711,8 +713,8 @@ function CloudManager.DonateFaction(amount, callback)
         if callback then callback(false, "阵营数据未加载") end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not rawget(_G, "cl_state") then
+        if callback then callback(false, "服务端未连接") end
         return
     end
     amount = math.floor(amount)
@@ -731,15 +733,15 @@ function CloudManager.DonateFaction(amount, callback)
         ClientNet.Request("faction_donate", {
             amount = amount,
             rankScore = 0,
-        }, function(resp)
-            if not resp.ok then
-                if callback then callback(false, tostring(resp.msg)) end
+        }, function(ok, code, data, msg)
+            if not ok then
+                if callback then callback(false, tostring(msg)) end
                 return
             end
             -- 服务端扣款成功，同步本地 jade
-            playerInfo.jade = resp.data and resp.data.jade or (playerInfo.jade - amount)
-            -- 继续写 camp_meta（共享数据仍用 clientCloud）
-            local myUid2 = clientCloud.userId or 0
+            playerInfo.jade = data and data.jade or (playerInfo.jade - amount)
+            -- 继续写 camp_meta（通过 CWP 服务端 RPC）
+            local myUid2 = GetMyUid()
             local uidStr2 = tostring(myUid2)
             local today2 = os.date("%Y%m%d")
             if not meta.donateDaily then meta.donateDaily = {} end
@@ -783,7 +785,7 @@ function CloudManager.DonateFaction(amount, callback)
         return  -- 服务端模式到此结束，不走下面的本地扣款逻辑
     end
 
-    local myUid = clientCloud.userId or 0
+    local myUid = GetMyUid()
     local uidStr = tostring(myUid)
     local today = os.date("%Y%m%d")
 
@@ -854,7 +856,7 @@ end
 function CloudManager.HasSignedInToday()
     local meta = CloudManager._factionMeta
     if not meta then return false end
-    local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+    local myUid = GetMyUid()
     local uidStr = tostring(myUid)
     local today = os.date("%Y%m%d")
     if not meta.donateDaily then return false end
@@ -870,12 +872,12 @@ function CloudManager.FactionSignIn(callback)
         if callback then callback(false, "阵营数据未加载") end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not rawget(_G, "cl_state") then
+        if callback then callback(false, "服务端未连接") end
         return
     end
 
-    local myUid = clientCloud.userId or 0
+    local myUid = GetMyUid()
     local uidStr = tostring(myUid)
     local today = os.date("%Y%m%d")
     local signInAmount = 500
@@ -965,8 +967,8 @@ function CloudManager.SetFactionAnnouncement(text, callback)
         if callback then callback(false, "阵营数据未加载") end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not rawget(_G, "cl_state") then
+        if callback then callback(false, "服务端未连接") end
         return
     end
     local myRole = CloudManager._factionRole
@@ -1001,7 +1003,7 @@ end
 function CloudManager.GetMyContribution()
     local meta = CloudManager._factionMeta
     if not meta or not meta.contributions then return 0 end
-    local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+    local myUid = GetMyUid()
     return meta.contributions[tostring(myUid)] or 0
 end
 
@@ -1098,8 +1100,8 @@ function CloudManager.CreateFaction(name, desc, callback)
         if callback then callback(false, "已有阵营, 请先离开") end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not rawget(_G, "cl_state") then
+        if callback then callback(false, "服务端未连接") end
         return
     end
     -- 检查虎符
@@ -1108,7 +1110,7 @@ function CloudManager.CreateFaction(name, desc, callback)
         return
     end
 
-    local uid = clientCloud.userId or 0
+    local uid = GetMyUid()
     local ts = os.time()
     -- 生成唯一阵营ID: 时间戳后6位 * 10000 + uid后4位
     local campId = (ts % 1000000) * 10000 + (uid % 10000)
@@ -1159,12 +1161,12 @@ function CloudManager.CreateFaction(name, desc, callback)
     -- 服务端权威模式：扣款走 RPC
     if rawget(_G, "cl_state") then
         local ClientNet = require("network.Client")
-        ClientNet.Request("faction_create", {}, function(resp)
-            if not resp.ok then
-                if callback then callback(false, tostring(resp.msg)) end
+        ClientNet.Request("faction_create", {}, function(ok, code, data, msg)
+            if not ok then
+                if callback then callback(false, tostring(msg)) end
                 return
             end
-            local serverJade = resp.data and resp.data.jade or (playerInfo.jade - CAMP_CREATE_COST)
+            local serverJade = data and data.jade or (playerInfo.jade - CAMP_CREATE_COST)
             _publishFaction(serverJade)
         end)
         return
@@ -1179,76 +1181,79 @@ end
 --- 列出阵营列表 (从 camp_leader_ts 排行榜, 按campId去重保留最新)
 ---@param callback fun(factions: table[])
 function CloudManager.ListFactions(callback)
-    if not rawget(_G, "clientCloud") then
+    if not rawget(_G, "cl_state") then
         if callback then callback({}) end
         return
     end
 
-    clientCloud:GetRankList(KEYS.camp_leader_ts, 0, 100, {
-        ok = function(rankList)
-            -- 按 campId 去重: 盟主转让后可能存在新旧两条, 保留排行靠前(时间戳更大)的
-            local campMap = {}  -- campId → faction entry
-            local campOrder = {} -- 保持顺序
+    local ClientNet = require("network.Client")
+    ClientNet.Request("get_rank_list", {
+        key = KEYS.camp_leader_ts, start = 0, count = 100,
+    }, function(ok, code, data, msg)
+        if not ok or not data or not data.list then
+            print("[阵营] 列出阵营失败: " .. tostring(msg))
+            if callback then callback({}) end
+            return
+        end
 
-            for _, item in ipairs(rankList) do
-                local meta = item.score[KEYS.camp_meta]
-                if type(meta) == "table" and meta.id then
-                    local cid = meta.id
-                    local ts = (item.iscore and item.iscore[KEYS.camp_leader_ts]) or 0
-                    if not campMap[cid] or ts > (campMap[cid]._ts or 0) then
-                        if not campMap[cid] then
-                            table.insert(campOrder, cid)
-                        end
-                        campMap[cid] = {
-                            _ts = ts,
-                            campId = cid,
-                            name = meta.name or "未命名",
-                            desc = meta.desc or "",
-                            leaderId = meta.leaderId or (item.userId or item.player),
-                            leaderNickname = "",
-                            createdAt = meta.createdAt or 0,
-                            maxMembers = meta.maxMembers or MAX_CAMP_MEMBERS,
-                            memberCount = meta.memberCount or 0,
-                            members = meta.members or {},
-                            roles = meta.roles or {},
-                            level = meta.level or 1,
-                            exp = meta.exp or 0,
-                        }
+        -- 按 campId 去重: 盟主转让后可能存在新旧两条, 保留排行靠前(时间戳更大)的
+        local campMap = {}  -- campId → faction entry
+        local campOrder = {} -- 保持顺序
+
+        for _, item in ipairs(data.list) do
+            local meta = item.score and item.score[KEYS.camp_meta]
+            if type(meta) == "table" and meta.id then
+                local cid = meta.id
+                local ts = (item.iscore and item.iscore[KEYS.camp_leader_ts]) or 0
+                if not campMap[cid] or ts > (campMap[cid]._ts or 0) then
+                    if not campMap[cid] then
+                        table.insert(campOrder, cid)
                     end
+                    campMap[cid] = {
+                        _ts = ts,
+                        campId = cid,
+                        name = meta.name or "未命名",
+                        desc = meta.desc or "",
+                        leaderId = meta.leaderId or item.userId,
+                        leaderNickname = item.name or "",
+                        createdAt = meta.createdAt or 0,
+                        maxMembers = meta.maxMembers or MAX_CAMP_MEMBERS,
+                        memberCount = meta.memberCount or 0,
+                        members = meta.members or {},
+                        roles = meta.roles or {},
+                        level = meta.level or 1,
+                        exp = meta.exp or 0,
+                    }
                 end
             end
+        end
 
-            -- 转为有序列表
-            local factions = {}
-            local leaderIds = {}
-            for _, cid in ipairs(campOrder) do
-                local f = campMap[cid]
-                f._ts = nil  -- 清除内部字段
-                table.insert(factions, f)
-                table.insert(leaderIds, f.leaderId)
-            end
+        -- 转为有序列表
+        local factions = {}
+        local leaderIds = {}
+        for _, cid in ipairs(campOrder) do
+            local f = campMap[cid]
+            f._ts = nil  -- 清除内部字段
+            table.insert(factions, f)
+            table.insert(leaderIds, f.leaderId)
+        end
 
-            -- 批量查昵称
-            if #leaderIds > 0 and rawget(_G, "GetUserNickname") then
-                GetUserNickname({
-                    userIds = leaderIds,
-                    onSuccess = function(nicknames)
-                        local map = {}
-                        for _, info in ipairs(nicknames) do map[info.userId] = info.nickname or "" end
-                        for _, f in ipairs(factions) do f.leaderNickname = map[f.leaderId] or "未知" end
-                        if callback then callback(factions) end
-                    end,
-                    onError = function() if callback then callback(factions) end end,
-                })
-            else
-                if callback then callback(factions) end
-            end
-        end,
-        error = function(_, reason)
-            print("[阵营] 列出阵营失败: " .. tostring(reason))
-            if callback then callback({}) end
-        end,
-    }, KEYS.camp_meta)
+        -- 批量查昵称
+        if #leaderIds > 0 and rawget(_G, "GetUserNickname") then
+            GetUserNickname({
+                userIds = leaderIds,
+                onSuccess = function(nicknames)
+                    local map = {}
+                    for _, info in ipairs(nicknames) do map[info.userId] = info.nickname or "" end
+                    for _, f in ipairs(factions) do f.leaderNickname = map[f.leaderId] or f.leaderNickname or "未知" end
+                    if callback then callback(factions) end
+                end,
+                onError = function() if callback then callback(factions) end end,
+            })
+        else
+            if callback then callback(factions) end
+        end
+    end)
 end
 
 -- ── 申请加入阵营 ──
@@ -1267,8 +1272,8 @@ function CloudManager.ApplyToFaction(campId, campName, callback)
         if callback then callback(false, "已有阵营, 请先离开") end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not rawget(_G, "cl_state") then
+        if callback then callback(false, "服务端未连接") end
         return
     end
 
@@ -1305,63 +1310,65 @@ function CloudManager.CheckFactionApplications(callback)
         if callback then callback({}) end
         return
     end
-    if not rawget(_G, "clientCloud") then
+    if not rawget(_G, "cl_state") then
         if callback then callback({}) end
         return
     end
     local myCampId = CloudManager._factionId
 
-    clientCloud:GetRankList(KEYS.camp_apply_ts, 0, 200, {
-        ok = function(rankList)
-            local applications = {}
-            local applicantIds = {}
+    ClientNet.Request("get_rank_list", {
+        key = KEYS.camp_apply_ts, start = 0, count = 200,
+    }, function(ok, code, data, msg)
+        if not ok or not data or not data.list then
+            print("[阵营] 扫描申请失败: " .. tostring(msg))
+            if callback then callback({}) end
+            return
+        end
+        local rankList = data.list
+        local applications = {}
+        local applicantIds = {}
 
-            for _, item in ipairs(rankList) do
-                local applyData = item.score[KEYS.camp_apply]
-                if type(applyData) == "table" and applyData.campId == myCampId then
-                    local applicantId = item.userId or item.player
-                    -- 排除过期 & 已在成员列表中
-                    if applyData.time and (os.time() - applyData.time) <= REQUEST_EXPIRE_SECONDS then
-                        local alreadyMember = false
-                        if CloudManager._factionMeta and CloudManager._factionMeta.members then
-                            for _, mid in ipairs(CloudManager._factionMeta.members) do
-                                if mid == applicantId then alreadyMember = true; break end
-                            end
+        for _, item in ipairs(rankList) do
+            local applyData = item.score and item.score[KEYS.camp_apply]
+            if type(applyData) == "table" and applyData.campId == myCampId then
+                local applicantId = item.userId
+                -- 排除过期 & 已在成员列表中
+                if applyData.time and (os.time() - applyData.time) <= REQUEST_EXPIRE_SECONDS then
+                    local alreadyMember = false
+                    if CloudManager._factionMeta and CloudManager._factionMeta.members then
+                        for _, mid in ipairs(CloudManager._factionMeta.members) do
+                            if mid == applicantId then alreadyMember = true; break end
                         end
-                        -- 排除已回复拒绝/同意的
-                        local alreadyResp = CloudManager._campOutResp[tostring(applicantId)]
-                        if not alreadyMember and not alreadyResp then
-                            table.insert(applications, {
-                                userId = applicantId,
-                                time = applyData.time,
-                                nickname = "",
-                            })
-                            table.insert(applicantIds, applicantId)
-                        end
+                    end
+                    -- 排除已回复拒绝/同意的
+                    local alreadyResp = CloudManager._campOutResp[tostring(applicantId)]
+                    if not alreadyMember and not alreadyResp then
+                        table.insert(applications, {
+                            userId = applicantId,
+                            time = applyData.time,
+                            nickname = item.name or "",
+                        })
+                        table.insert(applicantIds, applicantId)
                     end
                 end
             end
+        end
 
-            if #applicantIds > 0 and rawget(_G, "GetUserNickname") then
-                GetUserNickname({
-                    userIds = applicantIds,
-                    onSuccess = function(nicknames)
-                        local map = {}
-                        for _, info in ipairs(nicknames) do map[info.userId] = info.nickname or "" end
-                        for _, a in ipairs(applications) do a.nickname = map[a.userId] or "未知" end
-                        if callback then callback(applications) end
-                    end,
-                    onError = function() if callback then callback(applications) end end,
-                })
-            else
-                if callback then callback(applications) end
-            end
-        end,
-        error = function(_, reason)
-            print("[阵营] 扫描申请失败: " .. tostring(reason))
-            if callback then callback({}) end
-        end,
-    }, KEYS.camp_apply)
+        if #applicantIds > 0 and rawget(_G, "GetUserNickname") then
+            GetUserNickname({
+                userIds = applicantIds,
+                onSuccess = function(nicknames)
+                    local map = {}
+                    for _, info in ipairs(nicknames) do map[info.userId] = info.nickname or "" end
+                    for _, a in ipairs(applications) do a.nickname = map[a.userId] or "未知" end
+                    if callback then callback(applications) end
+                end,
+                onError = function() if callback then callback(applications) end end,
+            })
+        else
+            if callback then callback(applications) end
+        end
+    end)
 end
 
 --- 盟主/副盟主同意申请
@@ -1453,55 +1460,57 @@ function CloudManager.CheckMyFactionApplication(callback)
         if callback then callback("none") end
         return
     end
-    if not rawget(_G, "clientCloud") then
+    if not rawget(_G, "cl_state") then
         if callback then callback("pending") end
         return
     end
 
-    local myUid = clientCloud.userId
+    local myUid = GetMyUid()
     local myUidStr = tostring(myUid)
     local targetCampId = CloudManager._campOutApply.campId
 
     -- 扫描盟主的审批回复
-    clientCloud:GetRankList(KEYS.camp_resp_ts, 0, 100, {
-        ok = function(rankList)
-            for _, item in ipairs(rankList) do
-                local respData = item.score[KEYS.camp_resp]
-                if type(respData) == "table" and respData[myUidStr] then
-                    local resp = respData[myUidStr]
-                    if resp.campId == targetCampId then
-                        if resp.approved then
-                            -- 入营成功!
-                            CloudManager._factionId = targetCampId
-                            CloudManager._factionName = CloudManager._campOutApply.campName or ""
-                            CloudManager._factionRole = "member"
-                            CloudManager._campOutApply = nil
-                            -- 清理申请排行
-                            CWP.Write({
-                                { key = KEYS.camp_apply_ts, value = 0, int = true },
-                                { key = KEYS.camp_apply, value = {} },
-                            }, "清理入营申请")
-                            CloudManager._syncSocialDomain()
-                            CloudManager.PublishProfile()
-                            -- 拉取阵营meta(盟主名/人数等), 供UI显示
-                            CloudManager._refreshFactionStatus()
-                            print("[阵营] 入营审批通过!")
-                            if callback then callback("approved") end
-                        else
-                            CloudManager._campOutApply = nil
-                            print("[阵营] 入营申请被拒绝")
-                            if callback then callback("rejected") end
-                        end
-                        return
+    ClientNet.Request("get_rank_list", {
+        key = KEYS.camp_resp_ts, start = 0, count = 100,
+    }, function(ok, code, data, msg)
+        if not ok or not data or not data.list then
+            if callback then callback("pending") end
+            return
+        end
+        local rankList = data.list
+        for _, item in ipairs(rankList) do
+            local respData = item.score and item.score[KEYS.camp_resp]
+            if type(respData) == "table" and respData[myUidStr] then
+                local resp = respData[myUidStr]
+                if resp.campId == targetCampId then
+                    if resp.approved then
+                        -- 入营成功!
+                        CloudManager._factionId = targetCampId
+                        CloudManager._factionName = CloudManager._campOutApply.campName or ""
+                        CloudManager._factionRole = "member"
+                        CloudManager._campOutApply = nil
+                        -- 清理申请排行
+                        CWP.Write({
+                            { key = KEYS.camp_apply_ts, value = 0, int = true },
+                            { key = KEYS.camp_apply, value = {} },
+                        }, "清理入营申请")
+                        CloudManager._syncSocialDomain()
+                        CloudManager.PublishProfile()
+                        -- 拉取阵营meta(盟主名/人数等), 供UI显示
+                        CloudManager._refreshFactionStatus()
+                        print("[阵营] 入营审批通过!")
+                        if callback then callback("approved") end
+                    else
+                        CloudManager._campOutApply = nil
+                        print("[阵营] 入营申请被拒绝")
+                        if callback then callback("rejected") end
                     end
+                    return
                 end
             end
-            if callback then callback("pending") end
-        end,
-        error = function()
-            if callback then callback("pending") end
-        end,
-    }, KEYS.camp_resp)
+        end
+        if callback then callback("pending") end
+    end)
 end
 
 -- ── 离开阵营 ──
@@ -1534,12 +1543,12 @@ function CloudManager.LeaveFaction(callback)
         if callback then callback(true, "未加入阵营") end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not rawget(_G, "cl_state") then
+        if callback then callback(false, "服务端未连接") end
         return
     end
 
-    local myUid = clientCloud.userId
+    local myUid = GetMyUid()
     local oldName = CloudManager._factionName
     local wasLeader = CloudManager._factionRole == "leader"
     local meta = CloudManager._factionMeta
@@ -1685,7 +1694,7 @@ function CloudManager.GetFactionMembers(callback)
             local function _afterFetchMissing()
                 -- 验证: 只清理 factionId>0 且 != myFid 的（明确加入了其他阵营）
                 local myFid = CloudManager._factionId
-                local myUid = clientCloud.userId
+                local myUid = GetMyUid()
                 local removed = {}
                 for _, mid in ipairs(memberIds) do
                     if mid ~= myUid then
@@ -1752,34 +1761,36 @@ function CloudManager.GetFactionMembers(callback)
     end
 
     -- 普通成员: 从盟主的 camp_meta 获取成员列表
-    clientCloud:GetRankList(KEYS.camp_leader_ts, 0, 50, {
-        ok = function(rankList)
-            local memberIds = {}
-            for _, item in ipairs(rankList) do
-                local meta = item.score[KEYS.camp_meta]
-                if type(meta) == "table" and meta.id == CloudManager._factionId then
-                    memberIds = meta.members or {}
-                    break
-                end
-            end
-            if #memberIds == 0 then
-                if callback then callback({}) end
-                return
-            end
-            CloudManager.GetPublicProfiles(0, 100, function(profiles)
-                local memberSet = {}
-                for _, mid in ipairs(memberIds) do memberSet[mid] = true end
-                local result = {}
-                for _, p in ipairs(profiles) do
-                    if memberSet[p.userId] then table.insert(result, p) end
-                end
-                if callback then callback(result) end
-            end)
-        end,
-        error = function()
+    ClientNet.Request("get_rank_list", {
+        key = KEYS.camp_leader_ts, start = 0, count = 50,
+    }, function(ok, code, data, msg)
+        if not ok or not data or not data.list then
             if callback then callback({}) end
-        end,
-    }, KEYS.camp_meta)
+            return
+        end
+        local rankList = data.list
+        local memberIds = {}
+        for _, item in ipairs(rankList) do
+            local meta = item.score and item.score[KEYS.camp_meta]
+            if type(meta) == "table" and meta.id == CloudManager._factionId then
+                memberIds = meta.members or {}
+                break
+            end
+        end
+        if #memberIds == 0 then
+            if callback then callback({}) end
+            return
+        end
+        CloudManager.GetPublicProfiles(0, 100, function(profiles)
+            local memberSet = {}
+            for _, mid in ipairs(memberIds) do memberSet[mid] = true end
+            local result = {}
+            for _, p in ipairs(profiles) do
+                if memberSet[p.userId] then table.insert(result, p) end
+            end
+            if callback then callback(result) end
+        end)
+    end)
 end
 
 --- 获取当前阵营信息
@@ -1807,12 +1818,12 @@ function CloudManager.SetMemberRole(targetUserId, newRole, callback)
         if callback then callback(false, "阵营数据未加载") end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not rawget(_G, "cl_state") then
+        if callback then callback(false, "服务端未连接") end
         return
     end
 
-    local myUid = clientCloud.userId
+    local myUid = GetMyUid()
     local myRole = CloudManager._factionRole
     if targetUserId == myUid then
         if callback then callback(false, "不能对自己操作") end
@@ -1948,12 +1959,12 @@ function CloudManager.KickMember(targetUserId, callback)
         if callback then callback(false, "阵营数据未加载") end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not rawget(_G, "cl_state") then
+        if callback then callback(false, "服务端未连接") end
         return
     end
 
-    local myUid = clientCloud.userId
+    local myUid = GetMyUid()
     local myRole = CloudManager._factionRole
     if targetUserId == myUid then
         if callback then callback(false, "不能踢自己, 请使用退出") end
@@ -2025,12 +2036,12 @@ function CloudManager.TransferLeadership(targetUserId, callback)
         if callback then callback(false, "阵营数据未加载") end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not rawget(_G, "cl_state") then
+        if callback then callback(false, "服务端未连接") end
         return
     end
 
-    local myUid = clientCloud.userId
+    local myUid = GetMyUid()
     if targetUserId == myUid then
         if callback then callback(false, "不能转让给自己") end
         return
@@ -2087,106 +2098,107 @@ function CloudManager._refreshFactionStatus(callback)
         if callback then callback(false) end
         return
     end
-    if not rawget(_G, "clientCloud") then
+    if not rawget(_G, "cl_state") then
         if callback then callback(false) end
         return
     end
 
-    local myUid = clientCloud.userId
+    local myUid = GetMyUid()
     local myCampId = CloudManager._factionId
 
     -- 从排行榜获取当前阵营的 meta
-    clientCloud:GetRankList(KEYS.camp_leader_ts, 0, 100, {
-        ok = function(rankList)
-            local latestMeta = nil
-            local latestTs = 0
+    ClientNet.Request("get_rank_list", {
+        key = KEYS.camp_leader_ts, start = 0, count = 100,
+    }, function(ok, code, data, msg)
+        if not ok or not data or not data.list then
+            if callback then callback(false) end
+            return
+        end
+        local rankList = data.list
+        local latestMeta = nil
+        local latestTs = 0
 
-            -- 找到自己阵营的最新meta (按campId去重, 保留最新时间戳)
-            for _, item in ipairs(rankList) do
-                local meta = item.score[KEYS.camp_meta]
-                if type(meta) == "table" and meta.id == myCampId then
-                    local ts = (item.iscore and item.iscore[KEYS.camp_leader_ts]) or 0
-                    if ts > latestTs then
-                        latestTs = ts
-                        latestMeta = meta
-                    end
+        -- 找到自己阵营的最新meta (按campId去重, 保留最新时间戳)
+        for _, item in ipairs(rankList) do
+            local meta = item.score and item.score[KEYS.camp_meta]
+            if type(meta) == "table" and meta.id == myCampId then
+                local ts = (item.iscore and item.iscore[KEYS.camp_leader_ts]) or 0
+                if ts > latestTs then
+                    latestTs = ts
+                    latestMeta = meta
                 end
             end
+        end
 
-            if not latestMeta then
-                -- 阵营已不存在 (可能已解散)
-                print("[阵营] 阵营已不存在, 清除本地状态")
-                CloudManager._factionId = 0
-                CloudManager._factionName = ""
-                CloudManager._factionRole = "none"
-                CloudManager._factionMeta = nil
-                CloudManager._syncSocialDomain()
-                if callback then callback(false) end
+        if not latestMeta then
+            -- 阵营已不存在 (可能已解散)
+            print("[阵营] 阵营已不存在, 清除本地状态")
+            CloudManager._factionId = 0
+            CloudManager._factionName = ""
+            CloudManager._factionRole = "none"
+            CloudManager._factionMeta = nil
+            CloudManager._syncSocialDomain()
+            if callback then callback(false) end
+            return
+        end
+
+        -- 检查自己是否在成员列表中
+        local inMembers = false
+        for _, mid in ipairs(latestMeta.members or {}) do
+            if mid == myUid then inMembers = true; break end
+        end
+
+        if not inMembers then
+            -- 我已不在阵营中 (可能被踢)
+            print("[阵营] 我已不在阵营成员中, 清除本地状态")
+            CloudManager._factionId = 0
+            CloudManager._factionName = ""
+            CloudManager._factionRole = "none"
+            CloudManager._factionMeta = nil
+            CloudManager._syncSocialDomain()
+            if callback then callback(false) end
+            return
+        end
+
+        -- 同步阵营名称和meta
+        CloudManager._factionName = latestMeta.name or CloudManager._factionName
+
+        -- 关键: 检查 leaderId 是否是自己
+        if latestMeta.leaderId == myUid then
+            if CloudManager._factionRole ~= "leader" then
+                -- 我被提升为新盟主! 重新发布 camp_meta 到自己的排行条目
+                print("[阵营] 检测到盟主继位! 重新发布 camp_meta")
+                CloudManager._factionRole = "leader"
+                CloudManager._factionMeta = latestMeta
+
+                CWP.Write({
+                    { key = KEYS.camp_leader_ts, value = os.time(), int = true },
+                    { key = KEYS.camp_meta, value = latestMeta },
+                }, "新盟主接管阵营", {
+                    ok = function()
+                        print("[阵营] 新盟主接管完成: " .. (latestMeta.name or ""))
+                        CloudManager._syncSocialDomain()
+                        CloudManager.PublishProfile()
+                        if callback then callback(true) end
+                    end,
+                    error = function()
+                        print("[阵营] 接管发布失败, 下次登录重试")
+                        if callback then callback(false) end
+                    end,
+                })
                 return
-            end
-
-            -- 检查自己是否在成员列表中
-            local inMembers = false
-            for _, mid in ipairs(latestMeta.members or {}) do
-                if mid == myUid then inMembers = true; break end
-            end
-
-            if not inMembers then
-                -- 我已不在阵营中 (可能被踢)
-                print("[阵营] 我已不在阵营成员中, 清除本地状态")
-                CloudManager._factionId = 0
-                CloudManager._factionName = ""
-                CloudManager._factionRole = "none"
-                CloudManager._factionMeta = nil
-                CloudManager._syncSocialDomain()
-                if callback then callback(false) end
-                return
-            end
-
-            -- 同步阵营名称和meta
-            CloudManager._factionName = latestMeta.name or CloudManager._factionName
-
-            -- 关键: 检查 leaderId 是否是自己
-            if latestMeta.leaderId == myUid then
-                if CloudManager._factionRole ~= "leader" then
-                    -- 我被提升为新盟主! 重新发布 camp_meta 到自己的排行条目
-                    print("[阵营] 检测到盟主继位! 重新发布 camp_meta")
-                    CloudManager._factionRole = "leader"
-                    CloudManager._factionMeta = latestMeta
-
-                    CWP.Write({
-                        { key = KEYS.camp_leader_ts, value = os.time(), int = true },
-                        { key = KEYS.camp_meta, value = latestMeta },
-                    }, "新盟主接管阵营", {
-                        ok = function()
-                            print("[阵营] 新盟主接管完成: " .. (latestMeta.name or ""))
-                            CloudManager._syncSocialDomain()
-                            CloudManager.PublishProfile()
-                            if callback then callback(true) end
-                        end,
-                        error = function()
-                            print("[阵营] 接管发布失败, 下次登录重试")
-                            if callback then callback(false) end
-                        end,
-                    })
-                    return
-                else
-                    -- 已经是盟主, 更新meta缓存
-                    CloudManager._factionMeta = latestMeta
-                end
             else
-                -- 非盟主: 更新角色, 保留meta供UI显示(盟主名/人数等)
-                local roles = latestMeta.roles or {}
-                local myRole = roles[tostring(myUid)] or "member"
-                CloudManager._factionRole = myRole
+                -- 已经是盟主, 更新meta缓存
                 CloudManager._factionMeta = latestMeta
             end
+        else
+            -- 非盟主: 更新角色, 保留meta供UI显示(盟主名/人数等)
+            local roles = latestMeta.roles or {}
+            local myRole = roles[tostring(myUid)] or "member"
+            CloudManager._factionRole = myRole
+            CloudManager._factionMeta = latestMeta
+        end
 
-            if callback then callback(false) end
-        end,
-        error = function(_, reason)
-            print("[阵营] 刷新阵营状态失败: " .. tostring(reason))
-            if callback then callback(false) end
-        end,
-    }, KEYS.camp_meta)
+        if callback then callback(false) end
+    end)
 end

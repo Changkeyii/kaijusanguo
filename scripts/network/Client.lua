@@ -72,8 +72,8 @@ function Client.Start()
     SubscribeToEvent(EVENTS.RANKED_UPDATE, "HandleRankedUpdate")
     SubscribeToEvent(EVENTS.RANKED_END, "HandleRankedEnd")
 
-    -- 订阅 Update 驱动 GameClient Tick
-    SubscribeToEvent("Update", "HandleClientUpdate")
+    -- 注意：不再在此处 SubscribeToEvent("Update") —— 会覆盖全局 HandleUpdate
+    -- 改由 HandleUpdate 中主动调用 HandleClientUpdate
 
     -- 发送就绪
     serverConnection_:SendRemoteEvent(EVENTS.CLIENT_READY, true)

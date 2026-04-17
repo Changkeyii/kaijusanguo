@@ -719,6 +719,21 @@ function EndPress(sx, sy, touchId)
 
     if HandleEndPressDragRelease(sx, sy, touchId) then return end
 
+    -- RTS 指令拖拽释放: 松手下达指令
+    if rtsState and rtsState.isCmdDrag and (touchId == rtsState.cmdDragTouchId) then
+        rtsState.isCmdDrag = false
+        local rdx, rdy = ScreenToDesign(sx, sy)
+        local bz = BATTLE_ZONE
+        rdx = math.max(bz.playerLine, math.min(bz.enemyLine, rdx))
+        rdy = math.max(bz.top + 10, math.min(bz.bottom - 10, rdy))
+        local cmdType = rtsState._lastCmd or rtsState.activeCmd or "move"
+        IssueCommand(cmdType, rdx, rdy)
+        rtsState._lastCmd = cmdType
+        rtsState.cmdMarkerTimer = 1.5  -- 恢复正常倒计时
+        PlaySFX(AUDIO.sfx_march)
+        return
+    end
+
     if longPressState.active then
         longPressState.active = false
         longPressState.pressing = false
@@ -868,10 +883,7 @@ function TryDrop()
                         AddFloatText(DESIGN_W / 2, DESIGN_H * 0.5,
                             "冷却中(" .. cdLeft .. "s)", 0.8, { 255, 150, 100 }, 14)
                     else
-                        -- 检测车道 (横屏: 车道沿Y轴排列)
-                        local laneIdx = math.floor((ddy - bz.top) / LANE_WIDTH) + 1
-                        laneIdx = math.max(1, math.min(NUM_LANES, laneIdx))
-
+                        -- 已去除车道系统，直接部署到手指Y位置
                         -- 先恢复卡牌 (拖拽中slot.card被清空, SpawnUnitFromSlot需要读slot.card)
                         srcSlot.filled = true
                         srcSlot.card = dragState.card
@@ -882,7 +894,7 @@ function TryDrop()
                         local unitCap = GetPlayerUnitCap()
                         for _ = 1, batchSize do
                             if #playerUnits < unitCap then
-                                SpawnUnitFromSlot(srcSlot, true, laneIdx)
+                                SpawnUnitFromSlot(srcSlot, true)
                                 spawned = spawned + 1
                             end
                         end
@@ -892,7 +904,7 @@ function TryDrop()
                         srcSlot.spawnFlash = 0.5
                         srcSlot.spawnCount = (srcSlot.spawnCount or 0) + spawned
 
-                        AddFloatText(bz.playerDeployLeft + 60, GetLaneCenterY(laneIdx),
+                        AddFloatText(bz.playerDeployLeft + 60, ddy,
                             "部署 ×" .. spawned .. "!", 1.2, { 200, 255, 200 }, 16)
                     end
                 else

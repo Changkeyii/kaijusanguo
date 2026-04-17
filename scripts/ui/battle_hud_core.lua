@@ -265,33 +265,33 @@ function DrawSkillTargetingDesign()
     local pulseAlpha = math.floor(baseAlpha * (0.6 + 0.4 * math.sin(t * 5)))
 
     if skill.skillType == "line" then
-        -- ======== 线型技能瞄准: 高亮整条水平车道 ========
-        local laneIdx = math.floor((ty - bz.top) / LANE_WIDTH) + 1
-        laneIdx = math.max(1, math.min(NUM_LANES, laneIdx))
-        local laneCY = GetLaneCenterY(laneIdx)
-        local laneTop = bz.top + (laneIdx - 1) * LANE_WIDTH
+        -- ======== 线型技能瞄准: 高亮水平条带(跟随手指Y) ========
+        local bandH = 50  -- 条带高度
+        local bandTop = math.max(bz.top, ty - bandH * 0.5)
+        local bandBot = math.min(bz.bottom, bandTop + bandH)
+        local bandCY = (bandTop + bandBot) * 0.5
         local laneLeft = bz.playerLine
         local laneRight = bz.enemyLine
         local laneW = laneRight - laneLeft
         local pulse = 0.6 + 0.4 * math.sin(t * 5)
 
         if inZone then
-            -- 车道背景高亮
-            local grad = nvgLinearGradient(vg, laneLeft, laneCY, laneRight, laneCY,
+            -- 条带背景高亮
+            local grad = nvgLinearGradient(vg, laneLeft, bandCY, laneRight, bandCY,
                 nvgRGBA(255, 120, 40, math.floor(55 * pulse)),
                 nvgRGBA(255, 80, 20, math.floor(20 * pulse)))
             nvgBeginPath(vg)
-            nvgRect(vg, laneLeft, laneTop, laneW, LANE_WIDTH)
+            nvgRect(vg, laneLeft, bandTop, laneW, bandBot - bandTop)
             nvgFillPaint(vg, grad); nvgFill(vg)
 
-            -- 车道边框
+            -- 条带边框
             nvgBeginPath(vg)
-            nvgRect(vg, laneLeft, laneTop, laneW, LANE_WIDTH)
+            nvgRect(vg, laneLeft, bandTop, laneW, bandBot - bandTop)
             nvgStrokeColor(vg, nvgRGBA(255, 140, 60, math.floor(pulseAlpha * 0.8)))
             nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
 
             -- 箭头指示 (横屏: 从左向右的方向箭头)
-            local arrowY = laneCY
+            local arrowY = bandCY
             for ax = laneLeft + 40, laneRight - 20, 80 do
                 local aAlpha = math.floor(120 * pulse * ((ax - laneLeft) / laneW))
                 nvgBeginPath(vg)
@@ -304,18 +304,18 @@ function DrawSkillTargetingDesign()
         else
             -- 超出范围: 淡色提示
             nvgBeginPath(vg)
-            nvgRect(vg, laneLeft, laneTop, laneW, LANE_WIDTH)
+            nvgRect(vg, laneLeft, bandTop, laneW, bandBot - bandTop)
             nvgFillColor(vg, nvgRGBA(150, 130, 110, math.floor(15 * pulse)))
             nvgFill(vg)
         end
 
-        -- 技能名 (横屏: 显示在车道左侧)
+        -- 技能名 (横屏: 显示在条带左侧)
         if fontId >= 0 then
             nvgFontFaceId(vg, GetMainFont())
             nvgFontSize(vg, 15)
             nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 200, 100, pulseAlpha))
-            nvgText(vg, laneLeft - 6, laneCY, skill.name, nil)
+            nvgText(vg, laneLeft - 6, bandCY, skill.name, nil)
         end
     elseif skill.skillType == "rect" then
         -- ======== 矩形技能瞄准: 矩形范围框 ========
@@ -570,6 +570,171 @@ function HandleNanoVGRender(eventType, eventData)
         return  -- LOADING 阶段不渲染其他内容
     end
 
+    -- === SERVER_SELECT 界面 (屏幕逻辑坐标) ===
+    if gameState.phase == "SERVER_SELECT" then
+        local cx = screenW / 2
+        local cy = screenH / 2
+        local t = menuAnimTimer
+
+        -- 背景渐变
+        local bgGrad = nvgLinearGradient(vg, 0, 0, 0, screenH,
+            nvgRGBA(18, 14, 28, 255), nvgRGBA(35, 28, 50, 255))
+        nvgBeginPath(vg); nvgRect(vg, 0, 0, screenW, screenH)
+        nvgFillPaint(vg, bgGrad); nvgFill(vg)
+
+        -- 装饰底纹 (微弱网格)
+        nvgStrokeColor(vg, nvgRGBA(80, 70, 60, 12))
+        nvgStrokeWidth(vg, 0.5)
+        for gx = 0, screenW, 40 do
+            nvgBeginPath(vg); nvgMoveTo(vg, gx, 0); nvgLineTo(vg, gx, screenH); nvgStroke(vg)
+        end
+        for gy = 0, screenH, 40 do
+            nvgBeginPath(vg); nvgMoveTo(vg, 0, gy); nvgLineTo(vg, screenW, gy); nvgStroke(vg)
+        end
+
+        nvgFontFaceId(vg, GetMainFont())
+
+        -- 标题
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        nvgFontSize(vg, 28)
+        nvgFillColor(vg, nvgRGBA(0, 0, 0, 160))
+        nvgText(vg, cx + 1.5, cy - screenH * 0.32 + 1.5, "三国武灵录", nil)
+        DrawWhiteInkText(cx, cy - screenH * 0.32, "三国武灵录")
+
+        -- 副标题
+        nvgFontSize(vg, 14)
+        nvgFillColor(vg, nvgRGBA(180, 165, 130, 180))
+        nvgText(vg, cx, cy - screenH * 0.32 + 24, "— 选择服务器 —", nil)
+
+        -- 玩家 UID
+        local uid = GetMyUid()
+        if uid > 0 then
+            nvgFontSize(vg, 12)
+            nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
+            nvgFillColor(vg, nvgRGBA(140, 130, 110, 140))
+            nvgText(vg, screenW - 12, 8, "UID: " .. tostring(uid), nil)
+        end
+
+        -- 服务器卡片
+        local cardW = math.min(280, screenW * 0.7)
+        local cardH = 56
+        local gap = 14
+        local totalH = #SERVER_LIST * cardH + (#SERVER_LIST - 1) * gap
+        local startY = cy - totalH / 2 - 8
+
+        serverSelectRects = serverSelectRects or {}
+
+        for i, sv in ipairs(SERVER_LIST) do
+            local y = startY + (i - 1) * (cardH + gap)
+            local x = cx - cardW / 2
+            local selected = (gameState.selectedServer == sv.id)
+
+            -- 卡片存储点击区域
+            serverSelectRects[i] = { x = x, y = y, w = cardW, h = cardH, serverId = sv.id }
+
+            -- 卡片背景
+            nvgBeginPath(vg); nvgRoundedRect(vg, x, y, cardW, cardH, 8)
+            if selected then
+                local selGrad = nvgLinearGradient(vg, x, y, x + cardW, y + cardH,
+                    nvgRGBA(60, 50, 35, 230), nvgRGBA(45, 38, 28, 230))
+                nvgFillPaint(vg, selGrad); nvgFill(vg)
+                -- 金色边框
+                nvgStrokeColor(vg, nvgRGBA(220, 190, 120, 200))
+                nvgStrokeWidth(vg, 2.0); nvgStroke(vg)
+                -- 外发光
+                local glowA = math.floor(25 + 15 * math.sin(t * 3))
+                nvgBeginPath(vg); nvgRoundedRect(vg, x - 3, y - 3, cardW + 6, cardH + 6, 10)
+                nvgStrokeColor(vg, nvgRGBA(220, 190, 120, glowA))
+                nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
+            else
+                nvgFillColor(vg, nvgRGBA(35, 30, 45, 200)); nvgFill(vg)
+                nvgStrokeColor(vg, nvgRGBA(100, 90, 75, 80))
+                nvgStrokeWidth(vg, 1.0); nvgStroke(vg)
+            end
+
+            -- 服务器名
+            nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 18)
+            if selected then
+                nvgFillColor(vg, nvgRGBA(240, 220, 160, 255))
+            else
+                nvgFillColor(vg, nvgRGBA(200, 190, 170, 220))
+            end
+            nvgText(vg, x + 18, y + cardH / 2, sv.name, nil)
+
+            -- 状态标签
+            local tagText = sv.desc
+            local tagColor
+            if sv.status == "hot" then
+                tagColor = { 220, 80, 60 }
+            elseif sv.status == "new" then
+                tagColor = { 80, 180, 120 }
+            else
+                tagColor = { 140, 130, 120 }
+            end
+            local tagW = 36
+            local tagH = 18
+            local tagX = x + cardW - tagW - 14
+            local tagY = y + (cardH - tagH) / 2
+            nvgBeginPath(vg); nvgRoundedRect(vg, tagX, tagY, tagW, tagH, 4)
+            nvgFillColor(vg, nvgRGBA(tagColor[1], tagColor[2], tagColor[3], 40)); nvgFill(vg)
+            nvgStrokeColor(vg, nvgRGBA(tagColor[1], tagColor[2], tagColor[3], 120))
+            nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
+            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 11)
+            nvgFillColor(vg, nvgRGBA(tagColor[1], tagColor[2], tagColor[3], 220))
+            nvgText(vg, tagX + tagW / 2, tagY + tagH / 2, tagText, nil)
+
+            -- 选中对勾
+            if selected then
+                nvgFontSize(vg, 16)
+                nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
+                nvgFillColor(vg, nvgRGBA(220, 190, 120, 240))
+                nvgText(vg, tagX - 8, y + cardH / 2, ">>", nil)
+            end
+        end
+
+        -- "进入游戏" 按钮
+        local btnW = math.min(200, screenW * 0.5)
+        local btnH = 40
+        local btnX = cx - btnW / 2
+        local btnY = startY + totalH + 28
+        serverSelectEnterRect = { x = btnX, y = btnY, w = btnW, h = btnH }
+
+        local canEnter = (gameState.selectedServer ~= nil)
+        if canEnter then
+            local btnPulse = 0.85 + 0.15 * math.sin(t * 2.5)
+            local btnGrad = nvgLinearGradient(vg, btnX, btnY, btnX + btnW, btnY + btnH,
+                nvgRGBA(math.floor(180 * btnPulse), math.floor(150 * btnPulse), math.floor(80 * btnPulse), 240),
+                nvgRGBA(math.floor(140 * btnPulse), math.floor(110 * btnPulse), math.floor(50 * btnPulse), 240))
+            nvgBeginPath(vg); nvgRoundedRect(vg, btnX, btnY, btnW, btnH, 6)
+            nvgFillPaint(vg, btnGrad); nvgFill(vg)
+            nvgStrokeColor(vg, nvgRGBA(230, 200, 130, 160)); nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
+            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 18)
+            nvgFillColor(vg, nvgRGBA(255, 245, 220, 255))
+            nvgText(vg, cx, btnY + btnH / 2, "进入游戏", nil)
+        else
+            nvgBeginPath(vg); nvgRoundedRect(vg, btnX, btnY, btnW, btnH, 6)
+            nvgFillColor(vg, nvgRGBA(40, 35, 50, 160)); nvgFill(vg)
+            nvgStrokeColor(vg, nvgRGBA(80, 70, 60, 80)); nvgStrokeWidth(vg, 1.0); nvgStroke(vg)
+            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 18)
+            nvgFillColor(vg, nvgRGBA(120, 110, 100, 120))
+            nvgText(vg, cx, btnY + btnH / 2, "请选择服务器", nil)
+        end
+
+        -- 底部提示
+        nvgFontSize(vg, 11)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_BOTTOM)
+        nvgFillColor(vg, nvgRGBA(110, 100, 85, 100))
+        nvgText(vg, cx, screenH - 10, "每服同时在线上限 2000 人", nil)
+
+        nvgRestore(vg)
+        nvgEndFrame(vg)
+        return  -- SERVER_SELECT 阶段不渲染其他内容
+    end
+
     -- === 游戏区域 (设计坐标) ===
     nvgSave(vg)
     nvgTranslate(vg, offsetX, offsetY)
@@ -688,19 +853,19 @@ function HandleNanoVGRender(eventType, eventData)
         DrawBackground()
         DrawCriticalLines()
         DrawLaneDividers()
+        DrawTerrainZones()       -- 地形区块 (底层, 在单位之下)
         DrawBaseHPBars()
         DrawGroundSkillEffects() -- 底层技能特效 (在单位之下, 如治疗法阵)
         DrawBattleUnits()
+        DrawCardSlots()          -- 武将卡牌 (石台上的武灵卡)
         DrawSkillEffects()       -- 武技技能特效 (在单位之上)
         DrawSkillTargetingDesign()  -- 技能瞄准指示器
         DrawParticles()
         UpdateAndDrawProjectiles(time:GetTimeStep())
-        DrawCardSlots()
-        DrawSlotHighlights()  -- 拖拽时的槽位高亮
         DrawHUD()
         DrawBattleButtons()  -- 右侧按钮在设计坐标空间绘制
-        DrawBottomActionBar()  -- 右下角操作栏(自动行军+技能预留)
-        DrawStrategyWheel()   -- 策略轮盘(长按自动行军弹出)
+        DrawBottomActionBar()  -- 右下角操作栏(武技技能)
+        DrawRTSClassBar()     -- 底部RTS兵种选择栏+指令按钮
         DrawFloatTexts()
         DrawGameResultOverlay()
         DrawRewardPopup()
@@ -715,12 +880,7 @@ function HandleNanoVGRender(eventType, eventData)
     nvgRestore(vg)
 
     -- === 以下全部在屏幕逻辑坐标 ===
-    if gameState.phase == "BATTLE" or gameState.phase == "WIN" or gameState.phase == "LOSE" then
-        DrawShop()
-        DrawDragCardScreen()   -- ★ 拖拽卡牌在屏幕坐标渲染
-        DrawInfoPanel()
-        DrawInfoPopup()        -- ★ 单击信息弹窗 (含车道选择)
-    end
+    -- 三国群英传模式: 移除商店/卡牌拖拽/信息面板
 
     -- 全局 Toast 提示（覆盖在最上层）
     DrawToast(DESIGN_W, DESIGN_H)
@@ -796,7 +956,7 @@ function DrawBackground()
             return
         end
     else
-        -- 有背景图: 所有战斗背景图均为 714×1280 (BG_W×BG_H)，直接拉伸到设计分辨率
+        -- 有背景图: 横版战斗背景 1024×571 (BG_W×BG_H = DESIGN_W×DESIGN_H)，直接铺满
         local p = nvgImagePattern(vg, 0, 0, DESIGN_W, DESIGN_H, 0, bgHandle, 1.0)
         nvgBeginPath(vg); nvgRect(vg, 0, 0, DESIGN_W, DESIGN_H)
         nvgFillPaint(vg, p); nvgFill(vg)

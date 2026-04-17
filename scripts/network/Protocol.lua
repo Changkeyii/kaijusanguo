@@ -75,52 +75,54 @@ Protocol.CODE_MSG = {
 -- ============================================================================
 Protocol.CLOUD_KEYS = {
     -- 存档 domain（Score 域，存 JSON table）
-    SV_CORE            = "slg_sv_core",
-    SV_HEROES          = "slg_sv_heroes",
-    SV_EQUIP           = "slg_sv_equip",
-    SV_SKILLS          = "slg_sv_skills",
-    SV_PROGRESS        = "slg_sv_progress",
-    SV_WELFARE         = "slg_sv_welfare",
-    SV_SOCIAL          = "slg_sv_social",
-    SV_EXPLORE         = "slg_sv_explore",
-    SV_WORLDMAP        = "slg_sv_worldmap",
+    SV_CORE            = "p_49dd_sv_core",
+    SV_HEROES          = "p_49dd_sv_heroes",
+    SV_EQUIP           = "p_49dd_sv_equip",
+    SV_SKILLS          = "p_49dd_sv_skills",
+    SV_PROGRESS        = "p_49dd_sv_progress",
+    SV_WELFARE         = "p_49dd_sv_welfare",
+    SV_SOCIAL          = "p_49dd_sv_social",
+    SV_EXPLORE         = "p_49dd_sv_explore",
+    SV_WORLDMAP        = "p_49dd_sv_worldmap",
 
     -- 货币（money 子对象）
-    MONEY_JADE         = "slg_jade",
-    MONEY_LINGSHI      = "slg_lingshi",
-    MONEY_HUFU         = "slg_hufu",
+    MONEY_JADE         = "p_49dd_jade",
+    MONEY_LINGSHI      = "p_49dd_lingshi",
+    MONEY_HUFU         = "p_49dd_hufu",
 
     -- 排行榜（iScore 域，整数）
-    RANKED_ELO         = "slg_ranked_elo",
-    RANKED_WINS        = "slg_ranked_wins",
-    RANKED_LOSSES      = "slg_ranked_losses",
-    COMBAT_POWER       = "slg_combat_power",
-    REALM_LEVEL        = "slg_realm_level",
-    TOWER_FLOOR        = "slg_tower_floor",
-    DUMMY_DAMAGE       = "slg_dummy_damage",
+    RANKED_ELO         = "p_49dd_ranked_score",
+    RANKED_WINS        = "p_49dd_ranked_wins",
+    RANKED_LOSSES      = "p_49dd_ranked_losses",
+    COMBAT_POWER       = "p_49dd_combat_power",
+    REALM_LEVEL        = "p_49dd_realm_level",
+    TOWER_FLOOR        = "p_49dd_tower_floor",
+    DUMMY_DAMAGE       = "p_49dd_dummy_damage",
+    SKILL_COUNT        = "p_49dd_skill_count",
+    HERO_COUNT         = "p_49dd_hero_count",
 
     -- 配额（quota 子对象）
-    AD_WATCH           = "slg_ad_watch",
-    DAILY_SIGNIN       = "slg_daily_signin",
+    AD_WATCH           = "p_49dd_ad_watch",
+    DAILY_SIGNIN       = "p_49dd_daily_signin",
 
     -- 迁移标记
-    MIGRATED           = "slg_migrated",
+    MIGRATED           = "p_49dd_migrated",
 
     -- 操作日志（用于审计）
-    OP_LOG             = "slg_op_log",
+    OP_LOG             = "p_49dd_op_log",
 }
 
 -- domain 名 → cloud key 映射
 Protocol.DOMAIN_KEYS = {
-    core      = "slg_sv_core",
-    heroes    = "slg_sv_heroes",
-    equip     = "slg_sv_equip",
-    skills    = "slg_sv_skills",
-    progress  = "slg_sv_progress",
-    welfare   = "slg_sv_welfare",
-    social    = "slg_sv_social",
-    explore   = "slg_sv_explore",
-    worldmap  = "slg_sv_worldmap",
+    core      = "p_49dd_sv_core",
+    heroes    = "p_49dd_sv_heroes",
+    equip     = "p_49dd_sv_equip",
+    skills    = "p_49dd_sv_skills",
+    progress  = "p_49dd_sv_progress",
+    welfare   = "p_49dd_sv_welfare",
+    social    = "p_49dd_sv_social",
+    explore   = "p_49dd_sv_explore",
+    worldmap  = "p_49dd_sv_worldmap",
 }
 
 -- 必须在登录时同步的 domain（懒加载优化：其他 domain 按需加载）

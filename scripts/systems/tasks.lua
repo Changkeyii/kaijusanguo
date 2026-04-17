@@ -6,7 +6,7 @@
 --- 检查并执行每周排行榜奖励结算
 --- 在游戏启动/存档加载后调用一次
 function CheckWeeklyRankRewards()
-    if not rawget(_G, "clientCloud") then return end
+    if not rawget(_G, "cl_state") then return end
 
     local weekKey = GetWeekKey()
     -- 已结算则跳过
@@ -15,17 +15,21 @@ function CheckWeeklyRankRewards()
         return
     end
 
-    local myUid = clientCloud.userId
+    local myUid = GetMyUid()
     local pendingChecks = #WEEKLY_RANK_REWARDS
     local generatedMails = {}
+    local ClientNet = require("network.Client")
 
     for _, cfg in ipairs(WEEKLY_RANK_REWARDS) do
-        clientCloud:GetRankList(cfg.key, 0, 20, {
-            ok = function(rankList)
+        ClientNet.Request("get_rank_list", {
+            key = cfg.key, start = 0, count = 20,
+        }, function(ok, code, data, msg)
+            if ok then
+                local rankList = (data and data.list) or {}
                 -- 找到自己的排名
                 local myRank = 0
                 for ri, item in ipairs(rankList) do
-                    if item.uid == myUid then
+                    if item.userId == myUid then
                         myRank = ri
                         break
                     end
@@ -48,31 +52,24 @@ function CheckWeeklyRankRewards()
                         end
                     end
                 end
+            end
 
-                pendingChecks = pendingChecks - 1
-                if pendingChecks <= 0 then
-                    -- 所有排行榜检查完成
-                    if #generatedMails > 0 then
-                        for _, mail in ipairs(generatedMails) do
-                            table.insert(welfareState.mailDefs, mail)
-                        end
-                        print("[周奖励] 生成 " .. #generatedMails .. " 封奖励邮件")
-                        if rawget(_G, "ShowToast") then ShowToast("本周排行榜奖励已发放，请查看邮件！") end
-                    else
-                        print("[周奖励] 本周未上榜, 无奖励")
+            pendingChecks = pendingChecks - 1
+            if pendingChecks <= 0 then
+                -- 所有排行榜检查完成
+                if #generatedMails > 0 then
+                    for _, mail in ipairs(generatedMails) do
+                        table.insert(welfareState.mailDefs, mail)
                     end
-                    welfareState.lastWeeklySettled = weekKey
-                    SaveGameProgress()
+                    print("[周奖励] 生成 " .. #generatedMails .. " 封奖励邮件")
+                    if rawget(_G, "ShowToast") then ShowToast("本周排行榜奖励已发放，请查看邮件！") end
+                else
+                    print("[周奖励] 本周未上榜, 无奖励")
                 end
-            end,
-            error = function()
-                pendingChecks = pendingChecks - 1
-                if pendingChecks <= 0 then
-                    welfareState.lastWeeklySettled = weekKey
-                    SaveGameProgress()
-                end
-            end,
-        })
+                welfareState.lastWeeklySettled = weekKey
+                SaveGameProgress()
+            end
+        end)
     end
 end
 

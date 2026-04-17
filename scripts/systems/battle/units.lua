@@ -3,13 +3,14 @@
 -- ============================================================================
 
 
---- 获取车道中心Y坐标 (横屏: 车道沿Y轴分布, laneIdx: 1~5)
+--- 获取战场随机Y坐标 (RTS模式: 车道已移除, 返回战场范围内随机Y)
+--- 保留函数签名兼容旧引用
 function GetLaneCenterY(laneIdx)
-    return BATTLE_ZONE.top + (laneIdx - 0.5) * LANE_WIDTH
+    local bz = BATTLE_ZONE
+    return bz.top + 20 + math.random() * (bz.bottom - bz.top - 40)
 end
 
---- 兼容旧代码: GetLaneCenterX 现在返回车道中心Y坐标
---- (横屏改造: 车道由X轴划分改为Y轴划分)
+--- 兼容旧代码
 function GetLaneCenterX(laneIdx)
     return GetLaneCenterY(laneIdx)
 end
@@ -235,25 +236,16 @@ function GetBatchSizeForSlot(slot)
 end
 
 
---- 从指定槽位生成一个战斗单位 (overrideLaneIdx: 手动部署时指定车道)
-function SpawnUnitFromSlot(slot, isPlayer, overrideLaneIdx)
+--- 从指定槽位生成一个战斗单位 (RTS模式: 自由2D部署)
+function SpawnUnitFromSlot(slot, isPlayer, overrideLaneIdx, slotIdx)
     local card = slot.card
     local uc = GetUnitClassForCard(card, isPlayer)
     local lm = 1 + ((card.level or 1) - 1) * GameConfig.LEVEL_GROWTH_RATE
     local cStats = ApplyConstellationStats(card)
     local bz = BATTLE_ZONE
 
-    -- 车道分配
-    local laneIdx
-    if overrideLaneIdx then
-        laneIdx = overrideLaneIdx
-    elseif not isPlayer then
-        laneIdx = EnemyPickLane()
-    else
-        laneIdx = slot.laneIdx or math.random(1, NUM_LANES)
-    end
-    local laneCY = GetLaneCenterY(laneIdx)
-    local spawnY = laneCY + (math.random() - 0.5) * LANE_WIDTH * 0.6
+    -- RTS模式: 自由Y坐标分布 (不再分配车道)
+    local spawnY = bz.top + 20 + math.random() * (bz.bottom - bz.top - 40)
 
     local ss = SOLDIER_STAT_SCALE
     -- 大型兵种属性加成（数量少但单体更强）
@@ -274,10 +266,13 @@ function SpawnUnitFromSlot(slot, isPlayer, overrideLaneIdx)
         isHealer = (uc == UNIT_CLASS.HEALER),
         cloudSeed = math.random() * 100,
         breakDmgAdd = cStats.breakDmgAdd or 0,
-        laneIdx = laneIdx,  -- 所属车道
+        cmdType = "advance",  -- RTS指令: "advance"|"move"|"attack"|"defend"
+        cmdTarget = nil,      -- RTS指令目标 {x,y}
+        cmdDone = false,      -- 是否已到达指令目标
         summonTimer = 0,    -- 傀儡操师召唤计时
         summonCount = 0,    -- 傀儡操师已召唤数
         troopType = card.troopType or "infantry", -- 兵种克制类型 (已在G_systems.lua中批量注入)
+        slotIdx = slotIdx,   -- 武将技能系统: 关联PLAYER_SLOTS索引
     }
 
     -- 六欲兵符战斗属性注入
@@ -371,7 +366,9 @@ function SpawnPuppet(master, units, isPlayerSide)
         animTimer = math.random() * 6.28, flashTimer = 0,
         cloudSeed = math.random() * 100,
         breakDmgAdd = 0,
-        laneIdx = master.laneIdx,
+        cmdType = "advance",
+        cmdTarget = nil,
+        cmdDone = false,
         isPuppet = true,  -- 标记为傀儡小兵
         summonTimer = 0, summonCount = 0,
     }
@@ -379,29 +376,9 @@ function SpawnPuppet(master, units, isPlayerSide)
 end
 
 
---- 敌方AI选择车道：优先选玩家兵最多的车道进行拦截
+--- 敌方AI: 返回随机车道索引 (RTS模式: 车道已废弃, 兼容旧接口)
 function EnemyPickLane()
-    local laneCounts = { 0, 0, 0, 0, 0 }
-    for _, u in ipairs(playerUnits) do
-        if u.alive and u.laneIdx then
-            laneCounts[u.laneIdx] = laneCounts[u.laneIdx] + 1
-        end
-    end
-    -- 找最多的车道，加一点随机性
-    local maxCount = 0
-    local candidates = {}
-    for i = 1, NUM_LANES do
-        if laneCounts[i] > maxCount then
-            maxCount = laneCounts[i]
-            candidates = { i }
-        elseif laneCounts[i] == maxCount then
-            table.insert(candidates, i)
-        end
-    end
-    if maxCount == 0 then
-        return math.random(1, NUM_LANES)
-    end
-    return candidates[math.random(1, #candidates)]
+    return math.random(1, NUM_LANES)
 end
 
 
@@ -410,6 +387,8 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
         if u.alive then
             -- 区域减速: 临时降低速度, 帧末恢复
             local origSpeed = u.speed
+            local origAtk = u.atk
+            local origDef = u.def
             if u.zoneSlowUntil and gameState.gameTime < u.zoneSlowUntil then
                 u.speed = u.speed * (1.0 - (u.zoneSlowFactor or 0))
                 u.isZoneSlowed = true
@@ -419,13 +398,50 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                 u.zoneSlowFactor = nil
             end
 
+            -- 战斗地形效果: 检查单位所在地形区块
+            u.currentTerrain = nil
+            if battleTerrainZones then
+                for _, tz in ipairs(battleTerrainZones) do
+                    if u.x >= tz.x and u.x <= tz.x + tz.w and u.y >= tz.y and u.y <= tz.y + tz.h then
+                        local td = TERRAIN_DEFS[tz.terrain]
+                        if td then
+                            u.currentTerrain = tz.terrain
+                            if td.spdMod ~= 0 then u.speed = u.speed * (1 + td.spdMod) end
+                            if td.atkMod ~= 0 then u.atk = u.atk * (1 + td.atkMod) end
+                            if td.defMod ~= 0 then u.def = u.def * (1 + td.defMod) end
+                        end
+                        break
+                    end
+                end
+            end
+
             u.animTimer = u.animTimer + dt * 3
             if u.flashTimer > 0 then u.flashTimer = u.flashTimer - dt end
             if u.atkAnimTimer and u.atkAnimTimer > 0 then u.atkAnimTimer = u.atkAnimTimer - dt end
 
             local ucId = u.unitClass and u.unitClass.id or 1
 
-            if u.isHealer then
+            -- ★ RTS指令优先: 如果单位有非默认指令，由指令系统接管行为
+            if ExecuteUnitCommand and ExecuteUnitCommand(u, dt, targets, isPlayerSide) then
+                -- 指令已接管移动和攻击，跳过默认兵种AI
+                -- 但仍需处理死亡爆炸等被动效果
+                if ucId == 6 and u.hp <= 0 and not u.deathExploded then
+                    u.deathExploded = true
+                    local explR = 45
+                    local explDmg = u.atk * 1.2
+                    for _, t in ipairs(targets) do
+                        if t.alive then
+                            local edx, edy = t.x - u.x, t.y - u.y
+                            local ed = math.sqrt(edx * edx + edy * edy)
+                            if ed <= explR then
+                                t.hp = t.hp - explDmg
+                                t.flashTimer = 0.2
+                            end
+                        end
+                    end
+                end
+                if ucId == 8 then u.damageReduction = 0.15 end
+            elseif u.isHealer then
                 -- 腐灵祭司: 跟随部队前进 + 沿途治疗 + 攻速光环
                 u.atkTimer = u.atkTimer + dt
                 if u.atkTimer >= u.atkCooldown then
@@ -490,12 +506,9 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                             end
                         end
                     end
-                    -- 车道修正(Y轴)
-                    local laneCY = GetLaneCenterY(u.laneIdx or 3)
-                    local ldy = laneCY - u.y
-                    if math.abs(ldy) > 5 then
-                        u.y = u.y + (ldy > 0 and 1 or -1) * u.speed * 0.3 * dt
-                    end
+                    -- 轻微Y轴漂移防止扎堆
+                    local yDrift = (math.random() - 0.5) * u.speed * 0.08 * dt
+                    u.y = math.max(BATTLE_ZONE.top + 10, math.min(BATTLE_ZONE.bottom - 10, u.y + yDrift))
                 end
 
             elseif ucId == 10 then
@@ -696,9 +709,8 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                         u.guardPostY = zoneTop + (zoneBot - zoneTop) * shieldIdx / (shieldCount + 1)
                     end
                 end
-                -- 移动到站岗位置
-                local laneCX = GetLaneCenterX(u.laneIdx or 3)
-                local gdx = laneCX - u.x
+                -- 移动到站岗位置 (X轴保持当前位置，只调整Y轴)
+                local gdx = 0
                 local gdy = u.guardPostY - u.y
                 if math.abs(gdy) > 3 then
                     u.y = u.y + (gdy > 0 and 1 or -1) * u.speed * dt
@@ -907,28 +919,43 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                 end
             end
 
-            -- 恢复原始速度 (区域减速只在本帧生效)
+            -- 恢复原始属性 (区域减速+地形修正只在本帧生效)
             u.speed = origSpeed
+            u.atk = origAtk
+            u.def = origDef
         end
     end
 end
 
 
---- 向敌方基地推进 (横屏: 沿X轴前进, 车道修正沿Y轴)
+--- 向敌方基地推进 (RTS模式: 沿X轴前进, 轻微Y漂移防扎堆)
 function MoveTowardEnemyBase(u, dt, isPlayerSide)
     local targetX = isPlayerSide and BATTLE_ZONE.enemyLine or BATTLE_ZONE.playerLine
-    local laneCY = GetLaneCenterY(u.laneIdx or 3)
-    local ddy = laneCY - u.y
     local ddx = targetX - u.x
     if math.abs(ddx) > 1 then
         local dirX = ddx > 0 and 1 or -1
-        local yCorrect = 0
-        if math.abs(ddy) > 5 then
-            yCorrect = (ddy > 0 and 1 or -1) * u.speed * 0.3 * dt
-        end
         u.x = u.x + dirX * u.speed * dt
-        u.y = u.y + yCorrect
+        -- 轻微Y轴随机漂移 (防止单位扎堆成一条线)
+        local bz = BATTLE_ZONE
+        local yDrift = (math.random() - 0.5) * u.speed * 0.05 * dt
+        u.y = math.max(bz.top + 10, math.min(bz.bottom - 10, u.y + yDrift))
     end
+end
+
+--- 向任意目标点移动 (RTS指令用)
+--- 返回 true 表示已到达目标
+function MoveToTarget(u, dt, tx, ty)
+    local ddx = tx - u.x
+    local ddy = ty - u.y
+    local dist = math.sqrt(ddx * ddx + ddy * ddy)
+    if dist < 15 then return true end  -- 到达阈值
+    local nx, ny = ddx / dist, ddy / dist
+    u.x = u.x + nx * u.speed * dt
+    u.y = u.y + ny * u.speed * dt
+    -- 限制在战场范围内
+    local bz = BATTLE_ZONE
+    u.y = math.max(bz.top + 10, math.min(bz.bottom - 10, u.y))
+    return false
 end
 
 
@@ -983,10 +1010,9 @@ function FindNearbyEnemy(unit, targets, interceptRange)
 end
 
 
---- 查找挡路敌人 (行进优先模式: 只找同车道+在前方的敌人)
---- 所有普通兵种使用此函数，确保行军到基地为首要目标
+--- 查找挡路敌人 (行进优先模式: 找前方+攻击范围内最近敌人)
+--- 已去除车道限制，改为纯距离+前方判断
 function FindBlockingEnemy(unit, targets, atkRange, isPlayerSide)
-    local laneTolerance = LANE_WIDTH * 0.7  -- 同车道纵向容差(Y轴)
     local best, bestD = nil, atkRange + 1
     for _, t in ipairs(targets) do
         if t.alive then
@@ -994,9 +1020,7 @@ function FindBlockingEnemy(unit, targets, atkRange, isPlayerSide)
             local ddy = t.y - unit.y
             -- 检查: 必须在前方 (横屏: 玩家向右推进 = X 增大方向)
             local isAhead = (isPlayerSide and ddx > 0) or (not isPlayerSide and ddx < 0)
-            -- 检查: 大致同车道 (纵向距离 < 容差)
-            local sameishLane = math.abs(ddy) < laneTolerance
-            if isAhead and sameishLane then
+            if isAhead then
                 local d = math.sqrt(ddx * ddx + ddy * ddy)
                 if d < bestD then bestD = d; best = t end
             end
@@ -1032,6 +1056,16 @@ function AttackTarget(u, t, dt, isPlayerSide)
         local totalDmgReduction = (t.sealDmgReduction or 0) + (t.equipDmgReduction or 0)
         if totalDmgReduction > 0 then
             raw = raw * (1 - totalDmgReduction / 100)
+        end
+        -- 武将技能护盾吸收 (在扣血前检查)
+        if t.shield and t.shield > 0 then
+            if raw <= t.shield then
+                t.shield = t.shield - raw
+                raw = 0
+            else
+                raw = raw - t.shield
+                t.shield = 0
+            end
         end
         t.hp = t.hp - raw
         -- 反击: 兵符 + 装备词条 (受击方概率反弹50%自身ATK伤害)

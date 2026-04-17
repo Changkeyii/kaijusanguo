@@ -11,6 +11,34 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
+    -- === 选服界面输入 ===
+    if gameState.phase == "SERVER_SELECT" then
+        local lx, ly = ScreenToLogical(sx, sy)
+        local function HitLogical(r)
+            return r and lx >= r.x and lx <= r.x + r.w and ly >= r.y and ly <= r.y + r.h
+        end
+        -- 服务器卡片点击
+        if serverSelectRects then
+            for i, rect in ipairs(serverSelectRects) do
+                if HitLogical(rect) then
+                    gameState.selectedServer = rect.serverId
+                    return
+                end
+            end
+        end
+        -- 进入游戏按钮
+        if serverSelectEnterRect and gameState.selectedServer and HitLogical(serverSelectEnterRect) then
+            if playerInfo.profileSet then
+                gameState.phase = "MENU"
+                print("=== 选服完成(服务器" .. gameState.selectedServer .. ")，进入主菜单 ===")
+            else
+                gameState.phase = "PROFILE"
+                print("=== 选服完成(服务器" .. gameState.selectedServer .. ")，进入资料设置 ===")
+            end
+        end
+        return
+    end
+
     -- === 个人资料界面输入 ===
     if gameState.phase == "PROFILE" then
         local dx, dy = ScreenToDesign(sx, sy)
@@ -504,7 +532,7 @@ function BeginPress(sx, sy, touchId)
             if menuBtnRects.worldChatAddFriend and HitRect(menuBtnRects.worldChatAddFriend) then
                 local targetUid = menuBtnRects.worldChatAddFriend.uid
                 local targetName = menuBtnRects.worldChatAddFriend.name or "?"
-                local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+                local myUid = GetMyUid()
                 if targetUid == myUid then
                     ShowToast("不能添加自己为好友")
                 else
@@ -2402,7 +2430,7 @@ function BeginPress(sx, sy, touchId)
         if menuBtnRects.factionChatAddFriend and HitRect(menuBtnRects.factionChatAddFriend) then
             local targetUid = menuBtnRects.factionChatAddFriend.uid
             local targetName = menuBtnRects.factionChatAddFriend.name or "?"
-            local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+            local myUid = GetMyUid()
             if targetUid == myUid then
                 ShowToast("不能添加自己为好友")
             else
@@ -5002,35 +5030,32 @@ function BeginPress(sx, sy, touchId)
                 gameState.enemyBaseHP = 999999
                 gameState.enemyBaseMax = 999999
 
-                -- 生成100只巨兽老虎（每条车道20只）
+                -- 生成100只巨兽老虎（随机分布在战区）
                 local bz = BATTLE_ZONE
                 local tigerHP = 8000
                 local tigerATK = 1
                 local tigerDEF = 0
                 local tigerUC = UNIT_CLASS.DEMON_WARRIOR
-                for lane = 1, NUM_LANES do
-                    local laneCX = GetLaneCenterX(lane)
-                    for t = 1, 20 do
-                        local spawnX = laneCX + (math.random() - 0.5) * LANE_WIDTH * 0.6
-                        local spawnY = bz.centerY + (math.random() - 0.5) * (bz.bottom - bz.top) * 0.5
-                        local unit = {
-                            x = spawnX, y = spawnY,
-                            hp = tigerHP, maxHp = tigerHP,
-                            atk = tigerATK, def = tigerDEF,
-                            speed = 0,
-                            atkTimer = math.random() * 0.5, atkCooldown = tigerUC.atkCd,
-                            atkRange = tigerUC.atkRange,
-                            alive = true, isPlayer = false,
-                            isRanged = false, unitClass = tigerUC,
-                            animTimer = math.random() * 6.28, flashTimer = 0,
-                            isHealer = false,
-                            cloudSeed = math.random() * 100,
-                            breakDmgAdd = 0,
-                            laneIdx = lane,
-                            isDummyTiger = true,
-                        }
-                        table.insert(enemyUnits, unit)
-                    end
+                for t = 1, 100 do
+                    local spawnX = bz.centerX + (math.random() - 0.5) * (bz.right - bz.left) * 0.6
+                    local spawnY = bz.top + 20 + math.random() * (bz.bottom - bz.top - 40)
+                    local unit = {
+                        x = spawnX, y = spawnY,
+                        hp = tigerHP, maxHp = tigerHP,
+                        atk = tigerATK, def = tigerDEF,
+                        speed = 0,
+                        atkTimer = math.random() * 0.5, atkCooldown = tigerUC.atkCd,
+                        atkRange = tigerUC.atkRange,
+                        alive = true, isPlayer = false,
+                        isRanged = false, unitClass = tigerUC,
+                        animTimer = math.random() * 6.28, flashTimer = 0,
+                        isHealer = false,
+                        cloudSeed = math.random() * 100,
+                        breakDmgAdd = 0,
+                        cmdType = "advance",
+                        isDummyTiger = true,
+                    }
+                    table.insert(enemyUnits, unit)
                 end
 
                 gameState.battlePhase = "FIGHT"
@@ -5059,6 +5084,76 @@ function BeginPress(sx, sy, touchId)
             end
         end
         return
+    end
+
+    -- ======== RTS 兵种选择栏 & 指令按钮 (FIGHT阶段, 非自动战斗, 设计坐标) ========
+    if gameState.battlePhase == "FIGHT" and rtsState and not gameState.autoBattle then
+        -- 取消按钮 (最高优先级)
+        if rtsCancelBtnRect then
+            local r = rtsCancelBtnRect
+            if dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h then
+                CancelCommand()
+                PlaySFX(AUDIO.sfx_click)
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "指令取消", 0.8, { 200, 160, 100 }, 12)
+                return
+            end
+        end
+
+        -- 指令按钮 (移动/进攻/防守)
+        for ci, r in pairs(rtsCmdBtnRects) do
+            if r and dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h then
+                if rtsState.activeCmd == r.cmd then
+                    -- 再次点击同一指令: 取消激活
+                    rtsState.activeCmd = nil
+                else
+                    ActivateCommand(r.cmd)
+                end
+                PlaySFX(AUDIO.sfx_click)
+                return
+            end
+        end
+
+        -- "全" 按钮
+        if rtsAllBtnRect then
+            local r = rtsAllBtnRect
+            if dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h then
+                if rtsState.selectedClassId == nil then
+                    -- 已经是全选 → 取消选择
+                    rtsState.activeCmd = nil
+                else
+                    rtsState.selectedClassId = nil  -- 全选
+                end
+                PlaySFX(AUDIO.sfx_click)
+                return
+            end
+        end
+
+        -- 兵种按钮
+        for i, r in pairs(rtsClassBtnRects) do
+            if r and dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h then
+                ToggleClassSelection(r.classId)
+                PlaySFX(AUDIO.sfx_click)
+                return
+            end
+        end
+
+        -- 指令拖拽: 激活指令后, 触摸战场区域开始拖拽选目标
+        if rtsState.activeCmd then
+            local bz = BATTLE_ZONE
+            if dy >= bz.top and dy <= bz.bottom and dx >= bz.playerLine and dx <= bz.enemyLine then
+                rtsState.isCmdDrag = true
+                rtsState.cmdDragTouchId = touchId
+                rtsState.cmdDragStartX = dx
+                rtsState.cmdDragStartY = dy
+                -- 实时预览目标位置
+                rtsState.cmdTargetX = dx
+                rtsState.cmdTargetY = dy
+                rtsState.showCmdMarker = true
+                rtsState.cmdMarkerTimer = 99  -- 拖拽期间常驻
+                rtsState._lastCmd = rtsState.activeCmd
+                return
+            end
+        end
     end
 
     -- 刷新按钮 (SHOP和FIGHT阶段都可用, 设计坐标)
@@ -5105,6 +5200,13 @@ function BeginPress(sx, sy, touchId)
             end
             gameState.autoBattle = not gameState.autoBattle
             autoBattleTimer = 0
+            -- 开启自动战斗时重置所有RTS指令
+            if gameState.autoBattle and CancelCommand then
+                CancelCommand()
+                rtsState.selectedClassId = nil
+                rtsState.activeCmd = nil
+                rtsState.isCmdDrag = false
+            end
             local txt = gameState.autoBattle and "自动战斗 开启" or "自动战斗 关闭"
             local clr = gameState.autoBattle and { 120, 255, 160 } or { 200, 180, 160 }
             AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, txt, 1.2, clr, 16)

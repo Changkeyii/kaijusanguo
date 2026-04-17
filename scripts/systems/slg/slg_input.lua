@@ -9,8 +9,10 @@ local Data   = require("systems.slg.slg_data")
 local Render = require("systems.slg.slg_render")
 
 local STRATAGEMS = Data.STRATAGEMS
-local GetFC      = Render.GetFC
-local DrawBtn    = Render.DrawBtn
+local GetFC        = Render.GetFC
+local DrawBtn      = Render.DrawBtn
+local DrawIcon     = Render.DrawIcon
+local DrawCircleNum = Render.DrawCircleNum
 
 local M = {}
 
@@ -241,7 +243,7 @@ function M.DrawMarch()
     nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 24)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     nvgFillColor(vg, nvgRGBA(80, 30, 10, 255))
-    nvgText(vg, midX, midY, "⚔", nil)
+    DrawIcon(IMG.slgIconSword, midX, midY, 22)
 
     -- 兵力
     if marchAnim.troops > 0 then
@@ -275,35 +277,35 @@ local wmGuide = {
 -- 引导步骤：交互式，玩家按提示操作后自动推进
 local WM_GUIDE_STEPS = {
     {
-        title = "① 选择城池",
+        titleNum = 1, title = "选择城池",
         desc = "点击左侧城池查看详情",
-        hint = "👆 点击左侧列表中的金色城池",
+        hintIcon = "slgIconFinger", hint = "点击左侧列表中的金色城池",
         highlight = "city_list",
         waitFor = "select_city",
     },
     {
-        title = "② 内政经营",
+        titleNum = 2, title = "内政经营",
         desc = "征兵、升级、搜索人才",
-        hint = "👆 点击右侧【内政】按钮试试",
+        hintIcon = "slgIconFinger", hint = "点击右侧【内政】按钮试试",
         highlight = "affairs_btn",
         waitFor = "enter_affairs",
     },
     {
-        title = "③ 出征攻城",
+        titleNum = 3, title = "出征攻城",
         desc = "从己方城出发攻打敌城",
-        hint = "👆 返回后点击【出征】开战！",
+        hintIcon = "slgIconFinger", hint = "返回后点击【出征】开战！",
         highlight = "attack_btn",
         waitFor = "enter_attack",
     },
     {
-        title = "④ 结束回合",
+        titleNum = 4, title = "结束回合",
         desc = "获得金粮收入，推进时间",
-        hint = "👆 点击左下角【结束回合】推进",
+        hintIcon = "slgIconFinger", hint = "点击左下角【结束回合】推进",
         highlight = "end_turn_btn",
         waitFor = "end_turn",
     },
     {
-        title = "⑤ 统一天下！",
+        titleNum = 5, title = "统一天下！",
         desc = "占领全部18城即可获胜\n善用内政、外交和计略！",
         hint = nil,
         highlight = "none",
@@ -402,10 +404,7 @@ function M.DrawGuide()
         nvgStrokeWidth(vg, 2.5); nvgStroke(vg)
 
         -- 手指动画
-        nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 30)
-        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-        nvgFillColor(vg, nvgRGBA(255, 255, 255, math.floor(200 * pulse)))
-        nvgText(vg, rx + rw / 2, ry - 20 + wmGuide.fingerY, "👆", nil)
+        DrawIcon(IMG.slgIconFinger, rx + rw / 2, ry - 20 + wmGuide.fingerY, 28, pulse)
     end
 
     -- 底部引导提示条
@@ -417,17 +416,30 @@ function M.DrawGuide()
     nvgBeginPath(vg); nvgMoveTo(vg, 0, barY); nvgLineTo(vg, W, barY)
     nvgStrokeColor(vg, nvgRGBA(255, 210, 100, 150)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
 
-    -- 步骤标题
+    -- 步骤标题 (圆圈数字 + 标题)
     nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 20)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
     nvgFillColor(vg, nvgRGBA(255, 230, 140, 255))
-    nvgText(vg, 14, barY + barH / 2 - 12, stepData.title, nil)
+    if stepData.titleNum then
+        DrawCircleNum(26, barY + barH / 2 - 12, 10, stepData.titleNum, 200, 160, 60, 40, 20, 5)
+        nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 20)
+        nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+        nvgFillColor(vg, nvgRGBA(255, 230, 140, 255))
+        nvgText(vg, 40, barY + barH / 2 - 12, stepData.title, nil)
+    else
+        nvgText(vg, 14, barY + barH / 2 - 12, stepData.title, nil)
+    end
 
-    -- 描述/提示
+    -- 描述/提示 (手指图标 + 文字)
     local hintText = stepData.hint or stepData.desc
     nvgFontSize(vg, 15)
     nvgFillColor(vg, nvgRGBA(220, 210, 180, 200))
-    nvgText(vg, 14, barY + barH / 2 + 12, hintText, nil)
+    if stepData.hintIcon then
+        local Render2 = require("systems.slg.slg_render")
+        Render2.DrawIconText(stepData.hintIcon, hintText, 14, barY + barH / 2 + 12, 14, 3)
+    else
+        nvgText(vg, 14, barY + barH / 2 + 12, hintText, nil)
+    end
 
     -- 步骤指示器 (点点)
     local dotStartX = W - 90
@@ -572,6 +584,16 @@ function M.HandleInput(dx, dy)
         end
     end
 
+    -- 面板折叠/展开按钮 (所有阶段可用)
+    if st.btn_toggleLeft and HitRect(st.btn_toggleLeft, dx, dy) then
+        st.leftPanelCollapsed = not st.leftPanelCollapsed
+        PlaySFX(AUDIO.sfx_click); return
+    end
+    if st.btn_toggleRight and HitRect(st.btn_toggleRight, dx, dy) then
+        st.rightPanelCollapsed = not st.rightPanelCollapsed
+        PlaySFX(AUDIO.sfx_click); return
+    end
+
     -- 存档/读档按钮 (顶部栏，所有阶段可用，但仅在 MAP 阶段处理)
     if st.phase == "MAP" then
         if st.btn_save and HitRect(st.btn_save, dx, dy) then
@@ -586,23 +608,53 @@ function M.HandleInput(dx, dy)
         end
     end
 
-    -- 招降阶段
+    -- 招降阶段 (招降/杀/放走 + 失败后二选一)
     if st.phase == "SURRENDER" then
         local heroes = st.capturedHeroes or {}
         local results = st.surrenderResults or {}
+        local failPending = st.surrenderFailPending or {}
         for i, hIdx in ipairs(heroes) do
-            if results[hIdx] == nil then
-                -- 招降按钮
-                if st["btn_surrender_" .. i] and HitRect(st["btn_surrender_" .. i], dx, dy) then
-                    local ok, msg = WorldMap.TrySurrender(hIdx, st.capturedCityId)
-                    results[hIdx] = ok
+            if failPending[hIdx] then
+                -- 招降失败后: 只能选杀或放走
+                if st["btn_kill_" .. i] and HitRect(st["btn_kill_" .. i], dx, dy) then
+                    local _, msg = WorldMap.KillCaptured(hIdx)
+                    results[hIdx] = "killed"
+                    failPending[hIdx] = nil
                     if rawget(_G, "ShowToast") then ShowToast(msg) end
                     PlaySFX(AUDIO.sfx_click); return
                 end
-                -- 释放按钮
                 if st["btn_release_" .. i] and HitRect(st["btn_release_" .. i], dx, dy) then
-                    results[hIdx] = false
-                    if rawget(_G, "ShowToast") then ShowToast(HERO_CARDS[hIdx] and HERO_CARDS[hIdx].name .. " 已释放" or "已释放") end
+                    local _, msg = WorldMap.ReleaseCaptured(hIdx, st.capturedCityId)
+                    results[hIdx] = "released"
+                    failPending[hIdx] = nil
+                    if rawget(_G, "ShowToast") then ShowToast(msg) end
+                    PlaySFX(AUDIO.sfx_click); return
+                end
+            elseif results[hIdx] == nil then
+                -- 初始状态: 招降/杀/放走
+                if st["btn_surrender_" .. i] and HitRect(st["btn_surrender_" .. i], dx, dy) then
+                    local ok, msg = WorldMap.TrySurrender(hIdx, st.capturedCityId)
+                    if ok then
+                        results[hIdx] = "recruited"
+                    else
+                        -- 招降失败, 进入待决状态
+                        st.surrenderFailPending = st.surrenderFailPending or {}
+                        st.surrenderFailPending[hIdx] = true
+                        failPending = st.surrenderFailPending
+                    end
+                    if rawget(_G, "ShowToast") then ShowToast(msg) end
+                    PlaySFX(AUDIO.sfx_click); return
+                end
+                if st["btn_kill_" .. i] and HitRect(st["btn_kill_" .. i], dx, dy) then
+                    local _, msg = WorldMap.KillCaptured(hIdx)
+                    results[hIdx] = "killed"
+                    if rawget(_G, "ShowToast") then ShowToast(msg) end
+                    PlaySFX(AUDIO.sfx_click); return
+                end
+                if st["btn_release_" .. i] and HitRect(st["btn_release_" .. i], dx, dy) then
+                    local _, msg = WorldMap.ReleaseCaptured(hIdx, st.capturedCityId)
+                    results[hIdx] = "released"
+                    if rawget(_G, "ShowToast") then ShowToast(msg) end
                     PlaySFX(AUDIO.sfx_click); return
                 end
             end
@@ -612,6 +664,9 @@ function M.HandleInput(dx, dy)
             local allDone = true
             for _, hIdx in ipairs(heroes) do
                 if results[hIdx] == nil then allDone = false; break end
+            end
+            for _, hIdx in ipairs(heroes) do
+                if failPending[hIdx] then allDone = false; break end
             end
             if allDone or #heroes == 0 then
                 WorldMap.FinishSurrender()
@@ -711,14 +766,64 @@ function M.HandleInput(dx, dy)
     -- 外交
     if st.phase == "DIPLOMACY" then
         for _, fac in ipairs({"wei", "shu", "qun"}) do
+            -- 送礼
             if st["btn_gift_" .. fac] and HitRect(st["btn_gift_" .. fac], dx, dy) then
                 WorldMap.SendGift(fac); PlaySFX(AUDIO.sfx_click); return
             end
-            if st["btn_treaty_" .. fac] and HitRect(st["btn_treaty_" .. fac], dx, dy) then
-                WorldMap.SignTreaty(fac); PlaySFX(AUDIO.sfx_click); return
+            -- 升级条约 (新系统)
+            local upKey = "upgrade_" .. fac
+            if diploBtnRects[upKey] and HitRect(diploBtnRects[upKey], dx, dy) then
+                local treaty = diploBtnRects[upKey .. "_treaty"]
+                if treaty then
+                    WorldMap.UpgradeTreaty(fac, treaty)
+                    PlaySFX(AUDIO.sfx_click); return
+                end
+            end
+            -- 劝降
+            local surrKey = "surrender_" .. fac
+            if diploBtnRects[surrKey] and HitRect(diploBtnRects[surrKey], dx, dy) then
+                WorldMap.AttemptSurrender(fac)
+                PlaySFX(AUDIO.sfx_click); return
             end
         end
         if st.btn_diploBack and HitRect(st.btn_diploBack, dx, dy) then st.phase = "MAP"; PlaySFX(AUDIO.sfx_click) end
+        return
+    end
+
+    -- 建设
+    if st.phase == "BUILDINGS" then
+        local BUILDINGS = Data.BUILDINGS
+        for _, bDef in ipairs(BUILDINGS) do
+            local key = "btn_build_" .. bDef.id
+            if st[key] and HitRect(st[key], dx, dy) then
+                local ok, msg = WorldMap.UpgradeBuilding(st.buildingsCity, bDef.id)
+                if rawget(_G, "ShowToast") then ShowToast(msg) end
+                PlaySFX(AUDIO.sfx_click); return
+            end
+        end
+        if st.btn_buildingsBack and HitRect(st.btn_buildingsBack, dx, dy) then
+            st.phase = "MAP"; st.buildingsCity = nil; st.buildingsScroll = 0
+            PlaySFX(AUDIO.sfx_click)
+        end
+        return
+    end
+
+    -- 任务/羁绊/转职面板
+    if st.phase == "QUESTS" then
+        -- 转职按钮
+        local CLASS_CHANGES = Data.CLASS_CHANGES
+        for _, cc in ipairs(CLASS_CHANGES) do
+            local btnKey = "btn_cc_" .. cc.heroId
+            if st[btnKey] and HitRect(st[btnKey], dx, dy) then
+                local ok, msg = WorldMap.DoClassChange(cc.heroId)
+                if rawget(_G, "ShowToast") then ShowToast(msg or "转职完成!") end
+                PlaySFX(AUDIO.sfx_click); return
+            end
+        end
+        if st.btn_questsBack and HitRect(st.btn_questsBack, dx, dy) then
+            st.phase = "MAP"; st.questScroll = 0
+            PlaySFX(AUDIO.sfx_click)
+        end
         return
     end
 
@@ -825,6 +930,15 @@ function M.HandleInput(dx, dy)
                     PlaySFX(AUDIO.sfx_click); return
                 end
             end
+            -- 阵型按钮
+            if formationBtnRects then
+                for fi, fr in ipairs(formationBtnRects) do
+                    if fr and HitRect(fr, dx, dy) then
+                        playerFormation = fr.key
+                        PlaySFX(AUDIO.sfx_click); return
+                    end
+                end
+            end
             for i, hIdx in ipairs(fromData.heroes) do
                 if st["btn_hero_" .. i] and HitRect(st["btn_hero_" .. i], dx, dy) then
                     local found = false
@@ -874,6 +988,16 @@ function M.HandleInput(dx, dy)
                 end
                 if st.btn_stratagem and HitRect(st.btn_stratagem, dx, dy) then
                     st.phase = "STRATAGEM"; st.stratagemTarget = nil
+                    PlaySFX(AUDIO.sfx_click); return
+                end
+                if st.btn_buildings and HitRect(st.btn_buildings, dx, dy) then
+                    st.buildingsCity = st.selectedCity; st.buildingsScroll = 0
+                    st.phase = "BUILDINGS"
+                    PlaySFX(AUDIO.sfx_click); return
+                end
+                if st.btn_quests and HitRect(st.btn_quests, dx, dy) then
+                    st.questScroll = 0
+                    st.phase = "QUESTS"
                     PlaySFX(AUDIO.sfx_click); return
                 end
                 if st.btn_move and HitRect(st.btn_move, dx, dy) then
@@ -972,6 +1096,36 @@ function M.HandleScroll(delta)
             scroll = scroll + delta * 30
             scroll = math.max(0, math.min(totalH - visibleH, scroll))
             st.heroManageScroll = scroll
+        end
+        return
+    end
+
+    -- 建设面板滚动
+    if st.phase == "BUILDINGS" then
+        local sa = st._buildingsScrollArea
+        if sa then
+            local totalH = st._buildingsTotalH or 0
+            if totalH > sa.h then
+                local scroll = st.buildingsScroll or 0
+                scroll = scroll + delta * 30
+                scroll = math.max(0, math.min(totalH - sa.h, scroll))
+                st.buildingsScroll = scroll
+            end
+        end
+        return
+    end
+
+    -- 任务面板滚动
+    if st.phase == "QUESTS" then
+        local sa = st._questsScrollArea
+        if sa then
+            local totalH = st._questsTotalH or 0
+            if totalH > sa.h then
+                local scroll = st.questScroll or 0
+                scroll = scroll + delta * 30
+                scroll = math.max(0, math.min(totalH - sa.h, scroll))
+                st.questScroll = scroll
+            end
         end
         return
     end

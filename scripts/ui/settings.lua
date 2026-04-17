@@ -44,7 +44,7 @@ function DrawSettingsScreen()
     local rightM = panX + panW - 24
     local uidRowY = panY + 80
     do
-        local uid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+        local uid = GetMyUid()
         local uidStr = uid ~= 0 and tostring(uid) or "---"
         -- UID 标签 + 数值
         nvgFontSize(vg, 18)

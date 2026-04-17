@@ -67,6 +67,15 @@ function DrawUnitSprite(u)
     animScaleY = 1.0 + stepBounce * 0.06  -- 轻微纵向拉伸
     animScaleX = 1.0 - stepBounce * 0.03  -- 对应横向压缩
 
+    -- 朝向修正: 玩家朝右(正), 敌人朝左(负X镜像)
+    if not u.isPlayer then
+        animScaleX = -animScaleX
+    end
+    -- 精灵图本身朝左的兵种需要额外翻转(如盾兵、枪兵)
+    if uc and uc.spriteFlipX then
+        animScaleX = -animScaleX
+    end
+
     -- 攻击动画：攻击瞬间短暂放大+前倾
     if u.atkAnimTimer and u.atkAnimTimer > 0 then
         local atkT = u.atkAnimTimer
@@ -314,40 +323,18 @@ function DrawHUD()
     local hOfsX = gameSettings.hudOffsetX or 0
     local hOfsY = gameSettings.hudOffsetY or 0
 
-    -- ======== 精简顶部信息条 (军资/击杀/兵力) ========
-    local hudH = 22
-    local hudBg = nvgLinearGradient(vg, 0, 2 + hOfsY, 0, hudH + 2 + hOfsY,
-        nvgRGBA(30, 25, 16, 190), nvgRGBA(20, 16, 10, 200))
-    nvgBeginPath(vg); nvgRoundedRect(vg, 4 + hOfsX, 2 + hOfsY, DESIGN_W - 8, hudH, 4)
-    nvgFillPaint(vg, hudBg); nvgFill(vg)
-
-    -- 装饰线
-    local topLine = nvgLinearGradient(vg, 60 + hOfsX, 3 + hOfsY, DESIGN_W - 60 + hOfsX, 3 + hOfsY,
-        nvgRGBA(200, 165, 80, 0), nvgRGBA(200, 165, 80, 50))
-    nvgBeginPath(vg)
-    nvgMoveTo(vg, 60 + hOfsX, 3 + hOfsY); nvgLineTo(vg, DESIGN_W - 60 + hOfsX, 3 + hOfsY)
-    nvgStrokePaint(vg, topLine); nvgStrokeWidth(vg, 0.6); nvgStroke(vg)
+    -- ======== 三国群英传风 顶部信息条 (HP条已置顶, 这里只显示击杀/倒计时) ========
+    -- HP条占据顶部, 所以HUD信息移到HP条下方
+    local hudTopY = 44 + safeInsets.top + hOfsY  -- HP条面板下方
 
     nvgFontFaceId(vg, GetMainFont())
-    local midY = 13 + hOfsY
 
-    -- 军资
-    nvgFontSize(vg, 20)
+    -- 击杀 (左侧)
+    nvgFontSize(vg, 24)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(16 + hOfsX, midY, "军资")
-    nvgFontSize(vg, 22)
-    DrawWhiteInkText(50 + hOfsX, midY, tostring(gameState.gold))
-
-    -- 击杀
-    nvgFontSize(vg, 20)
-    DrawWhiteInkText(120 + hOfsX, midY, "斩")
-    nvgFontSize(vg, 22)
-    DrawWhiteInkText(140 + hOfsX, midY, tostring(gameState.totalKills))
-
-    -- 兵力 (右侧)
-    nvgFontSize(vg, 16)
-    nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(DESIGN_W - 12 + hOfsX, midY, "我:" .. #playerUnits .. " 敌:" .. #enemyUnits)
+    DrawWhiteInkText(16 + hOfsX, hudTopY, "斩敌")
+    nvgFontSize(vg, 26)
+    DrawWhiteInkText(70 + hOfsX, hudTopY, tostring(gameState.totalKills))
 
     -- ======== FIGHT 阶段倒计时 (正上方居中) ========
     if gameState.battlePhase == "FIGHT" then
@@ -373,7 +360,7 @@ function DrawHUD()
         local timerW = 72
         local timerH = 20
         local timerX = DESIGN_W / 2 - timerW / 2 + hOfsX
-        local timerY = hudH + 4 + hOfsY
+        local timerY = hudTopY + 14 + hOfsY
         nvgBeginPath(vg); nvgRoundedRect(vg, timerX, timerY, timerW, timerH, 10)
         if (isDummyBattle and not dummyState.prepPhase) or remainSec <= 30 then
             local urgPulse = 0.6 + 0.4 * math.sin(t * 6)
@@ -398,97 +385,173 @@ end
 function DrawBaseHPBars()
     if fontId < 0 then return end
 
-    local bz = BATTLE_ZONE
-    local barW = 200
-    local barH = 7
+    -- 三国群英传风格: 两个血条置顶, 居中左右并排
+    local barW = 320
+    local barH = 10
     local centerX = DESIGN_W / 2
+    local gap = 60  -- 两条之间间距
+    local topY = 6 + safeInsets.top  -- 贴顶部安全区
 
     nvgFontFaceId(vg, GetMainFont())
 
-    -- ======== 敌方基地血条 (横屏: 右侧临界线旁) ========
-    local eBarX = bz.enemyLine - barW - 20
-    local eBarY = bz.top + 10
+    -- ======== 顶部半透明底板 ========
+    local panelW = barW * 2 + gap + 100
+    local panelH = 36
+    local panelX = centerX - panelW / 2
+    nvgBeginPath(vg); nvgRoundedRect(vg, panelX, topY, panelW, panelH, 6)
+    nvgFillColor(vg, nvgRGBA(10, 8, 5, 200)); nvgFill(vg)
+    -- 底部装饰线
+    local decGrad = nvgLinearGradient(vg, panelX + 20, topY + panelH, panelX + panelW - 20, topY + panelH,
+        nvgRGBA(200, 165, 80, 0), nvgRGBA(200, 165, 80, 60))
+    nvgBeginPath(vg)
+    nvgMoveTo(vg, panelX + 20, topY + panelH)
+    nvgLineTo(vg, panelX + panelW - 20, topY + panelH)
+    nvgStrokePaint(vg, decGrad); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
 
-    -- 半透明底板
-    nvgBeginPath(vg); nvgRoundedRect(vg, eBarX - 28, eBarY - 8, barW + 56, 16, 4)
-    nvgFillColor(vg, nvgRGBA(15, 8, 5, 160)); nvgFill(vg)
+    local barMidY = topY + 14
 
+    -- ======== 玩家血条 (左侧) ========
+    local pBarX = centerX - gap / 2 - barW
     -- 标签
-    nvgFontSize(vg, 20)
+    nvgFontSize(vg, 24)
     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(eBarX - 6, eBarY, "敌")
-
+    DrawWhiteInkText(pBarX - 6, barMidY, "我军")
     -- 血量条背景
-    nvgBeginPath(vg); nvgRoundedRect(vg, eBarX, eBarY - barH / 2, barW, barH, 3)
-    nvgFillColor(vg, nvgRGBA(40, 15, 10, 200)); nvgFill(vg)
-    nvgStrokeColor(vg, nvgRGBA(160, 80, 60, 50))
-    nvgStrokeWidth(vg, 0.4); nvgStroke(vg)
-
-    -- 血量条填充
-    local eMax = gameState.enemyBaseMax or BASE_HP_MAX
-    local eRatio = math.max(0, gameState.enemyBaseHP / eMax)
-    if eRatio > 0 then
-        local fillW = barW * eRatio
-        local eGrad = nvgLinearGradient(vg, eBarX, eBarY, eBarX + fillW, eBarY,
-            nvgRGBA(180, 40, 25, 220), nvgRGBA(255, 90, 50, 240))
-        nvgBeginPath(vg); nvgRoundedRect(vg, eBarX, eBarY - barH / 2, fillW, barH, 3)
-        nvgFillPaint(vg, eGrad); nvgFill(vg)
-        -- 高光
-        nvgBeginPath(vg); nvgRoundedRect(vg, eBarX, eBarY - barH / 2, fillW, barH * 0.35, 2)
-        nvgFillColor(vg, nvgRGBA(255, 200, 180, 30)); nvgFill(vg)
-    end
-
-    -- 血量数字
-    nvgFontSize(vg, 16)
-    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(eBarX + barW + 6, eBarY, gameState.enemyBaseHP .. "/" .. eMax)
-
-    -- ======== 玩家基地血条 (横屏: 左侧临界线旁) ========
-    local pBarX = bz.playerLine + 20
-    local pBarY = bz.top + 10
-
-    -- 半透明底板
-    nvgBeginPath(vg); nvgRoundedRect(vg, pBarX - 28, pBarY - 8, barW + 56, 16, 4)
-    nvgFillColor(vg, nvgRGBA(5, 10, 15, 160)); nvgFill(vg)
-
-    -- 标签
-    nvgFontSize(vg, 20)
-    nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(pBarX - 6, pBarY, "我")
-
-    -- 血量条背景
-    nvgBeginPath(vg); nvgRoundedRect(vg, pBarX, pBarY - barH / 2, barW, barH, 3)
+    nvgBeginPath(vg); nvgRoundedRect(vg, pBarX, barMidY - barH / 2, barW, barH, 4)
     nvgFillColor(vg, nvgRGBA(10, 20, 35, 200)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(60, 130, 170, 50))
     nvgStrokeWidth(vg, 0.4); nvgStroke(vg)
-
     -- 血量条填充
     local pMax = gameState.playerBaseMax or BASE_HP_MAX
     local pRatio = math.max(0, gameState.playerBaseHP / pMax)
     if pRatio > 0 then
         local fillW = barW * pRatio
-        local pGrad = nvgLinearGradient(vg, pBarX, pBarY, pBarX + fillW, pBarY,
+        local pGrad = nvgLinearGradient(vg, pBarX, barMidY, pBarX + fillW, barMidY,
             nvgRGBA(35, 150, 190, 220), nvgRGBA(70, 220, 180, 240))
-        nvgBeginPath(vg); nvgRoundedRect(vg, pBarX, pBarY - barH / 2, fillW, barH, 3)
+        nvgBeginPath(vg); nvgRoundedRect(vg, pBarX, barMidY - barH / 2, fillW, barH, 4)
         nvgFillPaint(vg, pGrad); nvgFill(vg)
-        -- 高光
-        nvgBeginPath(vg); nvgRoundedRect(vg, pBarX, pBarY - barH / 2, fillW, barH * 0.35, 2)
+        nvgBeginPath(vg); nvgRoundedRect(vg, pBarX, barMidY - barH / 2, fillW, barH * 0.35, 3)
         nvgFillColor(vg, nvgRGBA(200, 255, 255, 30)); nvgFill(vg)
     end
-
-    -- 血量数字
-    nvgFontSize(vg, 16)
+    -- 血量数字 + 兵力
+    nvgFontSize(vg, 18)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(pBarX + barW + 6, pBarY, gameState.playerBaseHP .. "/" .. pMax)
+    DrawWhiteInkText(pBarX + 4, barMidY + barH / 2 + 10, gameState.playerBaseHP .. "/" .. pMax)
+    -- 兵力显示 (×100)
+    nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
+    nvgFontSize(vg, 16)
+    nvgFillColor(vg, nvgRGBA(150, 220, 255, 200))
+    nvgText(vg, pBarX + barW, barMidY + barH / 2 + 10, #playerUnits * SOLDIERS_PER_UNIT .. "人", nil)
+
+    -- ======== 敌方血条 (右侧) ========
+    local eBarX = centerX + gap / 2
+    -- 标签
+    nvgFontSize(vg, 24)
+    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+    DrawWhiteInkText(eBarX + barW + 6, barMidY, "敌军")
+    -- 血量条背景
+    nvgBeginPath(vg); nvgRoundedRect(vg, eBarX, barMidY - barH / 2, barW, barH, 4)
+    nvgFillColor(vg, nvgRGBA(40, 15, 10, 200)); nvgFill(vg)
+    nvgStrokeColor(vg, nvgRGBA(160, 80, 60, 50))
+    nvgStrokeWidth(vg, 0.4); nvgStroke(vg)
+    -- 血量条填充
+    local eMax = gameState.enemyBaseMax or BASE_HP_MAX
+    local eRatio = math.max(0, gameState.enemyBaseHP / eMax)
+    if eRatio > 0 then
+        local fillW = barW * eRatio
+        local eGrad = nvgLinearGradient(vg, eBarX, barMidY, eBarX + fillW, barMidY,
+            nvgRGBA(180, 40, 25, 220), nvgRGBA(255, 90, 50, 240))
+        nvgBeginPath(vg); nvgRoundedRect(vg, eBarX, barMidY - barH / 2, fillW, barH, 4)
+        nvgFillPaint(vg, eGrad); nvgFill(vg)
+        nvgBeginPath(vg); nvgRoundedRect(vg, eBarX, barMidY - barH / 2, fillW, barH * 0.35, 3)
+        nvgFillColor(vg, nvgRGBA(255, 200, 180, 30)); nvgFill(vg)
+    end
+    -- 血量数字 + 兵力
+    nvgFontSize(vg, 18)
+    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+    DrawWhiteInkText(eBarX + 4, barMidY + barH / 2 + 10, gameState.enemyBaseHP .. "/" .. eMax)
+    nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
+    nvgFontSize(vg, 16)
+    nvgFillColor(vg, nvgRGBA(255, 150, 120, 200))
+    nvgText(vg, eBarX + barW, barMidY + barH / 2 + 10, #enemyUnits * SOLDIERS_PER_UNIT .. "人", nil)
+
+    -- ======== 中央 VS 标志 ========
+    nvgFontSize(vg, 22)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(255, 220, 100, 200))
+    nvgText(vg, centerX, barMidY, "VS", nil)
 
     -- ======== 血量低警告 ========
     local warningThreshold = math.floor((gameState.playerBaseMax or BASE_HP_MAX) * 0.15)
     if gameState.playerBaseHP <= warningThreshold and gameState.phase == "BATTLE" then
         local pulse = 0.5 + 0.5 * math.sin(gameState.gameTime * 6)
-        -- 玩家血条闪红边框
-        nvgBeginPath(vg); nvgRoundedRect(vg, pBarX - 1, pBarY - barH / 2 - 1, barW + 2, barH + 2, 4)
+        nvgBeginPath(vg); nvgRoundedRect(vg, pBarX - 1, barMidY - barH / 2 - 1, barW + 2, barH + 2, 5)
         nvgStrokeColor(vg, nvgRGBA(255, 60, 40, math.floor(80 + 120 * pulse)))
-        nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
+        nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
+    end
+end
+
+
+-- (武将主动技能能量条已移除: techIdx仅作拜师数据)
+
+
+-- ============================================================================
+-- 战斗地形区块渲染 (在单位之下的底层绘制)
+-- ============================================================================
+function DrawTerrainZones()
+    if not battleTerrainZones or #battleTerrainZones == 0 then return end
+
+    local t = gameState.gameTime
+    for _, tz in ipairs(battleTerrainZones) do
+        local td = TERRAIN_DEFS[tz.terrain]
+        if td then
+            local tc = td.color
+            -- 半透明底色
+            nvgBeginPath(vg); nvgRoundedRect(vg, tz.x, tz.y, tz.w, tz.h, 4)
+            nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 25)); nvgFill(vg)
+            -- 边框
+            nvgStrokeColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 50))
+            nvgStrokeWidth(vg, 0.6); nvgStroke(vg)
+
+            -- 地形图标 (区块中央)
+            if fontId >= 0 then
+                nvgFontFaceId(vg, GetMainFont())
+                nvgFontSize(vg, 14)
+                nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 80))
+                nvgText(vg, tz.x + tz.w / 2, tz.y + tz.h / 2, td.icon, nil)
+            end
+
+            -- 森林: 散布小圆形树冠
+            if tz.terrain == "forest" then
+                nvgFillColor(vg, nvgRGBA(30, 100, 40, 20))
+                for i = 1, 3 do
+                    local fx = tz.x + tz.w * (0.2 + 0.3 * (i - 1))
+                    local fy = tz.y + tz.h * 0.5 + math.sin(t * 0.5 + i) * 5
+                    nvgBeginPath(vg); nvgCircle(vg, fx, fy, 8 + i * 2); nvgFill(vg)
+                end
+            -- 沼泽: 波纹
+            elseif tz.terrain == "swamp" then
+                for i = 1, 2 do
+                    local sx = tz.x + tz.w * (0.3 + 0.4 * (i - 1))
+                    local sy = tz.y + tz.h * 0.5
+                    local sr = 6 + math.sin(t * 2 + i * 1.5) * 3
+                    nvgBeginPath(vg); nvgCircle(vg, sx, sy, sr)
+                    nvgStrokeColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 30))
+                    nvgStrokeWidth(vg, 0.5); nvgStroke(vg)
+                end
+            -- 高地: 斜线纹路
+            elseif tz.terrain == "highland" then
+                nvgStrokeColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 20))
+                nvgStrokeWidth(vg, 0.4)
+                for i = 0, 3 do
+                    nvgBeginPath(vg)
+                    nvgMoveTo(vg, tz.x + i * tz.w / 4, tz.y + tz.h)
+                    nvgLineTo(vg, tz.x + i * tz.w / 4 + tz.w / 4, tz.y)
+                    nvgStroke(vg)
+                end
+            end
+        end
     end
 end
 

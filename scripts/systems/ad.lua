@@ -105,33 +105,19 @@ function ReportAdWatch()
         local ClientNet = require("network.Client")
         ClientNet.Request("report_ad_watch", {
             adType = "general",
-        }, function(resp)
-            if resp.ok then
+        }, function(ok, code, data, msg)
+            if ok then
                 print("[广告] 服务端上报成功")
                 welfareState.contribLoading = false
                 LoadContribRank()
             else
-                print("[广告] 服务端上报失败: " .. tostring(resp.msg))
+                print("[广告] 服务端上报失败: " .. tostring(msg))
             end
         end)
         return
     end
 
-    if rawget(_G, "clientCloud") then
-        print("[广告] clientCloud 可用，上报 ad_watch_count +1")
-        clientCloud:Add(PROJECT_PREFIX .. "ad_watch_count", 1, {
-            ok = function()
-                print("[广告] 上报成功，后台刷新排行榜")
-                welfareState.contribLoading = false
-                LoadContribRank()
-            end,
-            error = function(err)
-                print("[广告] 上报失败: " .. tostring(err))
-            end,
-        })
-    else
-        print("[广告] clientCloud 不可用，仅本地计数")
-    end
+    print("[广告] 服务端未连接，仅本地计数")
 end
 
 
@@ -146,27 +132,15 @@ function ReportAdWatchWelfare()
         local ClientNet = require("network.Client")
         ClientNet.Request("report_ad_watch", {
             adType = "welfare",
-        }, function(resp)
-            if resp.ok then
+        }, function(ok, code, data, msg)
+            if ok then
                 welfareState.contribLoading = false
                 LoadContribRank()
             else
-                print("[广告-福利] 服务端上报失败: " .. tostring(resp.msg))
+                print("[广告-福利] 服务端上报失败: " .. tostring(msg))
             end
         end)
         return
-    end
-
-    if rawget(_G, "clientCloud") then
-        clientCloud:Add(PROJECT_PREFIX .. "ad_watch_count", 1, {
-            ok = function()
-                welfareState.contribLoading = false
-                LoadContribRank()
-            end,
-            error = function(err)
-                print("[广告-福利] 上报失败: " .. tostring(err))
-            end,
-        })
     end
 end
 

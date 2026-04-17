@@ -183,6 +183,15 @@ function HandleMoveLogic(sx, sy, touchId)
         return
     end
 
+    -- RTS 指令拖拽中: 更新目标位置预览
+    if rtsState and rtsState.isCmdDrag and touchId == rtsState.cmdDragTouchId then
+        local rdx, rdy = ScreenToDesign(sx, sy)
+        local bz = BATTLE_ZONE
+        rtsState.cmdTargetX = math.max(bz.playerLine, math.min(bz.enemyLine, rdx))
+        rtsState.cmdTargetY = math.max(bz.top + 10, math.min(bz.bottom - 10, rdy))
+        return
+    end
+
     -- 武技技能瞄准拖拽
     if skillTargeting.active and touchId == skillTargeting.touchId then
         local tdx, tdy = ScreenToDesign(sx, sy)

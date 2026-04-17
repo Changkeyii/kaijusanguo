@@ -311,7 +311,7 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
             nvgFillColor(vg, nvgRGBA(180, 180, 190, 200))
             nvgText(vg, cx, baseY2 + listH2 / 2, "暂无贡献数据", nil)
         else
-            local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+            local myUid = GetMyUid()
             local medals = {"[1]", "[2]", "[3]"}
             for i, e in ipairs(cList) do
                 local ry = baseY2 + 10 + (i - 1) * rowH2
@@ -577,17 +577,17 @@ function DrawFactionScreen()
 
             local hasSignedIn = CloudManager.HasSignedInToday()
             local features = {
-                { id = "manage",   icon = "👑", label = "成员管理", ready = true },
-                { id = "chat",     icon = "💬", label = "阵营聊天", ready = true },
-                { id = "upgrade",  icon = "⬆", label = "阵营升级", ready = true },
-                { id = "donate",   icon = "💰", label = "阵营捐献", ready = true },
-                { id = "signIn",   icon = "📅", label = hasSignedIn and "已签到" or "每日签到", ready = true, done = hasSignedIn },
-                { id = "announce", icon = "📢", label = "阵营公告", ready = true },
-                { id = "rank",     icon = "🏆", label = "阵营排行", ready = true },
-                { id = "contrib",  icon = "📊", label = "成员贡献", ready = true },
-                { id = "shop",     icon = "🏪", label = "阵营商店" },
-                { id = "war",      icon = "⚔", label = "阵营战争" },
-                { id = "task",     icon = "📋", label = "阵营任务" },
+                { id = "manage",   icon = "slgIconCrown",     label = "成员管理", ready = true },
+                { id = "chat",     icon = "slgIconChat",      label = "阵营聊天", ready = true },
+                { id = "upgrade",  icon = "slgIconUpgrade",   label = "阵营升级", ready = true },
+                { id = "donate",   icon = "slgIconGold",      label = "阵营捐献", ready = true },
+                { id = "signIn",   icon = "slgIconCalendar",  label = hasSignedIn and "已签到" or "每日签到", ready = true, done = hasSignedIn },
+                { id = "announce", icon = "slgIconMegaphone", label = "阵营公告", ready = true },
+                { id = "rank",     icon = "slgIconTrophy",    label = "阵营排行", ready = true },
+                { id = "contrib",  icon = "slgIconChart",     label = "成员贡献", ready = true },
+                { id = "shop",     icon = "slgIconMarket",    label = "阵营商店" },
+                { id = "war",      icon = "slgIconSword",     label = "阵营战争" },
+                { id = "task",     icon = "slgIconClipboard", label = "阵营任务" },
             }
             local cols = 4
             local fGap = 8
@@ -610,14 +610,28 @@ function DrawFactionScreen()
                     nvgFillColor(vg, nvgRGBA(30, 30, 40, 200)); nvgFill(vg)
                     nvgStrokeColor(vg, nvgRGBA(70, 60, 50, 130)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
                 end
-                -- 图标
-                nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-                if feat.done then
-                    nvgFillColor(vg, nvgRGBA(120, 200, 120, 180))
-                elseif feat.ready then
-                    nvgFillColor(vg, nvgRGBA(120, 200, 255, 240))
-                else nvgFillColor(vg, nvgRGBA(255, 220, 120, 220)) end
-                nvgText(vg, fx + fBtnW / 2, fy + fBtnH / 2 - 10, feat.icon, nil)
+                -- 图标 (IMG图片渲染)
+                local icoSz = 24
+                local icoCx = fx + fBtnW / 2
+                local icoCy = fy + fBtnH / 2 - 10
+                local imgHandle = IMG[feat.icon]
+                if imgHandle and imgHandle ~= -1 and IsImageReady(imgHandle) then
+                    local icoX = icoCx - icoSz / 2
+                    local icoY = icoCy - icoSz / 2
+                    local pat = nvgImagePattern(vg, icoX, icoY, icoSz, icoSz, 0, imgHandle, feat.done and 0.6 or 1.0)
+                    nvgBeginPath(vg); nvgRect(vg, icoX, icoY, icoSz, icoSz)
+                    nvgFillPaint(vg, pat); nvgFill(vg)
+                else
+                    -- fallback: 显示label首字
+                    nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                    if feat.done then
+                        nvgFillColor(vg, nvgRGBA(120, 200, 120, 180))
+                    elseif feat.ready then
+                        nvgFillColor(vg, nvgRGBA(120, 200, 255, 240))
+                    else nvgFillColor(vg, nvgRGBA(255, 220, 120, 220)) end
+                    local fallback = string.sub(feat.label, 1, 3) -- UTF-8 first char (3 bytes for CJK)
+                    nvgText(vg, icoCx, icoCy, fallback, nil)
+                end
                 -- 文字
                 nvgFontSize(vg, 13)
                 if feat.done then
@@ -775,7 +789,7 @@ function DrawFactionScreen()
                     factionUI.loaded = true
                     factionUI.loading = false
                     -- 缓存当前玩家的平台昵称 (用于聊天显示)
-                    local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+                    local myUid = GetMyUid()
                     for _, mem in ipairs(factionUI.members) do
                         if mem.userId == myUid and mem.nickname then
                             factionUI.myNickname = mem.nickname
@@ -791,7 +805,7 @@ function DrawFactionScreen()
             else
                 local cardH = 60
                 local cardGap = 6
-                local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+                local myUid = GetMyUid()
                 local myRole = CloudManager.GetFactionInfo().role or "none"
                 local canSetRole = (myRole == "leader" or myRole == "vice_leader")
                 local scrollOff = factionUI.scroll.offset or 0
@@ -1065,7 +1079,7 @@ function DrawFactionScreen()
                 local addBtnX2 = ppTxtX2
                 local addBtnY2 = ppY + ppH / 2 + 6
                 local isFriend2 = CloudManager.IsFriend(pp.uid)
-                local isMe2 = (rawget(_G, "clientCloud") and pp.uid == clientCloud.userId)
+                local isMe2 = (pp.uid == GetMyUid())
                 if isMe2 then
                     nvgFontSize(vg, 12); nvgFillColor(vg, nvgRGBA(120, 120, 120, 180))
                     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)

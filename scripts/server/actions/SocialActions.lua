@@ -57,7 +57,7 @@ GameActions.Register("faction_donate", {
 
         -- 上报阵营等级排行（如果提供了分数）
         if rankScore > 0 and rawget(_G, "serverCloud") then
-            serverCloud:SetInt(userId, "slg_faction_level", rankScore, {
+            serverCloud:SetInt(userId, "p_49dd_faction_level", rankScore, {
                 ok = function()
                     print("[SocialActions] faction_level 排行已更新: " .. rankScore)
                 end,
@@ -144,7 +144,7 @@ GameActions.Register("faction_signin", {
 
         -- 上报阵营等级排行
         if rankScore > 0 and rawget(_G, "serverCloud") then
-            serverCloud:SetInt(userId, "slg_faction_level", rankScore, {
+            serverCloud:SetInt(userId, "p_49dd_faction_level", rankScore, {
                 ok = function()
                     print("[SocialActions] faction_signin 排行已更新: " .. rankScore)
                 end,

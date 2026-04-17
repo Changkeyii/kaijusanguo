@@ -2,6 +2,13 @@
 -- utils.lua - 三国武灵录
 -- ============================================================================
 
+--- 获取当前玩家 UID（服务端权威，统一入口）
+---@return number
+function GetMyUid()
+    return (rawget(_G, "netState") and netState.userId and netState.userId ~= 0)
+        and netState.userId or 0
+end
+
 function nvgText(ctx, x, y, text, endPtr)
     nvgSave(ctx)
     nvgFillColor(ctx, nvgRGBA(0, 0, 0, 150))

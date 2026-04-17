@@ -1,6 +1,6 @@
 -- ============================================================================
 -- TradeManager - 交易行系统 (单一公共市场表架构)
--- 基于 clientCloud 排行榜 API 实现跨玩家装备交易
+-- 基于服务端 RPC 排行榜 API 实现跨玩家装备交易
 --
 -- 架构说明:
 --   使用同一个 rank list (trade_ts / trade_data) 作为"公共市场表"
@@ -273,7 +273,7 @@ function TradeManager.ListItem(equipUid, price, callback)
         return
     end
 
-    local myUid = clientCloud and clientCloud.userId or 0
+    local myUid = GetMyUid()
     local listingKey = makeListingKey(myUid, item.setIdx, item.uid)
     local sellerName = (playerInfo and playerInfo.nickname) or ("玩家" .. tostring(myUid))
 
@@ -369,14 +369,14 @@ function TradeManager.ClaimJade(callback)
             jadeEarned = amount,
             soldCount = state.myData.soldCount or 0,
             claimId = claimId,
-        }, function(resp)
-            if not resp.ok then
-                print("[TradeManager] 领取失败: " .. tostring(resp.msg))
+        }, function(ok, code, data, msg)
+            if not ok then
+                print("[TradeManager] 领取失败: " .. tostring(msg))
                 callback(0)
                 return
             end
             -- 服务端加款成功，同步本地
-            playerInfo.jade = resp.data and resp.data.jade or ((playerInfo.jade or 0) + amount)
+            playerInfo.jade = data and data.jade or ((playerInfo.jade or 0) + amount)
             state.myData.pendingJade = 0
             saveLocal()
             if SaveGameProgress then SaveGameProgress() end
@@ -421,17 +421,28 @@ function TradeManager.RefreshMarket(callback)
     end
 
     state.marketLoading = true
-    local myUid = clientCloud and clientCloud.userId or 0
+    local myUid = GetMyUid()
 
-    if not rawget(_G, "clientCloud") then
+    if not rawget(_G, "cl_state") then
         state.marketLoading = false
         callback(state.marketItems)
         return
     end
 
     -- 读取公共市场表 (所有人的 trade_data)
-    clientCloud:GetRankList(KEYS.trade_ts, 0, 200, {
-        ok = function(rankList)
+    local ClientNet = require("network.Client")
+    ClientNet.Request("get_rank_list", {
+        key = KEYS.trade_ts, start = 0, count = 200,
+    }, function(ok, code, data, msg)
+        if not ok then
+            state.marketLoading = false
+            print("[TradeManager] 市场刷新失败: " .. tostring(msg))
+            callback(state.marketItems)
+            return
+        end
+
+        local rankList = (data and data.list) or {}
+        do
             local items = {}
             local nowTime = os.time()
 
@@ -445,7 +456,7 @@ function TradeManager.RefreshMarket(callback)
             local salesChanged = false
 
             for _, entry in ipairs(rankList) do
-                local playerId = entry.player or entry.userId
+                local playerId = entry.userId
                 local tradeData = entry.score and entry.score[KEYS.trade_data]
 
                 if tradeData then
@@ -570,13 +581,8 @@ function TradeManager.RefreshMarket(callback)
                 state.marketLoading = false
                 callback(items)
             end
-        end,
-        error = function(code, reason)
-            state.marketLoading = false
-            print("[TradeManager] 市场刷新失败: " .. tostring(reason))
-            callback(state.marketItems)
-        end,
-    }, KEYS.trade_data)
+        end -- do
+    end)
 end
 
 -- ============================================================================
@@ -592,7 +598,7 @@ function TradeManager.BuyItem(listingKey, expectedSellerId, expectedPrice, callb
     callback = callback or function() end
 
     -- 防止自购
-    local myUid = clientCloud and clientCloud.userId or 0
+    local myUid = GetMyUid()
     if expectedSellerId == myUid then
         callback(false, "不能购买自己上架的装备")
         return
@@ -604,19 +610,28 @@ function TradeManager.BuyItem(listingKey, expectedSellerId, expectedPrice, callb
     end
 
     -- 刷新验证: 重新拉取公共市场表, 确认 listing 仍存在
-    if not rawget(_G, "clientCloud") then
-        callback(false, "云服务不可用")
+    if not rawget(_G, "cl_state") then
+        callback(false, "服务端未连接")
         return
     end
     state.marketLoading = true
-    clientCloud:GetRankList(KEYS.trade_ts, 0, 200, {
-        ok = function(rankList)
+    local ClientNet = require("network.Client")
+    ClientNet.Request("get_rank_list", {
+        key = KEYS.trade_ts, start = 0, count = 200,
+    }, function(ok0, code0, data0, msg0)
+        if not ok0 then
+            state.marketLoading = false
+            callback(false, "网络错误,请稍后重试")
+            return
+        end
+        local rankList = (data0 and data0.list) or {}
+        do
             state.marketLoading = false
 
             local found = false
             local listing = nil
             for _, entry in ipairs(rankList) do
-                local sellerId = entry.player or entry.userId
+                local sellerId = entry.userId
                 if sellerId == expectedSellerId then
                     local tradeData = entry.score and entry.score[KEYS.trade_data]
                     if tradeData and tradeData.listings and tradeData.listings[listingKey] then
@@ -680,20 +695,19 @@ function TradeManager.BuyItem(listingKey, expectedSellerId, expectedPrice, callb
                     EQUIP_SLOT_NAMES[eq.slotIdx] .. " 已加入仓库")
             end
 
-            -- 服务端权威模式：扣款走 RPC
+            -- 服务端权威模式：扣款走 RPC（复用外层 ClientNet）
             if rawget(_G, "cl_state") then
-                local ClientNet = require("network.Client")
                 ClientNet.Request("trade_buy", {
                     price = expectedPrice,
                     listingKey = listingKey,
                     sellerId = expectedSellerId,
-                }, function(resp)
-                    if not resp.ok then
-                        callback(false, tostring(resp.msg or "服务端扣款失败"))
+                }, function(ok, code, data, msg)
+                    if not ok then
+                        callback(false, tostring(msg or "服务端扣款失败"))
                         state.lastRefreshTime = 0
                         return
                     end
-                    local serverJade = resp.data and resp.data.jade or (playerInfo.jade - expectedPrice)
+                    local serverJade = data and data.jade or (playerInfo.jade - expectedPrice)
                     _finalizePurchase(serverJade)
                 end)
                 return
@@ -701,12 +715,8 @@ function TradeManager.BuyItem(listingKey, expectedSellerId, expectedPrice, callb
 
             -- 单机模式：本地扣款
             _finalizePurchase(playerInfo.jade - expectedPrice)
-        end,
-        error = function(code, reason)
-            state.marketLoading = false
-            callback(false, "网络错误,请稍后重试")
-        end,
-    }, KEYS.trade_data)
+        end -- do
+    end)
 end
 
 -- ============================================================================
@@ -725,7 +735,7 @@ function TradeManager.CheckSales(callback)
     end
     state.lastCheckSalesTime = now
 
-    local myUid = clientCloud and clientCloud.userId or 0
+    local myUid = GetMyUid()
     if myUid == 0 then
         callback(0, 0)
         return
@@ -737,55 +747,58 @@ function TradeManager.CheckSales(callback)
     end
 
     -- 读取同一个公共市场表
-    if not rawget(_G, "clientCloud") then
+    if not rawget(_G, "cl_state") then
         callback(0, 0)
         return
     end
-    clientCloud:GetRankList(KEYS.trade_ts, 0, 200, {
-        ok = function(rankList)
-            local soldCount = 0
-            local jadeEarned = 0
-            local changed = false
+    local ClientNet = require("network.Client")
+    ClientNet.Request("get_rank_list", {
+        key = KEYS.trade_ts, start = 0, count = 200,
+    }, function(ok, code, data, msg)
+        if not ok then
+            callback(0, 0)
+            return
+        end
+        local rankList = (data and data.list) or {}
+        local soldCount = 0
+        local jadeEarned = 0
+        local changed = false
 
-            for _, entry in ipairs(rankList) do
-                local playerId = entry.player or entry.userId
-                if playerId ~= myUid then
-                    local tradeData = entry.score and entry.score[KEYS.trade_data]
-                    if tradeData and tradeData.purchases then
-                        for lk, purchase in pairs(tradeData.purchases) do
-                            local pSellerId = purchase.sellerId
-                            if type(pSellerId) == "string" then pSellerId = tonumber(pSellerId) end
-                            if pSellerId == myUid and state.myData.listings[lk] then
-                                if not state.processedSales[lk] then
-                                    local listing = state.myData.listings[lk]
-                                    local netIncome = TradeManager.CalcNetIncome(listing.price)
-                                    state.myData.pendingJade = (state.myData.pendingJade or 0) + netIncome
-                                    state.myData.soldCount = (state.myData.soldCount or 0) + 1
-                                    state.myData.listings[lk] = nil
-                                    state.processedSales[lk] = os.time()
-                                    soldCount = soldCount + 1
-                                    jadeEarned = jadeEarned + netIncome
-                                    changed = true
-                                    print("[TradeManager] 售出: " .. lk .. " 到账" .. netIncome .. "虎符")
-                                end
+        for _, entry in ipairs(rankList) do
+            local playerId = entry.userId
+            if playerId ~= myUid then
+                local tradeData = entry.score and entry.score[KEYS.trade_data]
+                if tradeData and tradeData.purchases then
+                    for lk, purchase in pairs(tradeData.purchases) do
+                        local pSellerId = purchase.sellerId
+                        if type(pSellerId) == "string" then pSellerId = tonumber(pSellerId) end
+                        if pSellerId == myUid and state.myData.listings[lk] then
+                            if not state.processedSales[lk] then
+                                local listing = state.myData.listings[lk]
+                                local netIncome = TradeManager.CalcNetIncome(listing.price)
+                                state.myData.pendingJade = (state.myData.pendingJade or 0) + netIncome
+                                state.myData.soldCount = (state.myData.soldCount or 0) + 1
+                                state.myData.listings[lk] = nil
+                                state.processedSales[lk] = os.time()
+                                soldCount = soldCount + 1
+                                jadeEarned = jadeEarned + netIncome
+                                changed = true
+                                print("[TradeManager] 售出: " .. lk .. " 到账" .. netIncome .. "虎符")
                             end
                         end
                     end
                 end
             end
+        end
 
-            if changed then
-                saveLocal()
-                if SaveGameProgress then SaveGameProgress() end
-                TradeManager._publishMyData()
-            end
+        if changed then
+            saveLocal()
+            if SaveGameProgress then SaveGameProgress() end
+            TradeManager._publishMyData()
+        end
 
-            callback(soldCount, jadeEarned)
-        end,
-        error = function()
-            callback(0, 0)
-        end,
-    }, KEYS.trade_data)
+        callback(soldCount, jadeEarned)
+    end)
 end
 
 --- 重置 CheckSales 冷却 (进入交易行时调用)

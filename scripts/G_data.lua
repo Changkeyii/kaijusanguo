@@ -91,6 +91,48 @@ IMG = {
     wmFlagRed = -1,         -- 红旗(蜀)
     wmFlagBlue = -1,        -- 蓝旗(魏)
     wmFlagGreen = -1,       -- 绿旗(吴)
+    -- SLG 图标 (替代 emoji)
+    slgIconGold = -1,       -- 金币/资金 (替代💰)
+    slgIconFood = -1,       -- 粮草 (替代🌾)
+    slgIconCastle = -1,     -- 城池 (替代🏯)
+    slgIconMarket = -1,     -- 市场 (替代🏪)
+    slgIconBow = -1,        -- 弓箭/军事 (替代🏹)
+    slgIconHammer = -1,     -- 铁锤/建造 (替代🔨)
+    slgIconBook = -1,       -- 书籍/谋略 (替代📚)
+    slgIconFire = -1,       -- 火攻 (替代🔥)
+    slgIconScroll = -1,     -- 卷轴/外交 (替代📜)
+    slgIconEye = -1,        -- 侦察 (替代👁)
+    slgIconSpy = -1,        -- 间谍 (替代🕵)
+    slgIconSword = -1,      -- 刀剑/攻击 (替代⚔)
+    slgIconBan = -1,        -- 封锁/禁止 (替代🚫)
+    slgIconMask = -1,       -- 面具/伪装 (替代🎭)
+    slgIconCaravan = -1,    -- 商队 (替代🐫)
+    slgIconHorn = -1,       -- 号角 (替代🎺)
+    slgIconPlague = -1,     -- 瘟疫 (替代☠)
+    slgIconBlade = -1,      -- 利刃 (替代🗡)
+    slgIconFlood = -1,      -- 洪水 (替代🌊)
+    slgIconSurrender = -1,  -- 投降 (替代🏳)
+    slgIconHorse = -1,      -- 战马 (替代🐴)
+    slgIconBattleflag = -1, -- 战旗/战报 (替代🏴)
+    slgIconWarning = -1,    -- 警告 (替代⚠)
+    slgIconCrown = -1,      -- 王冠/胜利 (替代👑)
+    slgIconDeath = -1,      -- 死亡/骷髅 (替代💀)
+    slgIconDice = -1,       -- 骰子/随机 (替代🎲)
+    slgIconPuzzle = -1,     -- 拼图/策略 (替代🧩)
+    slgIconFortress = -1,   -- 堡垒/城堡 (替代🏰)
+    slgIconBuild = -1,      -- 建设 (替代🏗)
+    slgIconTimer = -1,      -- 计时器 (替代⏳)
+    slgIconCheck = -1,      -- 勾选/完成 (替代✅)
+    slgIconClipboard = -1,  -- 剪贴板/任务 (替代📋)
+    slgIconDove = -1,       -- 鸽子/和平 (替代🕊️)
+    slgIconChat = -1,       -- 对话/聊天 (替代💬)
+    slgIconUpgrade = -1,    -- 升级 (替代⬆)
+    slgIconCalendar = -1,   -- 日历/签到 (替代📅)
+    slgIconMegaphone = -1,  -- 号令/公告 (替代📢)
+    slgIconTrophy = -1,     -- 奖杯 (替代🏆)
+    slgIconChart = -1,      -- 图表/统计 (替代📊)
+    slgIconShield = -1,     -- 盾牌/防御 (替代🛡)
+    slgIconFinger = -1,     -- 手指/指引 (替代👆)
 }
 -- (DWP 边玩边下已启用，nvgCreateImage 不阻塞，引擎自动占位热替换)
 
@@ -1015,7 +1057,7 @@ if not rawget(_G, "sdk") then
     sdk = { showAd = function() end, hasAd = function() return false end }
 end
 if not rawget(_G, "_isWebPlatform") then
-    _isWebPlatform = false
+    _isWebPlatform = function() return false end
 end
 if not rawget(_G, "PLATFORM_COLORS") then
     PLATFORM_COLORS = {

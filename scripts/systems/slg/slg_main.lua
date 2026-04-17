@@ -30,6 +30,9 @@ WorldMap.SearchTalent      = Logic.SearchTalent
 WorldMap.BoostMorale       = Logic.BoostMorale
 WorldMap.SendGift          = Logic.SendGift
 WorldMap.SignTreaty         = Logic.SignTreaty
+WorldMap.UpgradeTreaty     = Logic.UpgradeTreaty
+WorldMap.GetNextTreaty     = Logic.GetNextTreaty
+WorldMap.AttemptSurrender  = Logic.AttemptSurrender
 WorldMap.ExecuteStratagem  = Logic.ExecuteStratagem
 WorldMap.GetPlayerCityCount = Logic.GetPlayerCityCount
 WorldMap.GetCityById       = Logic.GetCityById
@@ -40,12 +43,27 @@ WorldMap.IsConnected       = Logic.IsConnected
 WorldMap.SetHeroTroop      = Logic.SetHeroTroop
 WorldMap.LearnSkill        = Logic.LearnSkill
 WorldMap.TrySurrender      = Logic.TrySurrender
+WorldMap.KillCaptured      = Logic.KillCaptured
+WorldMap.ReleaseCaptured   = Logic.ReleaseCaptured
 WorldMap.FinishSurrender   = Logic.FinishSurrender
 WorldMap.Reinforce         = Logic.Reinforce
 WorldMap.SaveSLG           = Logic.SaveSLG
 WorldMap.LoadSLG           = Logic.LoadSLG
 WorldMap.HasSave           = Logic.HasSave
 WorldMap.DeleteSave        = Logic.DeleteSave
+
+-- B5: 建筑/羁绊/转职
+WorldMap.UpgradeBuilding   = Logic.UpgradeBuilding
+WorldMap.GetBuildingBonus  = Logic.GetBuildingBonus
+WorldMap.GetTotalBuildingBonus = Logic.GetTotalBuildingBonus
+WorldMap.GetActiveBonds    = Logic.GetActiveBonds
+WorldMap.GetBondBonus      = Logic.GetBondBonus
+WorldMap.CanClassChange    = Logic.CanClassChange
+WorldMap.DoClassChange     = Logic.DoClassChange
+WorldMap.CheckQuests       = Logic.CheckQuests
+WorldMap.GetHeroLoyalty    = Logic.GetHeroLoyalty
+WorldMap.CheckHeroEvents   = Logic.CheckHeroEvents
+WorldMap.RecordHeroBattle  = Logic.RecordHeroBattle
 
 -- Input 模块 (行军动画 + 引导 + 输入)
 WorldMap.HandleInput       = Input.HandleInput

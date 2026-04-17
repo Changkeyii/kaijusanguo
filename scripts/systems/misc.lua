@@ -32,7 +32,8 @@ end
 --- 从 camp_leader_ts 排行榜加载阵营排行（按等级降序）
 ---@param target string "factionUI" 或 "welfareState"
 function LoadFactionRankFrom(target)
-    if not rawget(_G, "clientCloud") then
+    if not rawget(_G, "cl_state") then
+        print("[阵营排行] 服务端未连接，阵营排行不可用")
         if target == "factionUI" then
             factionUI.rankList = {}; factionUI.rankLoaded = true; factionUI.rankLoading = false
         else
@@ -41,7 +42,6 @@ function LoadFactionRankFrom(target)
         return
     end
 
-    -- 直接复用 CloudManager.ListFactions（已验证可正常工作）
     CloudManager.ListFactions(function(factions)
         local result = {}
         for _, f in ipairs(factions) do

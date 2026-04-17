@@ -236,6 +236,11 @@ function HandleUpdate(eventType, eventData)
     local dt = eventData["TimeStep"]:GetFloat()
     gameState.gameTime = gameState.gameTime + dt
 
+    -- 驱动网络客户端帧更新（不能用 SubscribeToEvent 否则会覆盖本 HandleUpdate）
+    if netState and netState.connected and rawget(_G, "HandleClientUpdate") then
+        HandleClientUpdate(eventType, eventData)
+    end
+
     -- DWP 回调设置的字体重建标志：在主线程执行字体重建
     if fontRebuildNeeded then
         fontRebuildNeeded = false
@@ -535,23 +540,24 @@ function HandleUpdate(eventType, eventData)
 
     -- (长按不再触发弹窗, 改为单击触发 infoPopupState)
 
-    -- LOADING 阶段：阻塞资源下载完成后自动跳转
+    -- LOADING 阶段：阻塞资源下载完成后跳转选服
     if gameState.phase == "LOADING" then
         menuAnimTimer = menuAnimTimer + dt
         if blockingLoadState.ready then
-            if playerInfo.profileSet then
-                -- 已设置过资料，跳过头像选择直接进入主菜单
-                gameState.phase = "MENU"
-                print("=== 阻塞加载完成，profileSet=true，直接进入 MENU ===")
-            else
-                gameState.phase = "PROFILE"
-                print("=== 阻塞加载完成，进入 PROFILE（首次设置资料）===")
-            end
+            gameState.phase = "SERVER_SELECT"
+            gameState.selectedServer = nil  -- 每次登录重新选服
+            print("=== 阻塞加载完成，进入 SERVER_SELECT ===")
         end
         -- 点击提示倒计时
         if loadingClickTipTimer and loadingClickTipTimer > 0 then
             loadingClickTipTimer = loadingClickTipTimer - dt
         end
+        return
+    end
+
+    -- SERVER_SELECT 阶段：等待玩家选服
+    if gameState.phase == "SERVER_SELECT" then
+        menuAnimTimer = menuAnimTimer + dt
         return
     end
 
@@ -723,17 +729,17 @@ function HandleUpdate(eventType, eventData)
                 -- 进入战斗
                 gameState.isRanked = true
                 gameState.phase = "BATTLE"
-                gameState.battlePhase = "SHOP"
+                gameState.battlePhase = "FIGHT"  -- 三国群英传模式: 直接战斗
                 gameState.playerBaseHP = BASE_HP_MAX
                 gameState.enemyBaseHP = BASE_HP_MAX
-                gameState.gold = GameConfig.INITIAL_GOLD
+                gameState.gold = 0
                 gameState.totalKills = 0
                 gameState.gameTime = 0
                 gameState.battleTime = 0
                 gameState.drawCount = 0
                 gameState.goldTimer = 0
                 gameState.resultTimer = 0
-                gameState.autoMarch = false
+                gameState.autoMarch = true  -- 始终自动行军
                 -- 阶级: 根据段位递增
                 local tierIdx = GetRankedTier(rankedState.score).index
                 stageMaxTier = math.min(6, math.max(1, tierIdx))
@@ -745,20 +751,71 @@ function HandleUpdate(eventType, eventData)
                 playerUnits = {}
                 enemyUnits = {}
                 inventory = {}
-                RefreshShop()
                 -- 部署AI对手的武灵到敌方槽位 (stats已bake, eScale=1.0)
                 local oppCards = rankedState.opponentCards
                 for i = 1, math.min(#oppCards, #ENEMY_SLOTS) do
                     local card = DeepCopy(oppCards[i])
                     ENEMY_SLOTS[i].filled = true
                     ENEMY_SLOTS[i].card = card
+                    ENEMY_SLOTS[i].spawnTimer = 0
+                    ENEMY_SLOTS[i].spawnCount = 0
+                    ENEMY_SLOTS[i].spawnFlash = 0
                 end
                 -- 使用随机战场背景
                 local bgIdx = math.random(1, 8)
                 ApplyBattleLayout(bgIdx)
+                -- 三国群英传模式: 自动部署玩家编队
+                ValidateFormation()
+                local rPool = {}
+                if #gameSettings.formation > 0 then
+                    for _, idx in ipairs(gameSettings.formation) do
+                        local info = playerHeroes[idx]
+                        if info and info.owned and idx <= #HERO_CARDS then
+                            table.insert(rPool, { cardIdx = idx, quality = HERO_CARDS[idx].quality, constellation = info.constellation or 0 })
+                        end
+                    end
+                end
+                if #rPool == 0 then
+                    for idx, info in pairs(playerHeroes) do
+                        if info.owned and idx <= #HERO_CARDS then
+                            table.insert(rPool, { cardIdx = idx, quality = HERO_CARDS[idx].quality, constellation = info.constellation or 0 })
+                        end
+                    end
+                end
+                for i = 1, math.min(#rPool, #PLAYER_SLOTS) do
+                    local item = rPool[i]
+                    local heroData = HERO_CARDS[item.cardIdx]
+                    if heroData then
+                        local rCard = DeepCopy(heroData)
+                        rCard.level = playerHeroes[item.cardIdx] and playerHeroes[item.cardIdx].level or 1
+                        rCard.constellation = item.constellation
+                        rCard.cardIdx = item.cardIdx
+                        SetupSlotHero(PLAYER_SLOTS[i], rCard)
+                    end
+                end
+                AggregateBaseStats()
+                -- 一次性生成全部兵力
+                for si, slot in ipairs(PLAYER_SLOTS) do
+                    if slot.filled and slot.card then
+                        local batch = GetBatchSizeForSlot(slot)
+                        for _ = 1, math.min(batch * 2, MAX_PLAYER_UNITS - #playerUnits) do
+                            SpawnUnitFromSlot(slot, true, math.random(1, NUM_LANES), si)
+                        end
+                        slot.deployCD = 9999
+                    end
+                end
+                for _, slot in ipairs(ENEMY_SLOTS) do
+                    if slot.filled and slot.card then
+                        local batch = GetBatchSizeForSlot(slot)
+                        for _ = 1, math.min(batch * 2, MAX_ENEMY_UNITS - #enemyUnits) do
+                            SpawnUnitFromSlot(slot, false, math.random(1, NUM_LANES))
+                        end
+                        slot.deployCD = 9999
+                    end
+                end
                 InitAISkills()  -- 排位模式启用AI技能
                 PlaySFX(AUDIO.sfx_click)
-                print("=== 排位匹配完成，进入战斗 vs " .. rankedState.opponentName .. " ===")
+                print(string.format("=== 排位匹配完成 vs %s | 我军:%d 敌军:%d ===", rankedState.opponentName, #playerUnits, #enemyUnits))
             end
         end
         -- 排行榜滚动惯性
@@ -863,9 +920,9 @@ function UpdateAutoSkills(dt)
     -- 计算目标: 优先瞄准敌方单位
     local targetX, targetY
     if skill.skillType == "line" then
-        local laneIdx = PickLaneByStrategy(gameState.autoMarchStrategy)
-        targetX = GetLaneCenterX(laneIdx)
-        targetY = BATTLE_ZONE.centerY
+        -- 已去除车道吸附，随机Y位置
+        targetX = BATTLE_ZONE.centerX
+        targetY = BATTLE_ZONE.top + math.random() * (BATTLE_ZONE.bottom - BATTLE_ZONE.top)
     else
         if #enemyUnits > 0 then
             local target = enemyUnits[math.random(1, #enemyUnits)]
@@ -884,6 +941,9 @@ function UpdateAutoSkills(dt)
     CastSkill(chosenIdx, targetX, targetY)
     AddFloatText(targetX, targetY - 50, "自动: " .. skill.name, 1.0, { skill.color[1], skill.color[2], skill.color[3] }, 14)
 end
+
+
+-- (武将主动技能系统已移除: techIdx仅作拜师学武技数据, 战斗中不自动释放)
 
 
 -- ============================================================================
@@ -1072,63 +1132,8 @@ function UpdateBattle(dt)
 
     gameState.battleTime = gameState.battleTime + dt
 
-    -- 军资自动增长 (每30s +1)
-    gameState.goldTimer = gameState.goldTimer + dt
-    if gameState.goldTimer >= GameConfig.GOLD_INTERVAL then
-        gameState.goldTimer = gameState.goldTimer - GameConfig.GOLD_INTERVAL
-        gameState.gold = gameState.gold + GameConfig.GOLD_PER_TICK
-        AddFloatText(DESIGN_W * 0.15, DESIGN_H * 0.35, "+1 军资", 1.2, { 100, 220, 255 }, 22)
-    end
-
-    -- === 玩家部署冷却倒计时 (手动拖拽部署, 不再自动出兵) ===
-    for _, slot in ipairs(PLAYER_SLOTS) do
-        if slot.filled and slot.deployCD and slot.deployCD > 0 then
-            slot.deployCD = slot.deployCD - dt
-            if slot.deployCD < 0 then slot.deployCD = 0 end
-        end
-    end
-
-    -- === 自动行军: 已上阵且不在CD期的武灵立即派兵(按策略选车道) ===
-    if gameState.autoMarch then
-        for _, slot in ipairs(PLAYER_SLOTS) do
-            if slot.filled and slot.card then
-                local cd = slot.deployCD or 0
-                local unitCap = GetPlayerUnitCap()
-                if cd <= 0 and #playerUnits < unitCap then
-                    local laneIdx = PickLaneByStrategy(gameState.autoMarchStrategy)
-                    local batchSize = GetBatchSizeForSlot(slot)
-                    local spawned = 0
-                    for _ = 1, batchSize do
-                        if #playerUnits < unitCap then
-                            SpawnUnitFromSlot(slot, true, laneIdx)
-                            spawned = spawned + 1
-                        end
-                    end
-                    slot.deployCD = DEPLOY_CD
-                    slot.spawnFlash = 0.5
-                    slot.spawnCount = (slot.spawnCount or 0) + spawned
-                end
-            end
-        end
-    end
-
-    -- === 敌方出兵: 共享计时器,每次CD到随机选一个槽位派1兵 ===
-    -- (旧方案: 每槽独立1.2sCD → 3-4槽=0.3s一个兵, 严重过快)
-    if not gameState.isDummy then
-        enemySpawnTimer = enemySpawnTimer + dt
-        if enemySpawnTimer >= ENEMY_SPAWN_CD and #enemyUnits < MAX_ENEMY_UNITS then
-            enemySpawnTimer = enemySpawnTimer - ENEMY_SPAWN_CD
-            local filledSlots = {}
-            for _, slot in ipairs(ENEMY_SLOTS) do
-                if slot.filled and slot.card then table.insert(filledSlots, slot) end
-            end
-            if #filledSlots > 0 then
-                local slot = filledSlots[math.random(1, #filledSlots)]
-                slot.spawnCount = (slot.spawnCount or 0) + 1
-                SpawnUnitFromSlot(slot, false)
-            end
-        end
-    end
+    -- 三国群英传模式: 无军资增长, 无连续出兵
+    -- 所有兵力在 InitBattle 中一次性生成, 战损不补充
 
     -- === 出兵闪光衰减 (原在 UpdateHeroSkills 中) ===
     for _, slot in ipairs(PLAYER_SLOTS) do
@@ -1148,6 +1153,9 @@ function UpdateBattle(dt)
     UpdateAutoSkills(dt)
 
     -- 更新兵力战斗
+    -- RTS 指令标记更新
+    if UpdateRTSMarker then UpdateRTSMarker(dt) end
+
     UpdateUnits(dt, playerUnits, enemyUnits, true)
     UpdateUnits(dt, enemyUnits, playerUnits, false)
 
@@ -1223,10 +1231,8 @@ function UpdateBattle(dt)
             if u.isDummyTiger and not u.alive then
                 -- 累计击杀伤害
                 dummyState.totalDamage = dummyState.totalDamage + (u.maxHp or 8000)
-                -- 原地复活：在同一车道中间区域随机位置重生（横屏：lane=Y轴，X在敌方区域）
-                local lane = u.laneIdx or math.random(1, NUM_LANES)
-                local laneCY = GetLaneCenterY(lane)
-                u.y = laneCY + (math.random() - 0.5) * LANE_WIDTH * 0.6
+                -- 原地复活：在战区随机位置重生
+                u.y = bz.top + 20 + math.random() * (bz.bottom - bz.top - 40)
                 u.x = bz.centerX + (math.random() - 0.5) * (bz.right - bz.left) * 0.3
                 u.hp = u.maxHp
                 u.alive = true

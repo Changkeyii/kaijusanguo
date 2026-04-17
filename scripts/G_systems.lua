@@ -123,9 +123,9 @@ EQUIP_SHEET_ROWS = 7
 BASE_EQUIP_SLOTS = 20     -- 初始上限
 UNLOCK_PER_AD_SLOTS = 5   -- 每次广告解锁
 
--- 背景图原始尺寸
-BG_W = 714
-BG_H = 1280
+-- 背景图原始尺寸 (横版: 与设计分辨率1:1)
+BG_W = 1024
+BG_H = 571
 
 -- 设计分辨率 (横屏, SHOW_ALL)
 DESIGN_W = 1024
@@ -161,8 +161,8 @@ _touchDetectMax = 8        -- 最多采集 N 个样本后锁定
 _touchExceedsLogical = false -- 是否有触摸坐标超出逻辑范围
 _deviceInfoLogged = false  -- 设备信息是否已打印
 
--- 底部商店预留高度 (逻辑像素)
-SHOP_RESERVED_H = 115
+-- 底部商店预留高度 (三国群英传模式: 无商店, 全屏战场)
+SHOP_RESERVED_H = 0
 
 -- 相位切换防穿透冷却 (秒)
 phaseChangeCooldown = 0
@@ -556,6 +556,128 @@ aiSkillState = {
     castInterval = 6.0,        -- AI每次释放技能的间隔(秒)
     nextCastTime = 4.0,        -- 下次释放时间(首次延迟)
 }
+-- ============================================================================
+-- 武将主动技能系统 (战斗中)
+-- ============================================================================
+heroSkillSystem = {
+    slots = {},       -- [slotIdx] = { energy, maxEnergy, cd, techIdx, skillDef, heroIdx, ready, fxTimer }
+    effects = {},     -- 活跃的武将技能特效 { x, y, kind, timer, duration, slotIdx, damage, ... }
+    ENERGY_MAX = 100,
+    ENERGY_PER_SEC = 5,       -- 每秒自然充能
+    ENERGY_PER_HIT = 8,       -- 每次攻击获得能量
+    ENERGY_PER_KILL = 15,     -- 每次击杀获得能量
+}
+
+-- ============================================================================
+-- 阵型系统 (批次五)
+-- ============================================================================
+FORMATION_DEFS = {
+    crane = {   -- 鹤翼阵: 两翼展开包围, 攻高防低
+        name = "鹤翼阵", icon = "翼", desc = "两翼展开,攻击力+15%,防御-10%",
+        color = { 255, 120, 60 },
+        atkMod = 0.15, defMod = -0.10, spdMod = 0.05,
+        -- 部署模式: 单位在Y轴分散, X轴靠前
+        deployPattern = "wide",
+    },
+    cone = {    -- 锥行阵: 尖锐突击, 前排攻高后排补位
+        name = "锥行阵", icon = "锥", desc = "尖锐突进,移速+20%,血量-10%",
+        color = { 60, 180, 255 },
+        atkMod = 0.05, defMod = 0.0, spdMod = 0.20, hpMod = -0.10,
+        deployPattern = "cone",
+    },
+    circle = {  -- 方圆阵: 防御阵型, 抱团防守
+        name = "方圆阵", icon = "圆", desc = "抱团防御,防御+20%,移速-15%",
+        color = { 80, 220, 120 },
+        atkMod = 0.0, defMod = 0.20, spdMod = -0.15,
+        deployPattern = "tight",
+    },
+    fish = {    -- 鱼鳞阵: 层次分明, 均衡加成
+        name = "鱼鳞阵", icon = "鳞", desc = "层次分明,攻防各+8%",
+        color = { 200, 180, 80 },
+        atkMod = 0.08, defMod = 0.08, spdMod = 0.0,
+        deployPattern = "layered",
+    },
+}
+FORMATION_LIST = { "crane", "cone", "circle", "fish" }
+
+-- 当前选择的阵型 (SLG中设置, 进入战斗时应用)
+playerFormation = "fish"   -- 默认鱼鳞阵
+formationBtnRects = {}     -- 阵型选择按钮碰撞区
+
+-- ============================================================================
+-- 战斗地形系统 (批次五)
+-- ============================================================================
+TERRAIN_DEFS = {
+    plain = {   -- 平原: 无修正
+        name = "平原", icon = "原", desc = "无地形修正",
+        color = { 160, 180, 120 },
+        spdMod = 0.0, atkMod = 0.0, defMod = 0.0,
+    },
+    forest = {  -- 森林: 减速但加防
+        name = "森林", icon = "林", desc = "移速-20%,防御+15%",
+        color = { 40, 120, 50 },
+        spdMod = -0.20, atkMod = 0.0, defMod = 0.15,
+    },
+    swamp = {   -- 沼泽: 大幅减速, 小幅减攻
+        name = "沼泽", icon = "沼", desc = "移速-35%,攻击-10%",
+        color = { 80, 100, 60 },
+        spdMod = -0.35, atkMod = -0.10, defMod = 0.0,
+    },
+    highland = { -- 高地: 加攻加范围
+        name = "高地", icon = "岗", desc = "攻击+20%,移速-10%",
+        color = { 180, 150, 100 },
+        spdMod = -0.10, atkMod = 0.20, defMod = 0.0,
+    },
+}
+TERRAIN_LIST = { "plain", "forest", "swamp", "highland" }
+
+-- 战场地形区块 (每局战斗随机生成)
+battleTerrainZones = {}  -- { { x, y, w, h, terrain = "forest" }, ... }
+
+-- ============================================================================
+-- 联盟外交系统 (批次六)
+-- ============================================================================
+
+--- 条约/协定类型定义 (升级路线: 无 → peace → trade → alliance)
+TREATY_DEFS = {
+    peace = {
+        name = "和约", icon = "slgIconDove", color = {80, 200, 100},
+        desc = "互不侵犯, AI不主动攻击玩家",
+        reqRelation = 60, cost = 500,
+        effect = "noAggression",     -- AI不会攻击有和约的势力
+    },
+    trade = {
+        name = "贸易", icon = "slgIconGold", color = {220, 180, 60},
+        desc = "贸易互通, 每回合额外获得金币",
+        reqRelation = 70, cost = 800,
+        reqTreaty = "peace",          -- 需要先缔结和约
+        effect = "tradeIncome",       -- 每回合+50金
+        incomeBonus = 50,
+    },
+    alliance = {
+        name = "同盟", icon = "slgIconSword", color = {120, 100, 255},
+        desc = "军事同盟, 战斗时获得援军支援",
+        reqRelation = 85, cost = 1200,
+        reqTreaty = "trade",          -- 需要先有贸易协定
+        effect = "militaryAid",       -- 战斗时额外援军
+        aidTroops = 30,               -- 援军数量
+    },
+}
+TREATY_UPGRADE_PATH = { "peace", "trade", "alliance" }
+
+--- 劝降条件定义
+SURRENDER_DEFS = {
+    reqRelation = 70,        -- 好感度 ≥ 70 才可劝降
+    reqMaxCities = 2,        -- 目标势力城池 ≤ 2
+    costGold = 1000,         -- 劝降消耗金币
+    successBase = 0.50,      -- 基础成功率50%
+    relationBonus = 0.005,   -- 每点好感额外+0.5%
+    cityPenalty = 0.20,      -- 每多一座城-20%
+}
+
+--- 外交面板按钮rects (UI渲染后存储供输入检测)
+diploBtnRects = {}  -- { upgrade_wei = {x,y,w,h}, surrender_shu = {x,y,w,h}, ... }
+
 -- 奖励弹窗确认按钮
 rewardPopupConfirmRect = nil
 rewardAdDoubleRect = nil  -- 看广告翻倍按钮
@@ -1008,7 +1130,7 @@ UNIT_CLASS = {
     ARCHER  = { id = 2, name = "连弩射手", sprite = "archer",  isRanged = true,  atkRange = 120, speed = 24, atkCd = 1.2,
                 breakDmg = 1, desc = "劲弩齐发，百步穿杨射杀敌将" },
     SHIELD  = { id = 3, name = "铁盾重卫", sprite = "shield",  isRanged = false, atkRange = 35, speed = 20, atkCd = 0.7,
-                breakDmg = 2, desc = "铁盾当关，驻守阵前拦截来敌" },
+                breakDmg = 2, spriteFlipX = true, desc = "铁盾当关，驻守阵前拦截来敌" },
     MAGE    = { id = 4, name = "火攻术士", sprite = "mage",    isRanged = true,  atkRange = 110, speed = 22, atkCd = 1.4,
                 breakDmg = 2, desc = "火攻之计，焚烧一切敌军营寨" },
     HEALER  = { id = 5, name = "军医道士", sprite = "healer",  isRanged = true,  atkRange = 130, speed = 18, atkCd = 1.8,
@@ -1021,7 +1143,7 @@ UNIT_CLASS = {
     ASSASSIN = { id = 11, name = "夜行刺客", sprite = "assassin", isRanged = false, atkRange = 40, speed = 35, atkCd = 0.7,
                 breakDmg = 3, spawnMax = 2, unitScale = 1.0, desc = "暗夜潜行，绕后包抄撕裂后排" },
     LANCER   = { id = 12, name = "长枪兵", sprite = "lancer",  isRanged = false, atkRange = 55, speed = 26, atkCd = 1.1,
-                breakDmg = 2, spawnMax = 3, unitScale = 1.15, desc = "长枪如龙，一击可贯穿前后二敌" },
+                breakDmg = 2, spawnMax = 3, unitScale = 1.15, spriteFlipX = true, desc = "长枪如龙，一击可贯穿前后二敌" },
     -- 特殊兵种
     TALISMAN = { id = 13, name = "火牛突袭", sprite = "talisman", isRanged = false, atkRange = 30, speed = 38, atkCd = 99,
                 breakDmg = 10, spawnMax = 3, unitScale = 0.9, desc = "火牛冲阵，冲向敌人引爆烈焰",
@@ -1048,15 +1170,16 @@ local function MakeSlot(bgX, bgY)
     return { cx = bgX * BG2D_X, cy = bgY * BG2D_Y, filled = false, card = nil }
 end
 
+-- 横版布局: 敌方武将靠右(x=980~1000), 5车道Y均分
 ENEMY_SLOTS = {
-    MakeSlot(316, 77), MakeSlot(397, 77),
-    MakeSlot(273, 199), MakeSlot(357, 199), MakeSlot(442, 199),
+    MakeSlot(1000, 104), MakeSlot(1000, 192),
+    MakeSlot(1000, 280), MakeSlot(980, 368), MakeSlot(980, 456),
 }
 
+-- 横版布局: 玩家武将靠左(x=15~45), 4+4车道
 PLAYER_SLOTS = {
-    MakeSlot(272, 1087), MakeSlot(357, 1087), MakeSlot(442, 1087),
-    MakeSlot(186, 1205), MakeSlot(272, 1205), MakeSlot(358, 1205),
-    MakeSlot(444, 1205), MakeSlot(528, 1205),
+    MakeSlot(15, 104), MakeSlot(15, 192), MakeSlot(15, 280), MakeSlot(15, 368),
+    MakeSlot(45, 104), MakeSlot(45, 192), MakeSlot(45, 280), MakeSlot(45, 368),
 }
 
 -- ============================================================================
@@ -1097,180 +1220,140 @@ HERO_CARDS = {
     -- =====================================================================
     -- 1. 程普 — 吴国老将，铁脊矛
     { name = "程普", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.COMMON, singleImg = "hero1",
-      atk = 720, def = 350, hp = 6500, unitClass = "LANCER", skill = "铁脊穿刺",
-      skillData = { cd = 9, kind = "line", mult = 2.0, desc = "铁脊矛直刺前方，直线穿刺造成200%伤害" } },
+      atk = 720, def = 350, hp = 6500, unitClass = "LANCER", techIdx = 4 },  -- 霜锋一线 (直线)
     -- 2. 黄盖 — 苦肉计火攻
     { name = "黄盖", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.COMMON, singleImg = "hero2",
-      atk = 750, def = 280, hp = 5500, unitClass = "TALISMAN", skill = "苦肉火攻",
-      skillData = { cd = 8, kind = "aoe", mult = 2.5, radius = 70, desc = "以苦肉之计引燃烈火，对范围敌人造成250%伤害" } },
+      atk = 750, def = 280, hp = 5500, unitClass = "TALISMAN", techIdx = 2 },  -- 烽火附身 (火)
     -- 3. 韩当 — 弓骑将领
     { name = "韩当", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.COMMON, singleImg = "hero3",
-      atk = 680, def = 300, hp = 6000, unitClass = "ARCHER", skill = "连珠劲射",
-      skillData = { cd = 7, kind = "targeted", mult = 1.5, hits = 4, desc = "连射4支劲箭，每箭造成150%伤害" } },
+      atk = 680, def = 300, hp = 6000, unitClass = "ARCHER", techIdx = 1 },  -- 破锋针 (精准)
     -- 4. 廖化 — 蜀汉先锋
     { name = "廖化", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.COMMON, singleImg = "hero4",
-      atk = 700, def = 350, hp = 6500, unitClass = "SWORD", skill = "先锋突击",
-      skillData = { cd = 7, kind = "targeted", mult = 1.8, hits = 3, desc = "先锋三连斩，每击造成180%伤害" } },
+      atk = 700, def = 350, hp = 6500, unitClass = "SWORD", techIdx = 6 },  -- 旋风斩 (横扫)
     -- 5. 周仓 — 扛刀护卫
     { name = "周仓", row = 0, col = 0, type = CARD_TYPE.DEF, quality = QUALITY.COMMON, singleImg = "hero5",
-      atk = 500, def = 650, hp = 8500, unitClass = "SHIELD", skill = "扛刀守护",
-      skillData = { cd = 14, kind = "buff", shieldMult = 0.20, duration = 6, desc = "以青龙刀护卫全军，施加20%最大生命护盾，持续6秒" } },
+      atk = 500, def = 650, hp = 8500, unitClass = "SHIELD", techIdx = 3 },  -- 地裂探阵 (防御)
     -- 6. 糜竺 — 粮草官辅助
     { name = "糜竺", row = 0, col = 0, type = CARD_TYPE.HEAL, quality = QUALITY.COMMON, singleImg = "hero6",
-      atk = 450, def = 380, hp = 7000, unitClass = "HEALER", skill = "粮草补给",
-      skillData = { cd = 10, kind = "heal", healMult = 0.15, goldBonus = 2, desc = "运送粮草补给全军，恢复15%最大生命，额外获得2军资" } },
+      atk = 450, def = 380, hp = 7000, unitClass = "HEALER", techIdx = 16 },  -- 灵泉回春 (治疗)
     -- 7. 曹洪 — 护卫将领
     { name = "曹洪", row = 0, col = 0, type = CARD_TYPE.DEF, quality = QUALITY.COMMON, singleImg = "hero7",
-      atk = 520, def = 600, hp = 8000, unitClass = "SHIELD", skill = "舍身护主",
-      skillData = { cd = 14, kind = "buff", shieldMult = 0.18, duration = 6, desc = "舍身挡刀，全体友军施加18%最大生命护盾，持续6秒" } },
+      atk = 520, def = 600, hp = 8000, unitClass = "SHIELD", techIdx = 5 },  -- 缚敌丝 (防守)
     -- 8. 李典 — 沉稳步将
     { name = "李典", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.COMMON, singleImg = "hero8",
-      atk = 680, def = 380, hp = 6800, unitClass = "SWORD", skill = "沉刀斩",
-      skillData = { cd = 8, kind = "targeted", mult = 2.0, desc = "沉稳一刀斩下，对单体造成200%伤害" } },
+      atk = 680, def = 380, hp = 6800, unitClass = "SWORD", techIdx = 1 },  -- 破锋针 (精准)
     -- 9. 张任 — 伏弓守将
     { name = "张任", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.COMMON, singleImg = "hero9",
-      atk = 700, def = 320, hp = 6200, unitClass = "ARCHER", skill = "伏击箭雨",
-      skillData = { cd = 9, kind = "aoe", mult = 1.8, radius = 75, desc = "设伏发箭，范围箭雨造成180%伤害" } },
+      atk = 700, def = 320, hp = 6200, unitClass = "ARCHER", techIdx = 3 },  -- 地裂探阵 (范围)
     -- 10. 纪灵 — 三尖刀武将
     { name = "纪灵", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.COMMON, singleImg = "hero10",
-      atk = 730, def = 340, hp = 6600, unitClass = "LANCER", skill = "三尖刺杀",
-      skillData = { cd = 8, kind = "targeted", mult = 2.2, desc = "三尖两刃刀猛刺，对单体造成220%伤害" } },
+      atk = 730, def = 340, hp = 6600, unitClass = "LANCER", techIdx = 4 },  -- 霜锋一线 (直线)
 
     -- =====================================================================
     -- 地武灵 (RARE / R) — 11~22
     -- =====================================================================
     -- 11. 太史慈 — 东吴神射
     { name = "太史慈", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.RARE, singleImg = "hero11",
-      atk = 950, def = 360, hp = 6800, unitClass = "ARCHER", skill = "神射穿杨",
-      skillData = { cd = 8, kind = "targeted", mult = 2.8, desc = "百步穿杨的神射之技，对单体造成280%伤害" } },
+      atk = 950, def = 360, hp = 6800, unitClass = "ARCHER", techIdx = 7 },  -- 穿心箭 (直线)
     -- 12. 甘宁 — 锦帆刺客
     { name = "甘宁", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.RARE, singleImg = "hero12",
-      atk = 980, def = 330, hp = 6500, unitClass = "ASSASSIN", skill = "锦帆突袭",
-      skillData = { cd = 7, kind = "targeted", mult = 2.0, hits = 3, desc = "锦帆飞刀连发，攻击3个敌人各造成200%伤害" } },
+      atk = 980, def = 330, hp = 6500, unitClass = "ASSASSIN", techIdx = 12 },  -- 飞刃连梭 (多段)
     -- 13. 徐晃 — 大斧将军
     { name = "徐晃", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.RARE, singleImg = "hero13",
-      atk = 880, def = 450, hp = 7500, unitClass = "SWORD", skill = "大斧横扫",
-      skillData = { cd = 9, kind = "aoe", mult = 2.2, radius = 90, desc = "巨斧横劈，对范围敌人造成220%伤害" } },
+      atk = 880, def = 450, hp = 7500, unitClass = "SWORD", techIdx = 13 },  -- 万箭坠阵 (范围)
     -- 14. 张郃 — 枪法精妙
     { name = "张郃", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.RARE, singleImg = "hero14",
-      atk = 900, def = 550, hp = 8000, unitClass = "LANCER", skill = "妙枪连刺",
-      skillData = { cd = 9, kind = "line", mult = 2.5, desc = "枪法精妙，直线穿刺造成250%伤害" } },
+      atk = 900, def = 550, hp = 8000, unitClass = "LANCER", techIdx = 9 },  -- 寒棱贯骨 (直线)
     -- 15. 魏延 — 反骨猛将
     { name = "魏延", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.RARE, singleImg = "hero15",
-      atk = 1050, def = 380, hp = 7800, unitClass = "SWORD", skill = "反骨狂斩",
-      skillData = { cd = 10, kind = "aoe", mult = 2.5, radius = 85, desc = "狂性大发挥刀乱斩，对范围敌人造成250%伤害" } },
+      atk = 1050, def = 380, hp = 7800, unitClass = "SWORD", techIdx = 15 },  -- 天雷罚域 (范围)
     -- 16. 关平 — 青年继承者
     { name = "关平", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.RARE, singleImg = "hero16",
-      atk = 920, def = 400, hp = 7200, unitClass = "SWORD", skill = "承父刀法",
-      skillData = { cd = 8, kind = "targeted", mult = 2.6, desc = "传承关公刀法，对单体造成260%伤害" } },
+      atk = 920, def = 400, hp = 7200, unitClass = "SWORD", techIdx = 18 },  -- 碎岩冲击 (直线)
     -- 17. 高顺 — 陷阵之志
     { name = "高顺", row = 0, col = 0, type = CARD_TYPE.DEF, quality = QUALITY.RARE, singleImg = "hero17",
-      atk = 480, def = 950, hp = 12500, unitClass = "SHIELD", skill = "陷阵壁垒",
-      skillData = { cd = 14, kind = "buff", shieldMult = 0.22, duration = 6, desc = "陷阵营列阵，全体友军施加22%最大生命护盾，持续6秒" } },
+      atk = 480, def = 950, hp = 12500, unitClass = "SHIELD", techIdx = 8 },  -- 荆棘缠地 (防守区域)
     -- 18. 文丑 — 骑将猛冲
     { name = "文丑", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.RARE, singleImg = "hero18",
-      atk = 1000, def = 420, hp = 7600, unitClass = "CAVALRY", skill = "猛骑冲阵",
-      skillData = { cd = 10, kind = "line", mult = 2.5, desc = "策马冲锋，直线路径上造成250%伤害" } },
+      atk = 1000, def = 420, hp = 7600, unitClass = "CAVALRY", techIdx = 10 },  -- 奔雷穿垣 (贯穿)
     -- 19. 颜良 — 勇武猛将
     { name = "颜良", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.RARE, singleImg = "hero19",
-      atk = 980, def = 400, hp = 7400, unitClass = "SWORD", skill = "虎威劈斩",
-      skillData = { cd = 9, kind = "targeted", mult = 2.8, desc = "虎威劈斩一击致命，对单体造成280%伤害" } },
+      atk = 980, def = 400, hp = 7400, unitClass = "SWORD", techIdx = 11 },  -- 地刺连探 (多段)
     -- 20. 邓艾 — 偷渡奇袭
     { name = "邓艾", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.RARE, singleImg = "hero20",
-      atk = 950, def = 350, hp = 6800, unitClass = "ASSASSIN", skill = "偷渡奇袭",
-      skillData = { cd = 8, kind = "targeted", mult = 3.0, desc = "偷渡阴平直取后方，对单体造成300%伤害" } },
+      atk = 950, def = 350, hp = 6800, unitClass = "ASSASSIN", techIdx = 17 },  -- 玄蚀径 (直线)
     -- 21. 钟会 — 谋略军师
     { name = "钟会", row = 0, col = 0, type = CARD_TYPE.BUFF, quality = QUALITY.RARE, singleImg = "hero21",
-      atk = 800, def = 600, hp = 8500, unitClass = "MAGE", skill = "连环妙计",
-      skillData = { cd = 12, kind = "debuff", atkReduce = 0.25, duration = 7, desc = "施展连环计，全体敌人攻击降低25%，持续7秒" } },
+      atk = 800, def = 600, hp = 8500, unitClass = "MAGE", techIdx = 14 },  -- 寒渊冰封 (范围)
     -- 22. 陆抗 — 防御名将
     { name = "陆抗", row = 0, col = 0, type = CARD_TYPE.DEF, quality = QUALITY.RARE, singleImg = "hero22",
-      atk = 500, def = 1050, hp = 13000, unitClass = "SHIELD", skill = "西陵壁垒",
-      skillData = { cd = 14, kind = "buff", shieldMult = 0.25, duration = 6, desc = "筑建西陵防线，全体友军施加25%最大生命护盾，持续6秒" } },
+      atk = 500, def = 1050, hp = 13000, unitClass = "SHIELD", techIdx = 16 },  -- 灵泉回春 (治疗)
 
     -- =====================================================================
     -- 天武灵 (EPIC / SR) — 23~30
     -- =====================================================================
     -- 23. 典韦 — 双戟猛将
     { name = "典韦", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.EPIC, singleImg = "hero23",
-      atk = 1350, def = 600, hp = 10200, unitClass = "SWORD", skill = "双戟绝杀",
-      skillData = { cd = 12, kind = "aoe", mult = 2.8, radius = 100, desc = "双铁戟旋风横扫，对范围敌人造成280%伤害" } },
+      atk = 1350, def = 600, hp = 10200, unitClass = "SWORD", techIdx = 19 },  -- 烽火燎原
     -- 24. 许褚 — 虎痴护卫
     { name = "许褚", row = 0, col = 0, type = CARD_TYPE.DEF, quality = QUALITY.EPIC, singleImg = "hero24",
-      atk = 800, def = 1100, hp = 15000, unitClass = "SHIELD", skill = "虎痴怒吼",
-      skillData = { cd = 16, kind = "buff", shieldMult = 0.30, defBuff = 0.25, duration = 8, desc = "虎痴怒吼震慑敌军，全体+30%护盾+25%防御，持续8秒" } },
+      atk = 800, def = 1100, hp = 15000, unitClass = "SHIELD", techIdx = 21 },  -- 冰狱封阵
     -- 25. 孙策 — 小霸王冲锋
     { name = "孙策", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.EPIC, singleImg = "hero25",
-      atk = 1200, def = 500, hp = 9500, unitClass = "CAVALRY", skill = "霸王冲锋",
-      skillData = { cd = 13, kind = "line", mult = 3.0, desc = "小霸王策马冲锋，直线路径造成300%伤害" } },
+      atk = 1200, def = 500, hp = 9500, unitClass = "CAVALRY", techIdx = 23 },  -- 破军噬魂印
     -- 26. 夏侯惇 — 拔矢猛将
     { name = "夏侯惇", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.EPIC, singleImg = "hero26",
-      atk = 1100, def = 700, hp = 11000, unitClass = "SWORD", skill = "拔矢啖睛",
-      skillData = { cd = 12, kind = "buff", atkBuff = 0.20, duration = 8, desc = "拔矢之勇激励全军，全体友军攻击提升20%，持续8秒" } },
+      atk = 1100, def = 700, hp = 11000, unitClass = "SWORD", techIdx = 24 },  -- 镇军碑压
     -- 27. 夏侯渊 — 急袭将军
     { name = "夏侯渊", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.EPIC, singleImg = "hero27",
-      atk = 1200, def = 400, hp = 8500, unitClass = "ASSASSIN", skill = "急袭千里",
-      skillData = { cd = 8, kind = "targeted", mult = 3.5, desc = "千里急袭直取敌将首级，对单体造成350%伤害" } },
+      atk = 1200, def = 400, hp = 8500, unitClass = "ASSASSIN", techIdx = 22 },  -- 雷狱囚阵
     -- 28. 马超 — 枪骑无双
     { name = "马超", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.EPIC, singleImg = "hero28",
-      atk = 1300, def = 480, hp = 9000, unitClass = "CAVALRY", skill = "枪骑天下",
-      skillData = { cd = 13, kind = "line", mult = 3.2, desc = "西凉枪骑席卷战场，直线造成320%伤害" } },
+      atk = 1300, def = 480, hp = 9000, unitClass = "CAVALRY", techIdx = 20 },  -- 赤壁焚域
     -- 29. 黄忠 — 神箭老将
     { name = "黄忠", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.EPIC, singleImg = "hero29",
-      atk = 1250, def = 420, hp = 8200, unitClass = "ARCHER", skill = "百步穿甲",
-      skillData = { cd = 10, kind = "targeted", mult = 4.0, desc = "老将百步穿甲箭，对单体造成400%伤害" } },
+      atk = 1250, def = 420, hp = 8200, unitClass = "ARCHER", techIdx = 19 },  -- 烽火燎原
     -- 30. 张辽 — 威震逍遥
     { name = "张辽", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.EPIC, singleImg = "hero30",
-      atk = 1150, def = 650, hp = 10500, unitClass = "CAVALRY", skill = "威震逍遥津",
-      skillData = { cd = 14, kind = "aoe", mult = 2.6, radius = 95, desc = "八百骑突袭十万军，对范围敌人造成260%伤害" } },
+      atk = 1150, def = 650, hp = 10500, unitClass = "CAVALRY", techIdx = 24 },  -- 镇军碑压
 
     -- =====================================================================
     -- 神武灵 (LEGENDARY / SSR) — 31~36
     -- =====================================================================
     -- 31. 赵云 — 常山龙胆
     { name = "赵云", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.LEGENDARY, singleImg = "hero31",
-      atk = 1450, def = 650, hp = 11000, unitClass = "LANCER", skill = "七进七出",
-      skillData = { cd = 14, kind = "aoe", mult = 3.5, radius = 120, desc = "常山赵子龙七进七出，对范围敌人造成350%伤害" } },
+      atk = 1450, def = 650, hp = 11000, unitClass = "LANCER", techIdx = 28 },  -- 武灵剑贯三界
     -- 32. 张飞 — 万人莫敌
     { name = "张飞", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.LEGENDARY, singleImg = "hero32",
-      atk = 1400, def = 550, hp = 9500, unitClass = "SWORD", skill = "万人敌吼",
-      skillData = { cd = 14, kind = "targeted", mult = 5.0, desc = "燕人张翼德一声怒吼，对单体造成500%伤害" } },
+      atk = 1400, def = 550, hp = 9500, unitClass = "SWORD", techIdx = 29 },  -- 远古龙魂踏地
     -- 33. 关羽 — 武圣降临
     { name = "关羽", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.LEGENDARY, singleImg = "hero33",
-      atk = 1500, def = 600, hp = 10500, unitClass = "SWORD", skill = "青龙斩月",
-      skillData = { cd = 15, kind = "aoe", mult = 3.8, radius = 110, desc = "青龙偃月刀横扫千军，对范围敌人造成380%伤害" } },
+      atk = 1500, def = 600, hp = 10500, unitClass = "SWORD", techIdx = 25 },  -- 龙吟贯索
     -- 34. 周瑜 — 火烧赤壁
     { name = "周瑜", row = 0, col = 0, type = CARD_TYPE.BUFF, quality = QUALITY.LEGENDARY, singleImg = "hero34",
-      atk = 1300, def = 500, hp = 8800, unitClass = "MAGE", skill = "火烧赤壁",
-      skillData = { cd = 15, kind = "debuff", defReduce = 0.35, duration = 8, desc = "赤壁烈焰焚天，全体敌人防御降低35%，持续8秒" } },
+      atk = 1300, def = 500, hp = 8800, unitClass = "MAGE", techIdx = 30 },  -- 万灵归墟衍域
     -- 35. 吕布 — 天下无双
     { name = "吕布", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.LEGENDARY, singleImg = "hero35",
-      atk = 1550, def = 580, hp = 10000, unitClass = "CAVALRY", skill = "天下无双",
-      skillData = { cd = 14, kind = "aoe", mult = 3.8, radius = 110, desc = "方天画戟横扫天下，对范围敌人造成380%伤害" } },
+      atk = 1550, def = 580, hp = 10000, unitClass = "CAVALRY", techIdx = 26 },  -- 九天雷穿
     -- 36. 诸葛亮 — 卧龙之智
     { name = "诸葛亮", row = 0, col = 0, type = CARD_TYPE.BUFF, quality = QUALITY.LEGENDARY, singleImg = "hero36",
-      atk = 1200, def = 700, hp = 9800, unitClass = "MAGE", skill = "八阵图",
-      skillData = { cd = 16, kind = "buff", atkBuff = 0.25, defBuff = 0.20, duration = 10, desc = "布下八阵图，全军攻击+25%防御+20%，持续10秒" } },
+      atk = 1200, def = 700, hp = 9800, unitClass = "MAGE", techIdx = 27 },  -- 极寒冰封贯空
 
     -- =====================================================================
     -- 限定神武灵 (LIMITED / 限定SSR) — 37~40
     -- =====================================================================
     -- 37. 关羽·武圣归天
     { name = "关羽·武圣归天", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.LIMITED, singleImg = "hero37",
-      atk = 1950, def = 850, hp = 14500, unitClass = "SWORD", skill = "武圣天罚",
-      skillData = { cd = 15, kind = "aoe", mult = 5.0, radius = 140, desc = "武圣怒意贯通天地，对范围敌人造成500%伤害" } },
+      atk = 1950, def = 850, hp = 14500, unitClass = "SWORD", techIdx = 31 },  -- 九天化龙万域
     -- 38. 吕布·飞将无双
     { name = "吕布·飞将无双", row = 0, col = 0, type = CARD_TYPE.ATK, quality = QUALITY.LIMITED, singleImg = "hero38",
-      atk = 2000, def = 780, hp = 13800, unitClass = "CAVALRY", skill = "飞将灭世",
-      skillData = { cd = 14, kind = "aoe", mult = 5.5, radius = 150, desc = "飞将之威降临战场，对范围敌人造成550%伤害" } },
+      atk = 2000, def = 780, hp = 13800, unitClass = "CAVALRY", techIdx = 32 },  -- 天命雷音
     -- 39. 诸葛亮·卧龙出山
     { name = "诸葛亮·卧龙出山", row = 0, col = 0, type = CARD_TYPE.BUFF, quality = QUALITY.LIMITED, singleImg = "hero39",
-      atk = 1650, def = 950, hp = 13200, unitClass = "MAGE", skill = "卧龙天火",
-      skillData = { cd = 15, kind = "aoe", mult = 4.2, radius = 135, dot = 0.5, dotDur = 6, desc = "卧龙祭天火覆盖全场，范围420%伤害+灼烧(50%攻击/秒)持续6秒" } },
+      atk = 1650, def = 950, hp = 13200, unitClass = "MAGE", techIdx = 33 },  -- 千军冻绝冰域
     -- 40. 曹操·魏武挥鞭
     { name = "曹操·魏武挥鞭", row = 0, col = 0, type = CARD_TYPE.BUFF, quality = QUALITY.LIMITED, singleImg = "hero40",
-      atk = 1750, def = 900, hp = 14200, unitClass = "MAGE", skill = "魏武号令",
-      skillData = { cd = 14, kind = "buff", atkBuff = 0.40, defBuff = 0.20, duration = 12, desc = "魏武挥鞭号令天下，全军攻击+40%防御+20%，持续12秒" } },
+      atk = 1750, def = 900, hp = 14200, unitClass = "MAGE", techIdx = 35 },  -- 不灭天域
 }
 
 -- ============================================================================
@@ -1876,37 +1959,48 @@ STAGE_TOTAL_PAGES = math.ceil(#STAGES / STAGE_PAGE_SIZE)
 -- ============================================================================
 -- 战斗布局 (背景图 ↔ 石台坐标关联)
 -- ============================================================================
--- 坐标为背景图原始像素空间 (BG_W=714, BG_H=1280), 运行时乘以 BG2D_X/Y 转为设计坐标
+-- 坐标为设计坐标 (横版BG=DESIGN, BG2D_X/Y=1.0)
 --- 战场布局表: 索引0=默认, 1~7=讨伐层 (用数组索引1~8存储)
 --- layoutId 含义: 0=默认, 1=讨伐1, ..., 7=讨伐7
 --- 数组索引 = layoutId + 1
--- 所有战场统一使用默认槽位 (横屏: 玩家左侧, 敌人右侧, 坐标为BG像素空间)
-local _defaultPlayerSlots = {{100,400},{100,550},{100,700},{100,850},{200,400},{200,550},{200,700},{200,850}}
-local _defaultEnemySlots  = {{550,400},{550,550},{550,700},{650,400},{650,550}}
+-- 所有战场统一使用默认槽位 (横版: 玩家左侧边缘, 敌人右侧边缘, 坐标=设计坐标因为BG=DESIGN)
+-- 玩家武将: 紧贴左边 (x=15~45), 5车道Y均分
+-- 敌方武将: 紧贴右边 (x=980~1010), 5车道Y均分
+local _laneYs = {}
+for i = 1, 5 do _laneYs[i] = 60 + (i - 0.5) * ((500 - 60) / 5) end
+local _defaultPlayerSlots = {
+    {15, _laneYs[1]}, {15, _laneYs[2]}, {15, _laneYs[3]}, {15, _laneYs[4]},
+    {45, _laneYs[1]}, {45, _laneYs[2]}, {45, _laneYs[3]}, {45, _laneYs[4]},
+}
+local _defaultEnemySlots = {
+    {1000, _laneYs[1]}, {1000, _laneYs[2]}, {1000, _laneYs[3]},
+    {980, _laneYs[4]}, {980, _laneYs[5]},
+}
 
+local _battleBgFile = "image/battle_bg_landscape_20260416123152.png"
 BATTLE_LAYOUTS = {
-    [1] = { layoutId = 0, name = "默认战场",  bg = "image/battle_bg_1.png", bgHandle = nil,
+    [1] = { layoutId = 0, name = "默认战场",  bg = _battleBgFile, bgHandle = nil,
         playerSlots = _defaultPlayerSlots, enemySlots = _defaultEnemySlots,
     },
-    [2] = { layoutId = 1, name = "讨伐第1层", bg = "image/battle_bg_2.png", bgHandle = nil,
+    [2] = { layoutId = 1, name = "讨伐第1层", bg = _battleBgFile, bgHandle = nil,
         playerSlots = _defaultPlayerSlots, enemySlots = _defaultEnemySlots,
     },
-    [3] = { layoutId = 2, name = "讨伐第2层", bg = "image/battle_bg_3.png", bgHandle = nil,
+    [3] = { layoutId = 2, name = "讨伐第2层", bg = _battleBgFile, bgHandle = nil,
         playerSlots = _defaultPlayerSlots, enemySlots = _defaultEnemySlots,
     },
-    [4] = { layoutId = 3, name = "讨伐第3层", bg = "image/battle_bg_4.png", bgHandle = nil,
+    [4] = { layoutId = 3, name = "讨伐第3层", bg = _battleBgFile, bgHandle = nil,
         playerSlots = _defaultPlayerSlots, enemySlots = _defaultEnemySlots,
     },
-    [5] = { layoutId = 4, name = "讨伐第4层", bg = "image/battle_bg_5.png", bgHandle = nil,
+    [5] = { layoutId = 4, name = "讨伐第4层", bg = _battleBgFile, bgHandle = nil,
         playerSlots = _defaultPlayerSlots, enemySlots = _defaultEnemySlots,
     },
-    [6] = { layoutId = 5, name = "讨伐第5层", bg = "image/battle_bg_6.png", bgHandle = nil,
+    [6] = { layoutId = 5, name = "讨伐第5层", bg = _battleBgFile, bgHandle = nil,
         playerSlots = _defaultPlayerSlots, enemySlots = _defaultEnemySlots,
     },
-    [7] = { layoutId = 6, name = "讨伐第6层", bg = "image/battle_bg_7.png", bgHandle = nil,
+    [7] = { layoutId = 6, name = "讨伐第6层", bg = _battleBgFile, bgHandle = nil,
         playerSlots = _defaultPlayerSlots, enemySlots = _defaultEnemySlots,
     },
-    [8] = { layoutId = 7, name = "讨伐第7层", bg = "image/battle_bg_8.png", bgHandle = nil,
+    [8] = { layoutId = 7, name = "讨伐第7层", bg = _battleBgFile, bgHandle = nil,
         playerSlots = _defaultPlayerSlots, enemySlots = _defaultEnemySlots,
     },
 }
@@ -2035,11 +2129,20 @@ equipCodexSetRects = {}
 BASE_HP_MAX = GameConfig.BASE_HP_MAX
 SOLDIER_STAT_SCALE = GameConfig.SOLDIER_STAT_SCALE
 
+-- ============================================================================
+-- 服务器列表 (选服界面)
+-- ============================================================================
+SERVER_LIST = {
+    { id = 1, name = "蜀汉·天府", desc = "推荐", status = "hot" },
+    { id = 2, name = "东吴·江东", desc = "流畅", status = "new" },
+}
+
 gameState = {
     gold = 0,
     totalKills = 0,
     gameTime = 0,
-    phase = "LOADING",      -- LOADING / PROFILE / MENU / GACHA / CODEX / EQUIP / EQUIP_CODEX / STAGE_SELECT / ABYSS_SELECT / EXPLORATION / TOWER_SELECT / RANKED_SELECT / BATTLE / WIN / LOSE / WELFARE / PROGRESS / PLAYER_DETAIL / SKILL_CODEX / SKILL_DETAIL / DUMMY_SELECT / DUMMY_RESULT / DEV_EDITOR
+    selectedServer = nil,   -- 当前选中的服务器 id (选服界面)
+    phase = "LOADING",      -- LOADING / SERVER_SELECT / PROFILE / MENU / CODEX / EQUIP / EQUIP_CODEX / STAGE_SELECT / ABYSS_SELECT / EXPLORATION / TOWER_SELECT / RANKED_SELECT / BATTLE / WIN / LOSE / WELFARE / PROGRESS / PLAYER_DETAIL / SKILL_CODEX / SKILL_DETAIL / DUMMY_SELECT / DUMMY_RESULT / DEV_EDITOR
     battlePhase = "SHOP",   -- SHOP(布阵购卡) / FIGHT(战斗中)
     resultTimer = 0,
     playerBaseHP = BASE_HP_MAX,
@@ -2128,19 +2231,23 @@ autoBattleTimer = 0            -- 自动战斗操作节流计时器 (global避�
 shopRefreshBtnRect = nil       -- 刷新按钮区域 (设计坐标, global避免local-limit)
 
 -- 战斗区域 (设计坐标, 横屏左右对战)
+-- 布局: 武将靠两边 → 死亡线在武将前方 → 小兵从死亡线前方生成 → 中央交战
+--
+--  [玩家武将 0~55] | 玩家死亡线 70 | 玩家出兵 90~140 | ... 中央 ... | 敌方出兵 880~930 | 敌方死亡线 954 | [敌方武将 970~1024]
+--
 BATTLE_ZONE = {
     top = 60, bottom = 500,
     centerY = 280,
-    left = 20, right = 1004,
+    left = 0, right = 1024,
     centerX = 512,
-    -- 临界线: 兵过此线扣对方基地血 (横向)
-    enemyLine = 960,    -- 玩家兵向右行进, 到达此线 >> 扣敌方血
-    playerLine = 64,    -- 敌方兵向左行进, 到达此线 >> 扣玩家血
-    -- 部署区域
-    playerDeployLeft = 20,
-    playerDeployRight = 300,
-    enemyDeployLeft = 724,
-    enemyDeployRight = 1004,
+    -- 临界线: 兵过此线扣对方基地血 (在武将前方)
+    playerLine = 70,     -- 敌方兵向左行进, 到达此线 >> 扣玩家血 (玩家武将在更左边)
+    enemyLine = 954,     -- 玩家兵向右行进, 到达此线 >> 扣敌方血 (敌方武将在更右边)
+    -- 部署区域 (在死亡线前方, 即靠近中央的一侧)
+    playerDeployLeft = 90,
+    playerDeployRight = 140,
+    enemyDeployLeft = 880,
+    enemyDeployRight = 930,
 }
 
 -- ============================================================================
@@ -2161,8 +2268,11 @@ ENEMY_SPAWN_CD  = GameConfig.ENEMY_SPAWN_CD
 BATTLE_TIME_LIMIT = GameConfig.BATTLE_TIME_LIMIT or 180
 DEPLOY_BATCH_SIZE = GameConfig.DEPLOY_BATCH_SIZE or { [1] = 4, [2] = 5, [3] = 6, [4] = 8 }
 DEPLOY_CD = GameConfig.DEPLOY_CD or 3.5
-MAX_PLAYER_UNITS = 40
-MAX_ENEMY_UNITS = 40
+MAX_PLAYER_UNITS = 60
+MAX_ENEMY_UNITS = 60
+
+-- 三国群英传模式: 每个小兵素材代表的士兵数 (用于显示)
+SOLDIERS_PER_UNIT = 100
 
 
 

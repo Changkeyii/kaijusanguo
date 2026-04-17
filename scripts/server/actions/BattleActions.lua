@@ -172,8 +172,8 @@ GameActions.Register("report_score", {
                     if scoreType == "combat_power" then
                         local skillCount = tonumber(params.skillCount) or 0
                         local heroCount  = tonumber(params.heroCount) or 0
-                        serverCloud:SetInt(userId, "slg_skill_count", skillCount, {})
-                        serverCloud:SetInt(userId, "slg_hero_count", heroCount, {})
+                        serverCloud:SetInt(userId, CK.SKILL_COUNT, skillCount, {})
+                        serverCloud:SetInt(userId, CK.HERO_COUNT, heroCount, {})
                     end
                 end,
                 error = function(err)
@@ -233,5 +233,70 @@ GameActions.Register("report_ad_watch", {
     end,
 })
 
-print("[BattleActions] 已注册: battle_settle, report_score, report_ad_watch")
+-- ============================================================================
+-- get_rank_list: 服务端代理排行榜查询
+-- clientCloud 在 persistent_world 模式下为 nil，排行榜读取必须走服务端
+-- ============================================================================
+GameActions.Register("get_rank_list", {
+    rateLimit  = { interval = 2, burst = 5 },
+    needDomains = {},
+    handler = function(userId, params, replyFn)
+        local rankKey = params.key
+        local start   = tonumber(params.start) or 0
+        local count   = tonumber(params.count) or 50
+
+        if not rankKey or type(rankKey) ~= "string" then
+            replyFn(false, CODE.ERR_PARAMS, nil, "缺少排行榜 key")
+            return
+        end
+
+        if not rawget(_G, "serverCloud") then
+            replyFn(false, CODE.ERR_SERVER, nil, "serverCloud 不可用")
+            return
+        end
+
+        serverCloud:GetRankList(rankKey, start, count, {
+            ok = function(rankList)
+                -- 收集 userId 列表
+                local userIds = {}
+                local entries = {}
+                for i, item in ipairs(rankList) do
+                    local uid = item.userId or item.player
+                    userIds[#userIds + 1] = uid
+                    entries[#entries + 1] = {
+                        userId = uid,
+                        iscore = item.iscore or {},
+                        score  = item.score  or {},
+                    }
+                end
+
+                -- 批量查询昵称（服务端同步，回调立即执行）
+                local nameMap = {}
+                if #userIds > 0 then
+                    GetUserNickname({
+                        userIds = userIds,
+                        onSuccess = function(nicknames)
+                            for _, info in ipairs(nicknames) do
+                                nameMap[info.userId] = info.nickname or ""
+                            end
+                        end,
+                    })
+                end
+
+                -- 填充昵称
+                for _, e in ipairs(entries) do
+                    e.name = nameMap[e.userId] or ""
+                end
+
+                replyFn(true, CODE.OK, { list = entries })
+            end,
+            error = function(code, reason)
+                print("[BattleActions] get_rank_list FAIL: " .. tostring(reason))
+                replyFn(false, CODE.ERR_SERVER, nil, "排行榜查询失败: " .. tostring(reason))
+            end,
+        })
+    end,
+})
+
+print("[BattleActions] 已注册: battle_settle, report_score, report_ad_watch, get_rank_list")
 return true

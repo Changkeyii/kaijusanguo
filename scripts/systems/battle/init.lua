@@ -124,20 +124,20 @@ function InitBattle()
         end
     end
 
-    -- 重置战斗状态
-    gameState.gold = GameConfig.INITIAL_GOLD
+    -- 重置战斗状态 (三国群英传模式: 直接进入FIGHT, 无SHOP阶段)
+    gameState.gold = 0  -- 三国群英传模式无军资
     gameState.totalKills = 0
     gameState.playerBaseHP = BASE_HP_MAX
     gameState.playerBaseMax = BASE_HP_MAX
     gameState.enemyBaseHP = BASE_HP_MAX
-    gameState.battlePhase = "SHOP"
+    gameState.battlePhase = "FIGHT"  -- 直接进入战斗
     gameState.goldTimer = 0
     gameState.battleTime = 0
-    gameState.autoMarch = false
+    gameState.autoMarch = true  -- 三国群英传模式: 始终自动行军
     gameState.autoMarchStrategy = "all_lanes"  -- 默认五路并进
     gameState.battleSpeed = 1       -- 重置倍速
     gameState.exploreBuff = nil     -- 清空探索增益 (探索模式会重新设置)
-    -- autoBattle 不重置, 保持玩家上次的选择
+    gameState.autoBattle = false    -- 重置自动战斗, 允许玩家操控兵种
     autoBattleTimer = 0
     autoSkillState.timer = 0
     autoSkillState.nextTime = 3.0
@@ -195,10 +195,185 @@ function InitBattle()
         end
     end
 
-    -- 刷新商店 (从已拥有武灵)
-    RefreshShop()
+    -- === 三国群英传模式: 自动部署玩家编队武灵到石台 ===
+    ValidateFormation()
+    local formationPool = {}
+    if #gameSettings.formation > 0 then
+        for _, idx in ipairs(gameSettings.formation) do
+            local info = playerHeroes[idx]
+            if info and info.owned and idx <= #HERO_CARDS then
+                table.insert(formationPool, { cardIdx = idx, quality = HERO_CARDS[idx].quality, constellation = info.constellation or 0 })
+            end
+        end
+    end
+    if #formationPool == 0 then
+        -- 编队为空, 回退到全部已拥有
+        for idx, info in pairs(playerHeroes) do
+            if info.owned and idx <= #HERO_CARDS then
+                table.insert(formationPool, { cardIdx = idx, quality = HERO_CARDS[idx].quality, constellation = info.constellation or 0 })
+            end
+        end
+    end
+    -- 部署到玩家石台 (最多填满所有PLAYER_SLOTS)
+    for i = 1, math.min(#formationPool, #PLAYER_SLOTS) do
+        local item = formationPool[i]
+        local heroData = HERO_CARDS[item.cardIdx]
+        if heroData then
+            local card = DeepCopy(heroData)
+            card.level = playerHeroes[item.cardIdx] and playerHeroes[item.cardIdx].level or 1
+            card.constellation = item.constellation
+            card.cardIdx = item.cardIdx
+            SetupSlotHero(PLAYER_SLOTS[i], card)
+        end
+    end
 
-    print(string.format("=== 进入战斗 SHOP | 军资:%d ===", gameState.gold))
+    -- 汇聚武灵属性到大本营
+    AggregateBaseStats()
+
+    -- === 三国群英传模式: 开局一次性生成全部兵力 ===
+    local function SpawnAllTroopsForSide(slots, isPlayer, unitList, maxUnits)
+        for si, slot in ipairs(slots) do
+            if slot.filled and slot.card then
+                local batchSize = GetBatchSizeForSlot(slot)
+                -- 每个武灵一次性派出全部兵力
+                local spawnCount = math.min(batchSize * 2, maxUnits - #unitList)
+                for _ = 1, spawnCount do
+                    if #unitList < maxUnits then
+                        local laneIdx = math.random(1, NUM_LANES)
+                        SpawnUnitFromSlot(slot, isPlayer, laneIdx, isPlayer and si or nil)
+                    end
+                end
+                slot.spawnCount = spawnCount
+                slot.deployCD = 9999  -- 不再补兵
+            end
+        end
+    end
+    SpawnAllTroopsForSide(PLAYER_SLOTS, true, playerUnits, MAX_PLAYER_UNITS)
+    SpawnAllTroopsForSide(ENEMY_SLOTS, false, enemyUnits, MAX_ENEMY_UNITS)
+
+    -- ============================================================
+    -- 同盟援军: 有军事同盟的势力派兵支援
+    -- ============================================================
+    if rawget(_G, "worldMapState") and worldMapState.diplomacy then
+        local bz = BATTLE_ZONE
+        local allyAidCount = 0
+        for fac, d in pairs(worldMapState.diplomacy) do
+            if d.treaty == "alliance" and TREATY_DEFS and TREATY_DEFS.alliance then
+                local aidNum = TREATY_DEFS.alliance.aidTroops or 30
+                local facName = FACTIONS[fac] and FACTIONS[fac].name or fac
+                local facColor = FACTIONS[fac] and FACTIONS[fac].color or {180, 180, 180}
+                -- 生成援军 (使用基础步兵属性, 根据同盟方城池数量缩放)
+                local facCityCount = 0
+                for _, city in ipairs(WORLD_CITIES) do
+                    if worldMapState.cityData[city.id] and worldMapState.cityData[city.id].owner == fac then
+                        facCityCount = facCityCount + 1
+                    end
+                end
+                local aidScale = 0.8 + facCityCount * 0.1  -- 城多则援军更强
+                for ai = 1, aidNum do
+                    if #playerUnits >= MAX_PLAYER_UNITS then break end
+                    local spawnY = bz.top + 20 + math.random() * (bz.bottom - bz.top - 40)
+                    local baseHp = 800 * aidScale
+                    local aidUnit = {
+                        x = bz.playerDeployLeft + 5 + math.random() * 15,
+                        y = spawnY,
+                        hp = baseHp, maxHp = baseHp,
+                        atk = 60 * aidScale, def = 30 * aidScale,
+                        speed = 45 + math.random() * 10,
+                        atkTimer = math.random() * 0.5, atkCooldown = 1.0,
+                        atkRange = 35,
+                        alive = true, isPlayer = true,
+                        isRanged = false, unitClass = UNIT_CLASS.SWORD or UNIT_CLASS.INFANTRY,
+                        animTimer = math.random() * 6.28, flashTimer = 0,
+                        isHealer = false,
+                        cloudSeed = math.random() * 100,
+                        breakDmgAdd = 0,
+                        cmdType = "advance", cmdTarget = nil, cmdDone = false,
+                        summonTimer = 0, summonCount = 0,
+                        troopType = "infantry",
+                        isAllyAid = true,       -- 标记为援军
+                        allyFaction = fac,       -- 来自哪个势力
+                        allyColor = facColor,    -- 援军颜色
+                    }
+                    table.insert(playerUnits, aidUnit)
+                    allyAidCount = allyAidCount + 1
+                end
+                print("[Alliance] " .. facName .. " 派出 " .. aidNum .. " 援军!")
+            end
+        end
+        if allyAidCount > 0 and rawget(_G, "AddFloatText") then
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.25, "同盟援军到达! +" .. allyAidCount, 2.0, {120, 100, 255}, 18)
+        end
+    end
+
+    -- 武将技能系统已移除: techIdx仅作拜师学武技数据, 战斗中不自动释放
+    heroSkillSystem.slots = {}
+    heroSkillSystem.effects = {}
+
+    -- ============================================================
+    -- 阵型系统: 根据玩家选择的阵型调整部署位置和属性
+    -- ============================================================
+    local formDef = FORMATION_DEFS[playerFormation]
+    if formDef then
+        local bz = BATTLE_ZONE
+        for _, u in ipairs(playerUnits) do
+            if u.alive then
+                -- 属性修正
+                u.atk = u.atk * (1 + (formDef.atkMod or 0))
+                u.def = u.def * (1 + (formDef.defMod or 0))
+                u.speed = u.speed * (1 + (formDef.spdMod or 0))
+                if formDef.hpMod then
+                    u.hp = u.hp * (1 + formDef.hpMod)
+                    u.maxHp = u.maxHp * (1 + formDef.hpMod)
+                end
+                -- 部署位置调整
+                local pat = formDef.deployPattern
+                local midY = (bz.top + bz.bottom) / 2
+                local rangeY = (bz.bottom - bz.top) * 0.4
+                if pat == "wide" then
+                    -- 鹤翼: Y轴分散到两翼
+                    local offset = (u.y - midY) / rangeY
+                    u.y = midY + offset * rangeY * 1.3
+                    u.x = u.x + math.abs(offset) * 15 -- 两翼靠前
+                elseif pat == "cone" then
+                    -- 锥行: X轴前推, Y轴收拢
+                    u.x = u.x + 20
+                    u.y = midY + (u.y - midY) * 0.6
+                elseif pat == "tight" then
+                    -- 方圆: 紧凑聚拢
+                    u.y = midY + (u.y - midY) * 0.5
+                    u.x = u.x - 10
+                elseif pat == "layered" then
+                    -- 鱼鳞: 分层排列 (默认基本不动)
+                end
+            end
+        end
+    end
+
+    -- ============================================================
+    -- 战斗地形生成: 随机放置2-4个地形区块
+    -- ============================================================
+    battleTerrainZones = {}
+    local bz = BATTLE_ZONE
+    local zoneCount = math.random(2, 4)
+    local terrainPool = { "forest", "swamp", "highland" }  -- 平原不用放, 默认就是
+    for _ = 1, zoneCount do
+        local tw = 60 + math.random() * 60   -- 60~120 宽
+        local th = 50 + math.random() * 50   -- 50~100 高
+        local tx = bz.left + 40 + math.random() * (bz.right - bz.left - tw - 80)
+        local ty = bz.top + 20 + math.random() * (bz.bottom - bz.top - th - 40)
+        local terrain = terrainPool[math.random(1, #terrainPool)]
+        table.insert(battleTerrainZones, {
+            x = tx, y = ty, w = tw, h = th,
+            terrain = terrain,
+        })
+    end
+
+    -- 初始化 RTS 指令系统
+    if InitRTS then InitRTS() end
+
+    print(string.format("=== 三国群英传模式 进入战斗 | 阵型:%s 地形区块:%d | 我军:%d 敌军:%d ===",
+        formDef and formDef.name or "无", #battleTerrainZones, #playerUnits, #enemyUnits))
 end
 
 

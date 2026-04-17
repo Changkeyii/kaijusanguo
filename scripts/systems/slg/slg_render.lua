@@ -67,6 +67,8 @@ function M.DrawBtn(x, y, w, h, label, r, g, b, alpha)
     nvgFillPaint(vg, grad); nvgFill(vg)
     nvgStrokeColor(vg, disabled and nvgRGBA(120, 100, 70, 60) or nvgRGBA(200, 170, 90, 140))
     nvgStrokeWidth(vg, 1); nvgStroke(vg)
+    nvgSave(vg)
+    nvgScissor(vg, x, y, w, h)
     nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 17)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     if disabled then
@@ -77,7 +79,183 @@ function M.DrawBtn(x, y, w, h, label, r, g, b, alpha)
         nvgFillColor(vg, nvgRGBA(255, 240, 200, 240))
     end
     nvgText(vg, x + w / 2, y + h / 2, label, nil)
+    nvgRestore(vg)
     return { x = x, y = y, w = w, h = h }
+end
+
+-- ============================================================================
+-- 辅助: 获取城池图标
+-- ============================================================================
+local function GetCityImage(owner)
+    if owner == "player" then return IMG.cityFriendly end
+    if owner == "qun" then return IMG.cityNeutral end
+    return IMG.cityEnemy
+end
+
+-- ============================================================================
+-- 辅助: 获取阵营旗帜图标
+-- ============================================================================
+local function GetFlagImage(owner)
+    local pfac = worldMapState.playerFaction or "wu"
+    local fac = owner
+    if owner == "player" then fac = pfac end
+    if fac == "wu"  then return IMG.flagWu end
+    if fac == "wei" then return IMG.flagWei end
+    if fac == "shu" then return IMG.flagShu end
+    return IMG.flagQun
+end
+
+-- ============================================================================
+-- 辅助: 绘制 NanoVG 图标 (居中绘制)
+-- ============================================================================
+local function DrawIcon(img, cx, cy, size, alpha)
+    alpha = alpha or 1.0
+    if not IsImageReady(img) then return end
+    local half = size / 2
+    local pat = nvgImagePattern(vg, cx - half, cy - half, size, size, 0, img, alpha)
+    nvgBeginPath(vg); nvgRect(vg, cx - half, cy - half, size, size)
+    nvgFillPaint(vg, pat); nvgFill(vg)
+end
+
+--- 辅助: 图标+文字 (图标在左,文字在右; 用于替代 emoji+text)
+--- @param imgKey string IMG表中的键名 (如 "slgIconGold")
+--- @param text string 右侧文字
+--- @param x number 左起始X (图标中心X = x + iconSize/2)
+--- @param y number 文字基线Y (图标垂直居中对齐)
+--- @param iconSize number 图标尺寸 (默认14)
+--- @param gap number 图标与文字间距 (默认2)
+local function DrawIconText(imgKey, text, x, y, iconSize, gap)
+    iconSize = iconSize or 14
+    gap = gap or 2
+    local img = IMG[imgKey]
+    if img and IsImageReady(img) then
+        DrawIcon(img, x + iconSize / 2, y - iconSize / 2 + 2, iconSize)
+        nvgText(vg, x + iconSize + gap, y, text, nil)
+    else
+        nvgText(vg, x, y, text, nil)
+    end
+end
+
+--- 辅助: NanoVG 矢量三角箭头 (替代 ▸▶◀)
+--- @param cx number 中心X
+--- @param cy number 中心Y
+--- @param size number 三角大小
+--- @param dir string "right"|"left"|"down"|"up"
+--- @param r number 红
+--- @param g number 绿
+--- @param b number 蓝
+--- @param a number 透明度(0-255)
+local function DrawTriangle(cx, cy, size, dir, r, g, b, a)
+    a = a or 255
+    local hs = size / 2
+    nvgBeginPath(vg)
+    if dir == "right" then
+        nvgMoveTo(vg, cx - hs, cy - hs)
+        nvgLineTo(vg, cx + hs, cy)
+        nvgLineTo(vg, cx - hs, cy + hs)
+    elseif dir == "left" then
+        nvgMoveTo(vg, cx + hs, cy - hs)
+        nvgLineTo(vg, cx - hs, cy)
+        nvgLineTo(vg, cx + hs, cy + hs)
+    elseif dir == "down" then
+        nvgMoveTo(vg, cx - hs, cy - hs)
+        nvgLineTo(vg, cx + hs, cy - hs)
+        nvgLineTo(vg, cx, cy + hs)
+    else -- up
+        nvgMoveTo(vg, cx - hs, cy + hs)
+        nvgLineTo(vg, cx + hs, cy + hs)
+        nvgLineTo(vg, cx, cy - hs)
+    end
+    nvgClosePath(vg)
+    nvgFillColor(vg, nvgRGBA(r, g, b, a))
+    nvgFill(vg)
+end
+
+--- 辅助: NanoVG 矢量圆圈数字 (替代 ①②③④⑤)
+local function DrawCircleNum(cx, cy, radius, num, bgR, bgG, bgB, fgR, fgG, fgB)
+    nvgBeginPath(vg)
+    nvgCircle(vg, cx, cy, radius)
+    nvgFillColor(vg, nvgRGBA(bgR, bgG, bgB, 230))
+    nvgFill(vg)
+    nvgFontSize(vg, radius * 1.4)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(fgR, fgG, fgB, 255))
+    nvgText(vg, cx, cy + 1, tostring(num), nil)
+end
+
+--- 辅助: NanoVG 矢量勾选标记 (替代 ✅ ✓)
+local function DrawCheckMark(cx, cy, size, r, g, b)
+    local hs = size / 2
+    nvgBeginPath(vg)
+    nvgMoveTo(vg, cx - hs * 0.6, cy)
+    nvgLineTo(vg, cx - hs * 0.1, cy + hs * 0.5)
+    nvgLineTo(vg, cx + hs * 0.7, cy - hs * 0.4)
+    nvgStrokeColor(vg, nvgRGBA(r, g, b, 255))
+    nvgStrokeWidth(vg, math.max(1.5, size * 0.15))
+    nvgStroke(vg)
+end
+
+--- 辅助: NanoVG 矢量五角星 (替代 ★)
+local function DrawStar(cx, cy, outerR, innerR, r, g, b, a)
+    a = a or 255
+    nvgBeginPath(vg)
+    for i = 0, 9 do
+        local radius = (i % 2 == 0) and outerR or innerR
+        local angle = math.pi / 2 + i * math.pi / 5
+        local px = cx + radius * math.cos(angle)
+        local py = cy - radius * math.sin(angle)
+        if i == 0 then nvgMoveTo(vg, px, py) else nvgLineTo(vg, px, py) end
+    end
+    nvgClosePath(vg)
+    nvgFillColor(vg, nvgRGBA(r, g, b, a))
+    nvgFill(vg)
+end
+
+--- 辅助: NanoVG 矢量菱形 (替代 ◆)
+local function DrawDiamond(cx, cy, size, r, g, b, a)
+    a = a or 255
+    local hs = size / 2
+    nvgBeginPath(vg)
+    nvgMoveTo(vg, cx, cy - hs)
+    nvgLineTo(vg, cx + hs, cy)
+    nvgLineTo(vg, cx, cy + hs)
+    nvgLineTo(vg, cx - hs, cy)
+    nvgClosePath(vg)
+    nvgFillColor(vg, nvgRGBA(r, g, b, a))
+    nvgFill(vg)
+end
+
+--- 辅助: NanoVG 矢量空心圆 (替代 ○)
+local function DrawCircleOutline(cx, cy, radius, r, g, b, a, lineW)
+    a = a or 200
+    lineW = lineW or 1.5
+    nvgBeginPath(vg)
+    nvgCircle(vg, cx, cy, radius)
+    nvgStrokeColor(vg, nvgRGBA(r, g, b, a))
+    nvgStrokeWidth(vg, lineW)
+    nvgStroke(vg)
+end
+
+--- 辅助: NanoVG 上下箭头 (替代 ↕)
+local function DrawUpDownArrows(cx, cy, size, r, g, b, a)
+    a = a or 200
+    local hs = size / 2
+    nvgBeginPath(vg)
+    -- 上箭头
+    nvgMoveTo(vg, cx, cy - hs)
+    nvgLineTo(vg, cx - hs * 0.5, cy - hs * 0.3)
+    nvgLineTo(vg, cx + hs * 0.5, cy - hs * 0.3)
+    nvgClosePath(vg)
+    nvgFillColor(vg, nvgRGBA(r, g, b, a))
+    nvgFill(vg)
+    nvgBeginPath(vg)
+    -- 下箭头
+    nvgMoveTo(vg, cx, cy + hs)
+    nvgLineTo(vg, cx - hs * 0.5, cy + hs * 0.3)
+    nvgLineTo(vg, cx + hs * 0.5, cy + hs * 0.3)
+    nvgClosePath(vg)
+    nvgFillColor(vg, nvgRGBA(r, g, b, a))
+    nvgFill(vg)
 end
 
 -- ============================================================================
@@ -111,12 +289,12 @@ local function DrawTopBar(W, H)
     nvgFillColor(vg, nvgRGBA(255, 240, 210, 220))
     nvgText(vg, 108, resY, "第" .. st.turn .. "回合", nil)
     nvgFillColor(vg, nvgRGBA(255, 230, 100, 255))
-    nvgText(vg, 200, resY, "💰" .. st.gold, nil)
+    DrawIconText("slgIconGold", tostring(st.gold), 200, resY, 14, 2)
     nvgFillColor(vg, nvgRGBA(180, 240, 130, 255))
-    nvgText(vg, 285, resY, "🌾" .. st.food, nil)
+    DrawIconText("slgIconFood", tostring(st.food), 285, resY, 14, 2)
     local pc = WorldMap.GetPlayerCityCount()
     nvgFillColor(vg, nvgRGBA(220, 210, 255, 240))
-    nvgText(vg, 370, resY, "🏯" .. pc .. "/" .. #WORLD_CITIES, nil)
+    DrawIconText("slgIconCastle", pc .. "/" .. #WORLD_CITIES, 370, resY, 14, 2)
 
     -- 存档/读档按钮 (右上角区域)
     local saveBtnW, saveBtnH = 44, 22
@@ -169,49 +347,15 @@ end
 local MAP_W = 1024   -- 地图坐标系宽度
 local MAP_H = 571    -- 地图坐标系高度
 local MAP_ZOOM_MIN = 1.0
-local MAP_ZOOM_MAX = 3.0
-local CITY_ICON_SIZE = 36     -- 城池图标尺寸(地图坐标)
-local FLAG_SIZE = 24          -- 旗帜尺寸(地图坐标)
+local MAP_ZOOM_MAX = 5.0
+local CITY_ICON_SIZE = 24     -- 城池图标尺寸(地图坐标)
+local FLAG_SIZE = 16          -- 旗帜尺寸(地图坐标)
 
 -- 导出地图常量供 input 模块使用
 M.MAP_W = MAP_W
 M.MAP_H = MAP_H
 M.MAP_ZOOM_MIN = MAP_ZOOM_MIN
 M.MAP_ZOOM_MAX = MAP_ZOOM_MAX
-
--- ============================================================================
--- 辅助: 获取城池图标
--- ============================================================================
-local function GetCityImage(owner)
-    if owner == "player" then return IMG.cityFriendly end
-    if owner == "qun" then return IMG.cityNeutral end
-    return IMG.cityEnemy
-end
-
--- ============================================================================
--- 辅助: 获取阵营旗帜图标
--- ============================================================================
-local function GetFlagImage(owner)
-    local pfac = worldMapState.playerFaction or "wu"
-    local fac = owner
-    if owner == "player" then fac = pfac end
-    if fac == "wu"  then return IMG.flagWu end
-    if fac == "wei" then return IMG.flagWei end
-    if fac == "shu" then return IMG.flagShu end
-    return IMG.flagQun
-end
-
--- ============================================================================
--- 辅助: 绘制 NanoVG 图标 (居中绘制)
--- ============================================================================
-local function DrawIcon(img, cx, cy, size, alpha)
-    alpha = alpha or 1.0
-    if not IsImageReady(img) then return end
-    local half = size / 2
-    local pat = nvgImagePattern(vg, cx - half, cy - half, size, size, 0, img, alpha)
-    nvgBeginPath(vg); nvgRect(vg, cx - half, cy - half, size, size)
-    nvgFillPaint(vg, pat); nvgFill(vg)
-end
 
 -- ============================================================================
 -- 城池图标+连线+旗帜 (绘制在地图坐标系中，外部负责变换)
@@ -316,12 +460,98 @@ local function DrawCityIcons(t)
         nvgFillColor(vg, nvgRGBA(255, 245, 210, isPlayer and 255 or 200))
         nvgText(vg, cx, nameY, city.name, nil)
 
-        -- 驻军数显示 (小字)
-        if cd.garrison > 0 then
+        -- 驻军数显示 (小字) — 低缩放时仍显示简略信息
+        if cd.garrison > 0 and st.mapZoom < 2.0 then
             nvgFontSize(vg, 10)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
             nvgFillColor(vg, nvgRGBA(220, 200, 160, 180))
             nvgText(vg, cx, nameY + 15, "兵" .. cd.garrison, nil)
+        end
+
+        -- ======== 缩放详情卡片 (zoom >= 2.0 时显示) ========
+        if st.mapZoom >= 2.0 then
+            local cardW2 = 80
+            local cardH2 = 48
+            local cardX2 = cx - cardW2 / 2
+            local cardY2 = nameY + 16
+
+            -- 归属势力信息
+            local ownerFac = cd.owner
+            if ownerFac == "player" then ownerFac = st.playerFaction or "wu" end
+            local facInfo = rawget(_G, "FACTIONS") and FACTIONS[ownerFac]
+            local facLabel = isPlayer and "我方" or (facInfo and facInfo.name or "?")
+
+            -- 建筑计数
+            local bldCount = 0
+            if cd.buildings then for _ in pairs(cd.buildings) do bldCount = bldCount + 1 end end
+            local heroCount = cd.heroes and #cd.heroes or 0
+
+            -- 卡片背景 + 势力色边框
+            nvgBeginPath(vg); nvgRoundedRect(vg, cardX2, cardY2, cardW2, cardH2, 4)
+            nvgFillColor(vg, nvgRGBA(15, 10, 5, 190)); nvgFill(vg)
+            nvgStrokeColor(vg, nvgRGBA(fc.main[1], fc.main[2], fc.main[3], isPlayer and 220 or 160))
+            nvgStrokeWidth(vg, isPlayer and 2.0 or 1.2); nvgStroke(vg)
+
+            -- 势力色顶部条纹
+            nvgBeginPath(vg); nvgRoundedRect(vg, cardX2 + 1, cardY2 + 1, cardW2 - 2, 3, 2)
+            nvgFillColor(vg, nvgRGBA(fc.main[1], fc.main[2], fc.main[3], 180)); nvgFill(vg)
+
+            -- 第一行: 势力名 + 驻军
+            nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 9)
+            nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+            nvgFillColor(vg, nvgRGBA(fc.light[1], fc.light[2], fc.light[3], 240))
+            nvgText(vg, cardX2 + 5, cardY2 + 6, facLabel, nil)
+            nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
+            nvgFillColor(vg, nvgRGBA(220, 200, 160, 220))
+            nvgText(vg, cardX2 + cardW2 - 5, cardY2 + 6, "兵" .. cd.garrison, nil)
+
+            -- 第二行: 建筑数 + 武将数 (用图标)
+            local row2Y = cardY2 + 20
+            nvgFontSize(vg, 8); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+            -- 建筑图标 + 数量
+            local bldImg = IMG.slgIconBuild
+            if bldImg and bldImg ~= -1 and IsImageReady(bldImg) then
+                local iSz2 = 9
+                local pat2 = nvgImagePattern(vg, cardX2 + 4, row2Y, iSz2, iSz2, 0, bldImg, 0.8)
+                nvgBeginPath(vg); nvgRect(vg, cardX2 + 4, row2Y, iSz2, iSz2)
+                nvgFillPaint(vg, pat2); nvgFill(vg)
+                nvgFillColor(vg, nvgRGBA(200, 200, 210, 220))
+                nvgText(vg, cardX2 + 15, row2Y + 1, tostring(bldCount), nil)
+            else
+                nvgFillColor(vg, nvgRGBA(200, 200, 210, 200))
+                nvgText(vg, cardX2 + 5, row2Y + 1, "建" .. bldCount, nil)
+            end
+            -- 武将图标 + 数量
+            local swordImg = IMG.slgIconSword
+            if swordImg and swordImg ~= -1 and IsImageReady(swordImg) then
+                local iSz2 = 9
+                local pat3 = nvgImagePattern(vg, cardX2 + 34, row2Y, iSz2, iSz2, 0, swordImg, 0.8)
+                nvgBeginPath(vg); nvgRect(vg, cardX2 + 34, row2Y, iSz2, iSz2)
+                nvgFillPaint(vg, pat3); nvgFill(vg)
+                nvgFillColor(vg, nvgRGBA(200, 200, 210, 220))
+                nvgText(vg, cardX2 + 45, row2Y + 1, tostring(heroCount), nil)
+            else
+                nvgFillColor(vg, nvgRGBA(200, 200, 210, 200))
+                nvgText(vg, cardX2 + 35, row2Y + 1, "将" .. heroCount, nil)
+            end
+
+            -- 第三行: 士气条 (小型进度条)
+            local moraleY = cardY2 + 34
+            local moraleW = cardW2 - 10
+            local moraleH = 4
+            local moraleRatio = (cd.morale or 80) / 100
+            nvgBeginPath(vg); nvgRoundedRect(vg, cardX2 + 5, moraleY, moraleW, moraleH, 1.5)
+            nvgFillColor(vg, nvgRGBA(30, 20, 10, 150)); nvgFill(vg)
+            if moraleRatio > 0 then
+                local mr, mg = 220, 180
+                if moraleRatio < 0.3 then mr, mg = 220, 60
+                elseif moraleRatio < 0.6 then mr, mg = 220, 160 end
+                nvgBeginPath(vg); nvgRoundedRect(vg, cardX2 + 5, moraleY, moraleW * moraleRatio, moraleH, 1.5)
+                nvgFillColor(vg, nvgRGBA(mr, mg, 60, 200)); nvgFill(vg)
+            end
+            nvgFontSize(vg, 7); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
+            nvgFillColor(vg, nvgRGBA(220, 210, 180, 160))
+            nvgText(vg, cx, moraleY + 5, "士气" .. math.floor((cd.morale or 80)) .. "%", nil)
         end
 
         -- 存储点击区域(地图坐标)
@@ -404,7 +634,8 @@ local function DrawCityList(W, H, t)
                 nvgFontSize(vg, 12)
                 nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(255, 210, 80, 200))
-                nvgText(vg, pad + 4, drawY + 10, "▸ 我方城池", nil)
+                DrawTriangle(pad + 8, drawY + 10, 5, "right", 255, 210, 80, 200)
+                nvgText(vg, pad + 16, drawY + 10, "我方城池", nil)
             end
             drawY = drawY + 20
         elseif not isPlayer and not drawnEnemyHeader then
@@ -413,7 +644,8 @@ local function DrawCityList(W, H, t)
                 nvgFontSize(vg, 12)
                 nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(180, 160, 130, 180))
-                nvgText(vg, pad + 4, drawY + 10, "▸ 其他势力", nil)
+                DrawTriangle(pad + 8, drawY + 10, 5, "right", 180, 160, 130, 180)
+                nvgText(vg, pad + 16, drawY + 10, "其他势力", nil)
             end
             drawY = drawY + 20
         end
@@ -458,12 +690,20 @@ local function DrawCityList(W, H, t)
             nvgFillColor(vg, nvgRGBA(fc.light[1], fc.light[2], fc.light[3], 180))
             nvgText(vg, cx + 60, cy + 8, facName .. " · " .. city.region, nil)
 
+            -- 非我方城池需刺探后才显示兵力信息
+            local listScouted = isPlayer or (st.scoutResult and st.scoutResult.cityId == city.id)
+
             -- 第二行: 兵力/城防/产出
             nvgFontSize(vg, 12)
             nvgFillColor(vg, nvgRGBA(200, 190, 170, 200))
             local infoY2 = cy + 26
-            nvgText(vg, cx + 12, infoY2, "兵:" .. cd.garrison, nil)
-            nvgText(vg, cx + 68, infoY2, "防:Lv" .. cd.level, nil)
+            if listScouted then
+                nvgText(vg, cx + 12, infoY2, "兵:" .. cd.garrison, nil)
+                nvgText(vg, cx + 68, infoY2, "防:Lv" .. cd.level, nil)
+            else
+                nvgText(vg, cx + 12, infoY2, "兵:???", nil)
+                nvgText(vg, cx + 68, infoY2, "防:???", nil)
+            end
             nvgText(vg, cx + 125, infoY2, "产:" .. city.prod, nil)
 
             -- 第三行: 士气(我方)/武将
@@ -473,7 +713,7 @@ local function DrawCityList(W, H, t)
                 nvgFillColor(vg, nvgRGBA(180, 220, 120, 200))
                 nvgText(vg, cx + 12, row3Y, "气:" .. cd.morale, nil)
             end
-            if #cd.heroes > 0 then
+            if listScouted and #cd.heroes > 0 then
                 local heroX = isPlayer and (cx + 50) or (cx + 12)
                 nvgFillColor(vg, nvgRGBA(140, 170, 220, 180))
                 nvgText(vg, heroX, row3Y, "将:", nil)
@@ -481,19 +721,19 @@ local function DrawCityList(W, H, t)
                 for hi, hIdx in ipairs(cd.heroes) do
                     local card = HERO_CARDS[hIdx]
                     if card then
-                        -- 武将名可点击 (带下划线风格)
                         nvgFillColor(vg, nvgRGBA(180, 220, 255, 230))
                         local tw = nvgTextBounds(vg, 0, 0, card.name, nil)
                         nvgText(vg, nameStartX, row3Y, card.name, nil)
-                        -- 下划线
                         nvgBeginPath(vg); nvgMoveTo(vg, nameStartX, row3Y + 12)
                         nvgLineTo(vg, nameStartX + tw, row3Y + 12)
                         nvgStrokeColor(vg, nvgRGBA(160, 200, 255, 80)); nvgStrokeWidth(vg, 0.5); nvgStroke(vg)
-                        -- 存储点击区域
                         st._heroNameRects[hIdx] = { x = nameStartX, y = row3Y - 2, w = tw, h = 14 }
                         nameStartX = nameStartX + tw + 6
                     end
                 end
+            elseif not isPlayer and not listScouted then
+                nvgFillColor(vg, nvgRGBA(160, 140, 100, 130))
+                nvgText(vg, cx + 12, row3Y, "情报未知", nil)
             end
 
             -- 存储卡片点击区域
@@ -756,11 +996,31 @@ function M.DrawWorldMapScreen(drawPanelFn)
         end
     end
 
-    -- === 地图视口区域 (左侧列表和右侧面板之间) ===
-    local mapViewX = L.LEFT_W
-    local mapViewY = L.TOP_BAR_H
+    -- === 面板折叠动画 ===
+    local animSpeed = 8.0
+    local targetL = st.leftPanelCollapsed and 0.0 or 1.0
+    local targetR = st.rightPanelCollapsed and 0.0 or 1.0
+    local dl = targetL - st.leftPanelAnim
+    local dr = targetR - st.rightPanelAnim
+    if math.abs(dl) > 0.01 then
+        st.leftPanelAnim = st.leftPanelAnim + dl * (1 - math.exp(-animSpeed * lerpDt))
+    else
+        st.leftPanelAnim = targetL
+    end
+    if math.abs(dr) > 0.01 then
+        st.rightPanelAnim = st.rightPanelAnim + dr * (1 - math.exp(-animSpeed * lerpDt))
+    else
+        st.rightPanelAnim = targetR
+    end
+
+    local leftW = math.floor(L.LEFT_W * st.leftPanelAnim)
     local hasPanel = (st.selectedCity ~= nil) or (st.phase ~= "MAP")
-    local mapViewW = hasPanel and (W - L.LEFT_W - L.RIGHT_W) or (W - L.LEFT_W)
+    local rightW = hasPanel and math.floor(L.RIGHT_W * st.rightPanelAnim) or 0
+
+    -- === 地图视口区域 (左侧列表和右侧面板之间) ===
+    local mapViewX = leftW
+    local mapViewY = L.TOP_BAR_H
+    local mapViewW = W - leftW - rightW
     local mapViewH = H - L.TOP_BAR_H
 
     -- 计算适配缩放: 最小缩放时地图覆盖整个视口 (cover模式, 无留白)
@@ -841,23 +1101,60 @@ function M.DrawWorldMapScreen(drawPanelFn)
     nvgRestore(vg) -- 结束 scissor
 
     -- === 2. 左侧城池列表 ===
-    DrawCityList(W, H, t)
+    if leftW > 10 then
+        nvgSave(vg)
+        nvgScissor(vg, 0, 0, leftW, H)
+        DrawCityList(W, H, t)
+        nvgRestore(vg)
+    end
+
+    -- === 2.5 左面板折叠/展开按钮 ===
+    local toggleW, toggleH = 18, 50
+    local toggleLX = leftW
+    local toggleLY = L.TOP_BAR_H + (H - L.TOP_BAR_H) / 2 - toggleH / 2
+    nvgBeginPath(vg); nvgRoundedRect(vg, toggleLX, toggleLY, toggleW, toggleH, 4)
+    nvgFillColor(vg, nvgRGBA(50, 35, 15, 200)); nvgFill(vg)
+    nvgStrokeColor(vg, nvgRGBA(200, 160, 70, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
+    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 14)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(255, 220, 120, 220))
+    DrawTriangle(toggleLX + toggleW / 2, toggleLY + toggleH / 2, 6, st.leftPanelCollapsed and "right" or "left", 255, 220, 120, 220)
+    st.btn_toggleLeft = { x = toggleLX, y = toggleLY, w = toggleW, h = toggleH }
 
     -- === 3. 右侧操作面板 ===
-    local rpX = W - L.RIGHT_W
+    local rpX = W - rightW
     local rpY = L.TOP_BAR_H
-    local rpW = L.RIGHT_W
+    local rpW = rightW
     local rpH = H - L.TOP_BAR_H
 
-    if hasPanel then
+    if hasPanel and rightW > 10 then
+        nvgSave(vg)
+        nvgScissor(vg, rpX, rpY, rpW, rpH)
         nvgBeginPath(vg); nvgRect(vg, rpX, rpY, rpW, rpH)
         nvgFillColor(vg, nvgRGBA(30, 18, 8, 170)); nvgFill(vg)
         nvgBeginPath(vg); nvgMoveTo(vg, rpX, rpY); nvgLineTo(vg, rpX, H)
         nvgStrokeColor(vg, nvgRGBA(200, 160, 70, 80)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
+
+        if drawPanelFn then
+            drawPanelFn(rpX, rpY, rpW, rpH, t)
+        end
+        nvgRestore(vg)
     end
 
-    if drawPanelFn then
-        drawPanelFn(rpX, rpY, rpW, rpH, t)
+    -- === 3.5 右面板折叠/展开按钮 ===
+    if hasPanel then
+        local toggleRX = rpX - toggleW
+        local toggleRY = toggleLY
+        nvgBeginPath(vg); nvgRoundedRect(vg, toggleRX, toggleRY, toggleW, toggleH, 4)
+        nvgFillColor(vg, nvgRGBA(50, 35, 15, 200)); nvgFill(vg)
+        nvgStrokeColor(vg, nvgRGBA(200, 160, 70, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
+        nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 14)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        nvgFillColor(vg, nvgRGBA(255, 220, 120, 220))
+        DrawTriangle(toggleRX + toggleW / 2, toggleRY + toggleH / 2, 6, st.rightPanelCollapsed and "left" or "right", 255, 220, 120, 220)
+        st.btn_toggleRight = { x = toggleRX, y = toggleRY, w = toggleW, h = toggleH }
+    else
+        st.btn_toggleRight = nil
     end
 
     -- === 4. 顶部状态栏 (最后绘制，覆盖在最上层) ===
@@ -866,5 +1163,16 @@ function M.DrawWorldMapScreen(drawPanelFn)
     -- === 5. 武将弹窗 (最顶层) ===
     DrawHeroPopup(W, H, t)
 end
+
+-- 导出辅助绘制函数供 slg_panels 等模块使用
+M.DrawIcon          = DrawIcon
+M.DrawIconText      = DrawIconText
+M.DrawTriangle      = DrawTriangle
+M.DrawCircleNum     = DrawCircleNum
+M.DrawCheckMark     = DrawCheckMark
+M.DrawStar          = DrawStar
+M.DrawDiamond       = DrawDiamond
+M.DrawCircleOutline = DrawCircleOutline
+M.DrawUpDownArrows  = DrawUpDownArrows
 
 return M

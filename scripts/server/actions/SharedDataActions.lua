@@ -52,7 +52,9 @@ local ALLOWED_KEYS = {
     [PREFIX .. "trade_data"]     = { type = "set",    maxSize = 32768 },
     -- 存档域（社交域同步）
     [PREFIX .. "social"]         = { type = "set",    maxSize = 16384 },
-    -- 排行榜数值（rank.lua 上报用，与 report_score 的 slg_* key 并行）
+    -- 广告观看计数
+    [PREFIX .. "ad_watch_count"] = { type = "setInt", maxVal = 999999999 },
+    -- 排行榜数值（rank.lua 上报用，与 report_score 的 CK.* key 统一前缀）
     [PREFIX .. "skill_count"]    = { type = "setInt", maxVal = 9999 },
     [PREFIX .. "hero_count"]     = { type = "setInt", maxVal = 9999 },
     [PREFIX .. "dummy_damage"]   = { type = "setInt", maxVal = 999999999 },
@@ -172,5 +174,177 @@ GameActions.Register("cloud_write", {
     end,
 })
 
-print("[SharedDataActions] 已注册: cloud_write")
+-- ============================================================================
+-- cloud_get: 读取指定用户的单个云变量
+-- params = { userId = number, key = string }
+-- ============================================================================
+GameActions.Register("cloud_get", {
+    rateLimit  = { interval = 1, burst = 10 },
+    needDomains = {},
+    handler = function(userId, params, replyFn)
+        local targetUid = tonumber(params.userId) or userId
+        local key = params.key
+        if not key or type(key) ~= "string" then
+            replyFn(false, CODE.ERR_PARAMS, nil, "缺少 key")
+            return
+        end
+        if not rawget(_G, "serverCloud") then
+            replyFn(false, CODE.ERR_SERVER, nil, "serverCloud 不可用")
+            return
+        end
+        serverCloud:Get(targetUid, key, {
+            ok = function(value)
+                replyFn(true, CODE.OK, { value = value })
+            end,
+            error = function(code, reason)
+                replyFn(false, CODE.ERR_SERVER, nil, "cloud_get 失败: " .. tostring(reason))
+            end,
+        })
+    end,
+})
+
+-- ============================================================================
+-- cloud_batch_get: 批量读取指定用户的多个云变量
+-- params = { userId = number, keys = { "k1", "k2", ... } }
+-- 返回: { scores = {}, iscores = {} }
+-- ============================================================================
+GameActions.Register("cloud_batch_get", {
+    rateLimit  = { interval = 1, burst = 10 },
+    needDomains = {},
+    handler = function(userId, params, replyFn)
+        local targetUid = tonumber(params.userId) or userId
+        local keys = params.keys
+        if not keys or type(keys) ~= "table" or #keys == 0 then
+            replyFn(false, CODE.ERR_PARAMS, nil, "缺少 keys")
+            return
+        end
+        if not rawget(_G, "serverCloud") then
+            replyFn(false, CODE.ERR_SERVER, nil, "serverCloud 不可用")
+            return
+        end
+        local bg = serverCloud:BatchGet(targetUid)
+        for _, k in ipairs(keys) do
+            bg:Key(k)
+        end
+        bg:Fetch({
+            ok = function(scores, iscores)
+                replyFn(true, CODE.OK, { scores = scores or {}, iscores = iscores or {} })
+            end,
+            error = function(code, reason)
+                replyFn(false, CODE.ERR_SERVER, nil, "cloud_batch_get 失败: " .. tostring(reason))
+            end,
+        })
+    end,
+})
+
+-- ============================================================================
+-- get_user_rank: 查询指定用户在排行榜上的排名和分数
+-- params = { userId = number, key = string }
+-- 返回: { rank = number|nil, score = number }
+-- ============================================================================
+GameActions.Register("get_user_rank", {
+    rateLimit  = { interval = 1, burst = 10 },
+    needDomains = {},
+    handler = function(userId, params, replyFn)
+        local targetUid = tonumber(params.userId)
+        local key = params.key
+        if not targetUid or not key or type(key) ~= "string" then
+            replyFn(false, CODE.ERR_PARAMS, nil, "缺少 userId 或 key")
+            return
+        end
+        if not rawget(_G, "serverCloud") then
+            replyFn(false, CODE.ERR_SERVER, nil, "serverCloud 不可用")
+            return
+        end
+        serverCloud:GetUserRank(targetUid, key, {
+            ok = function(rank, scoreValue)
+                -- 查询昵称
+                local nickname = ""
+                if rawget(_G, "GetUserNickname") then
+                    GetUserNickname({
+                        userIds = { targetUid },
+                        onSuccess = function(nicknames)
+                            if nicknames and #nicknames > 0 then
+                                nickname = nicknames[1].nickname or ""
+                            end
+                        end,
+                    })
+                end
+                replyFn(true, CODE.OK, {
+                    rank = rank,
+                    score = scoreValue or 0,
+                    name = nickname,
+                    userId = targetUid,
+                })
+            end,
+            error = function(code, reason)
+                replyFn(false, CODE.ERR_SERVER, nil, "get_user_rank 失败: " .. tostring(reason))
+            end,
+        })
+    end,
+})
+
+-- ============================================================================
+-- cloud_add: 原子增加整数云变量
+-- params = { key = string, amount = number }
+-- ============================================================================
+GameActions.Register("cloud_add", {
+    rateLimit  = { interval = 1, burst = 10 },
+    needDomains = {},
+    handler = function(userId, params, replyFn)
+        local key = params.key
+        local amount = tonumber(params.amount) or 1
+        if not key or type(key) ~= "string" then
+            replyFn(false, CODE.ERR_PARAMS, nil, "缺少 key")
+            return
+        end
+        -- 白名单检查
+        if not ALLOWED_KEYS[key] then
+            replyFn(false, CODE.ERR_FORBIDDEN, nil, "禁止操作 key: " .. tostring(key))
+            return
+        end
+        if not rawget(_G, "serverCloud") then
+            replyFn(false, CODE.ERR_SERVER, nil, "serverCloud 不可用")
+            return
+        end
+        serverCloud:Add(userId, key, amount, {
+            ok = function()
+                replyFn(true, CODE.OK, { ok = true })
+            end,
+            error = function(code, reason)
+                replyFn(false, CODE.ERR_SERVER, nil, "cloud_add 失败: " .. tostring(reason))
+            end,
+        })
+    end,
+})
+
+-- ============================================================================
+-- get_rank_total: 获取排行榜总人数
+-- params = { key = string }
+-- ============================================================================
+GameActions.Register("get_rank_total", {
+    rateLimit  = { interval = 2, burst = 5 },
+    needDomains = {},
+    handler = function(userId, params, replyFn)
+        local key = params.key
+        if not key or type(key) ~= "string" then
+            replyFn(false, CODE.ERR_PARAMS, nil, "缺少 key")
+            return
+        end
+        if not rawget(_G, "serverCloud") then
+            replyFn(false, CODE.ERR_SERVER, nil, "serverCloud 不可用")
+            return
+        end
+        serverCloud:GetRankTotal(key, {
+            ok = function(total)
+                replyFn(true, CODE.OK, { total = total or 0 })
+            end,
+            error = function(code, reason)
+                replyFn(false, CODE.ERR_SERVER, nil, "get_rank_total 失败: " .. tostring(reason))
+            end,
+        })
+    end,
+})
+
+print("[SharedDataActions] 已注册: cloud_write, cloud_get, cloud_batch_get, get_user_rank, cloud_add, get_rank_total")
 return true

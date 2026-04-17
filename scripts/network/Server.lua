@@ -6,16 +6,9 @@
 local cjson = cjson ---@diagnostic disable-line: undefined-global
 
 local Server = {}
-local Shared = require("network.Shared")
-local Protocol = require("network.Protocol")
-local PlayerDataManager = require("server.PlayerDataManager")
-local GameActions = require("server.GameActions")
-local RankedMatchmaker = require("server.RankedMatchmaker")
-
-require "LuaScripts/Utilities/Sample"
 
 -- ============================================================================
--- Headless 模式兼容（服务端无图形）
+-- Headless 模式兼容（必须在 require Sample 之前，否则 Sample 访问 graphics 崩溃）
 -- ============================================================================
 if GetGraphics() == nil then
     local mockGraphics = {
@@ -32,6 +25,14 @@ if GetGraphics() == nil then
     debugHud = {}
     function GetDebugHud() return debugHud end
 end
+
+local Shared = require("network.Shared")
+local Protocol = require("network.Protocol")
+local PlayerDataManager = require("server.PlayerDataManager")
+local GameActions = require("server.GameActions")
+local RankedMatchmaker = require("server.RankedMatchmaker")
+
+require "LuaScripts/Utilities/Sample"
 
 -- ============================================================================
 -- 变量
@@ -94,7 +95,11 @@ end
 -- ============================================================================
 
 function Server.Start()
-    SampleStart()
+    -- SampleStart 在 headless 模式下可能部分失败，pcall 保护
+    local ok, err = pcall(SampleStart)
+    if not ok then
+        print("[Server] SampleStart (headless): " .. tostring(err))
+    end
     Shared.RegisterEvents()
 
     -- 创建空场景（网络同步必需）
@@ -140,6 +145,25 @@ end
 function HandleServerUpdate(eventType, eventData)
     -- 定时 flush 脏数据
     PlayerDataManager.TickFlush()
+
+    -- 处理待发送的 Welcome（数据加载延迟时的队列）
+    if pendingWelcomes_ and #pendingWelcomes_ > 0 then
+        local remaining = {}
+        for _, pw in ipairs(pendingWelcomes_) do
+            local cache = PlayerDataManager.GetCache(pw.userId)
+            if cache and cache.loaded then
+                -- 确认连接仍有效
+                if serverConnections_[pw.connKey] then
+                    SendWelcome(pw.connection, pw.userId, cache)
+                    SendFullStateSync(pw.connection, pw.userId, cache)
+                    print("[Server] Deferred welcome sent to userId=" .. tostring(pw.userId))
+                end
+            else
+                remaining[#remaining + 1] = pw
+            end
+        end
+        pendingWelcomes_ = remaining
+    end
 end
 
 -- ============================================================================
@@ -198,24 +222,21 @@ function HandleClientReady(eventType, eventData)
     connection.scene = scene_
 
     -- 等待数据加载完成后发送 Welcome + STATE_SYNC
-    local function trySendWelcome()
-        local cache = PlayerDataManager.GetCache(userId)
-        if cache and cache.loaded then
-            SendWelcome(connection, userId, cache)
-            SendFullStateSync(connection, userId, cache)
-        else
-            SubscribeToEvent("Update", function()
-                local cache2 = PlayerDataManager.GetCache(userId)
-                if cache2 and cache2.loaded then
-                    UnsubscribeFromEvent("Update")
-                    SendWelcome(connection, userId, cache2)
-                    SendFullStateSync(connection, userId, cache2)
-                end
-            end)
-        end
+    local cache = PlayerDataManager.GetCache(userId)
+    if cache and cache.loaded then
+        SendWelcome(connection, userId, cache)
+        SendFullStateSync(connection, userId, cache)
+    else
+        -- 数据未就绪，加入待发送队列（在 HandleServerUpdate 中轮询）
+        -- 注意：不能用 SubscribeToEvent("Update") 否则会覆盖 HandleServerUpdate
+        pendingWelcomes_ = pendingWelcomes_ or {}
+        pendingWelcomes_[#pendingWelcomes_ + 1] = {
+            connKey = connKey,
+            userId = userId,
+            connection = connection,
+        }
+        print("[Server] Player data not ready, queued welcome for userId=" .. tostring(userId))
     end
-
-    trySendWelcome()
 end
 
 function HandleClientDisconnected(eventType, eventData)
@@ -412,6 +433,19 @@ function Server.GetOnlineUsers()
         users[#users + 1] = userId
     end
     return users
+end
+
+-- ============================================================================
+-- 全局入口（引擎启动时自动调用）
+-- entry_server 指向本文件，引擎会调用全局 Start() / Stop()
+-- ============================================================================
+
+function Start()
+    Server.Start()
+end
+
+function Stop()
+    Server.Stop()
 end
 
 return Server

@@ -5,14 +5,14 @@
     "id": "04ac863d"
   },
   "entry": "main.lua",
-  "version": "1.0.21",
+  "version": "1.0.68",
   "taptap_publish": {
-    "title": "<game title, required>",
-    "description": "<game description>",
-    "category": "<game category: rpg, casual, action, strategy, simulation, trivia, arcade, adventure, card, sports, racing, puzzle, educational, music, word, board>",
+    "title": "三国武灵录",
+    "description": "三国SLG策略游戏",
+    "category": "strategy",
     "screen_orientation": "landscape",
     "collection_type": "sce",
-    "trial_note": "<developer's note>",
+    "trial_note": "三国武灵录 - SLG策略对战",
     "app_platforms": "1,2",
     "developer_id": 397455
   },

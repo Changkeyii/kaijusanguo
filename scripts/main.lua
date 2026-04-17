@@ -49,6 +49,7 @@ require "systems.ad"
 require "systems.audio"
 require "systems.battle.init"
 require "systems.battle.units"
+require "systems.battle.rts_command"
 require "systems.battle.update"
 require "systems.battle_pass"
 require "systems.cdk"
@@ -186,11 +187,11 @@ function InitModuleBattle()
     -- 布局已内置为默认值，不再从文件加载
     -- LoadBattleLayouts()
 
-    IMG.bg = nvgCreateImage(vg, "image/battle_bg_1.png", 0)
+    IMG.bg = nvgCreateImage(vg, "image/battle_bg_landscape_20260416123152.png", 0)
     IMG.skillSheet = nvgCreateImage(vg, "image/skill_fentianjue.png", 0)
 
     -- 世界地图素材
-    IMG.wmBg = nvgCreateImage(vg, "image/world_map_bg_20260415172845.png", 0)
+    IMG.wmBg = nvgCreateImage(vg, "image/world_map_bg.png", 0)
     IMG.wmCityNormal = nvgCreateImage(vg, "image/city_icon_normal_20260415023214.png", 0)
     IMG.wmCityCapital = nvgCreateImage(vg, "image/city_icon_capital_20260415023249.png", 0)
     IMG.wmPanel = nvgCreateImage(vg, "image/panel_scroll_bg_20260415023215.png", 0)
@@ -198,7 +199,7 @@ function InitModuleBattle()
     IMG.wmFlagRed = nvgCreateImage(vg, "image/flag_red_20260415023234.png", 0)
     IMG.wmFlagBlue = nvgCreateImage(vg, "image/flag_blue_20260415023218.png", 0)
     IMG.wmFlagGreen = nvgCreateImage(vg, "image/flag_green_20260415023216.png", 0)
-    IMG.mapBg = nvgCreateImage(vg, "image/battle_bg_topdown_stage6.png", 0)
+    IMG.mapBg = nvgCreateImage(vg, "image/battle_bg_landscape_20260416123152.png", 0)
     IMG.abyssSelectBg = nvgCreateImage(vg, "image/abyss_select_sanguo_bright_20260408082708.png", 0)
     IMG.rankedSelectBg = nvgCreateImage(vg, "image/ranked_select_sanguo_bright_20260408082704.png", 0)
     IMG.towerSelectBg = nvgCreateImage(vg, "image/tower_select_sanguo_bright_20260408082718.png", 0)
@@ -210,7 +211,7 @@ function InitModuleBattle()
     IMG.deployBg = nvgCreateImage(vg, "image/deploy_bg_20260415172852.png", 0)
     IMG.homeBg = nvgCreateImage(vg, "image/home_bg_20260415173103.png", 0)
     IMG.panelBg = nvgCreateImage(vg, "image/panel_bg_new_20260416000416.png", 0)
-    IMG.battleBgNew = nvgCreateImage(vg, "image/battle_bg_20260415172845.png", 0)
+    IMG.battleBgNew = nvgCreateImage(vg, "image/battle_bg_landscape_20260416123152.png", 0)
     -- 新城池图标与旗帜
     IMG.cityFriendly = nvgCreateImage(vg, "image/city_icon_friendly_20260415173137.png", 0)
     IMG.cityEnemy = nvgCreateImage(vg, "image/city_icon_enemy_20260415173221.png", 0)
@@ -221,7 +222,50 @@ function InitModuleBattle()
     IMG.flagWu = nvgCreateImage(vg, "image/faction_flag_wu_20260416015845.png", 0)
     IMG.flagQun = nvgCreateImage(vg, "image/faction_flag_qun_20260416015756.png", 0)
     IMG.btnPause = nvgCreateImage(vg, "image/btn_pause_20260416015754.png", 0)
-    IMG.wmBgClean = nvgCreateImage(vg, "image/world_map_bg_clean_20260416015728.png", 0)
+    IMG.wmBgClean = nvgCreateImage(vg, "image/world_map_bg.png", 0)
+
+    -- SLG 图标 (替代 emoji)
+    IMG.slgIconGold = nvgCreateImage(vg, "image/slg_icon_gold_20260417025134.png", 0)
+    IMG.slgIconFood = nvgCreateImage(vg, "image/slg_icon_food_20260417025136.png", 0)
+    IMG.slgIconCastle = nvgCreateImage(vg, "image/slg_icon_castle_20260417025136.png", 0)
+    IMG.slgIconMarket = nvgCreateImage(vg, "image/slg_icon_market_20260417025135.png", 0)
+    IMG.slgIconBow = nvgCreateImage(vg, "image/slg_icon_bow_20260417025131.png", 0)
+    IMG.slgIconHammer = nvgCreateImage(vg, "image/slg_icon_hammer_20260417025137.png", 0)
+    IMG.slgIconBook = nvgCreateImage(vg, "image/slg_icon_book_20260417025138.png", 0)
+    IMG.slgIconFire = nvgCreateImage(vg, "image/slg_icon_fire_20260417024319.png", 0)
+    IMG.slgIconScroll = nvgCreateImage(vg, "image/slg_icon_scroll_20260417024323.png", 0)
+    IMG.slgIconEye = nvgCreateImage(vg, "image/slg_icon_eye_20260417024325.png", 0)
+    IMG.slgIconSpy = nvgCreateImage(vg, "image/slg_icon_spy_20260417024315.png", 0)
+    IMG.slgIconSword = nvgCreateImage(vg, "image/slg_icon_sword_20260417024316.png", 0)
+    IMG.slgIconBan = nvgCreateImage(vg, "image/slg_icon_ban_20260417024334.png", 0)
+    IMG.slgIconMask = nvgCreateImage(vg, "image/slg_icon_mask_20260417024324.png", 0)
+    IMG.slgIconCaravan = nvgCreateImage(vg, "image/slg_icon_caravan_20260417024948.png", 0)
+    IMG.slgIconHorn = nvgCreateImage(vg, "image/slg_icon_horn_20260417024936.png", 0)
+    IMG.slgIconPlague = nvgCreateImage(vg, "image/slg_icon_plague_20260417024953.png", 0)
+    IMG.slgIconBlade = nvgCreateImage(vg, "image/slg_icon_blade_20260417025016.png", 0)
+    IMG.slgIconFlood = nvgCreateImage(vg, "image/slg_icon_flood_20260417024945.png", 0)
+    IMG.slgIconSurrender = nvgCreateImage(vg, "image/slg_icon_surrender_20260417024958.png", 0)
+    IMG.slgIconHorse = nvgCreateImage(vg, "image/slg_icon_horse_20260417024956.png", 0)
+    IMG.slgIconBattleflag = nvgCreateImage(vg, "image/slg_icon_battleflag_20260417024938.png", 0)
+    IMG.slgIconWarning = nvgCreateImage(vg, "image/slg_icon_warning_20260417025000.png", 0)
+    IMG.slgIconCrown = nvgCreateImage(vg, "image/slg_icon_crown_20260417025033.png", 0)
+    IMG.slgIconDeath = nvgCreateImage(vg, "image/slg_icon_death_20260417025219.png", 0)
+    IMG.slgIconDice = nvgCreateImage(vg, "image/slg_icon_dice_20260417025200.png", 0)
+    IMG.slgIconPuzzle = nvgCreateImage(vg, "image/slg_icon_puzzle_20260417025224.png", 0)
+    IMG.slgIconFortress = nvgCreateImage(vg, "image/slg_icon_fortress_20260417025213.png", 0)
+    IMG.slgIconBuild = nvgCreateImage(vg, "image/slg_icon_build_20260417025210.png", 0)
+    IMG.slgIconTimer = nvgCreateImage(vg, "image/slg_icon_timer_20260417025214.png", 0)
+    IMG.slgIconCheck = nvgCreateImage(vg, "image/slg_icon_check_20260417025208.png", 0)
+    IMG.slgIconClipboard = nvgCreateImage(vg, "image/slg_icon_clipboard_20260417025209.png", 0)
+    IMG.slgIconDove = nvgCreateImage(vg, "image/slg_icon_dove_20260417025206.png", 0)
+    IMG.slgIconChat = nvgCreateImage(vg, "image/slg_icon_chat_20260417025540.png", 0)
+    IMG.slgIconUpgrade = nvgCreateImage(vg, "image/slg_icon_upgrade_20260417025445.png", 0)
+    IMG.slgIconCalendar = nvgCreateImage(vg, "image/slg_icon_calendar_20260417025455.png", 0)
+    IMG.slgIconMegaphone = nvgCreateImage(vg, "image/slg_icon_megaphone_20260417025452.png", 0)
+    IMG.slgIconTrophy = nvgCreateImage(vg, "image/slg_icon_trophy_20260417025454.png", 0)
+    IMG.slgIconChart = nvgCreateImage(vg, "image/slg_icon_chart_20260417025600.png", 0)
+    IMG.slgIconShield = nvgCreateImage(vg, "image/slg_icon_shield_20260417025525.png", 0)
+    IMG.slgIconFinger = nvgCreateImage(vg, "image/slg_icon_finger_20260417025459.png", 0)
 
     -- 兵符经验道具图片
     for idx, item in ipairs(SEAL_EXP_ITEMS) do
@@ -254,18 +298,10 @@ function InitModuleBattle()
         fx.handle = nvgCreateImage(vg, fx.file, 0)
     end
 
+    -- 所有战斗布局统一使用同一张横版背景
     IMG.abyssBg = {}
-    IMG.abyssBg[1] = nvgCreateImage(vg, "image/battle_bg_2.png", 0)
-    IMG.abyssBg[2] = nvgCreateImage(vg, "image/battle_bg_3.png", 0)
-    IMG.abyssBg[3] = nvgCreateImage(vg, "image/battle_bg_4.png", 0)
-    IMG.abyssBg[4] = nvgCreateImage(vg, "image/battle_bg_5.png", 0)
-    IMG.abyssBg[5] = nvgCreateImage(vg, "image/battle_bg_6.png", 0)
-    IMG.abyssBg[6] = nvgCreateImage(vg, "image/battle_bg_7.png", 0)
-    IMG.abyssBg[7] = nvgCreateImage(vg, "image/battle_bg_8.png", 0)
-    -- 初始化战斗布局背景句柄: 默认战场无背景(nil), 讨伐复用 IMG.abyssBg
-    BATTLE_LAYOUTS[1].bgHandle = IMG.bg  -- 默认战场使用新背景图
-    for i = 1, 7 do
-        BATTLE_LAYOUTS[i + 1].bgHandle = IMG.abyssBg[i]
+    for i = 1, #BATTLE_LAYOUTS do
+        BATTLE_LAYOUTS[i].bgHandle = IMG.bg
     end
 
     -- 石台底座图片 (透明背景, 独立于战斗背景)
@@ -303,28 +339,17 @@ function InitModuleBattle()
     IMG.abyssIcon[7] = nvgCreateImage(vg, "image/abyss_icon_7_sanguo_bright_20260408083114.png", 0)
 
     local battleRes = {
-        "image/battle_bg_1.png",
+        "image/battle_bg_landscape_20260416123152.png",
         "image/skill_fentianjue.png",
-        "image/battle_bg_topdown_stage6.png",
         "image/abyss_select_sanguo_bright_20260408082708.png",
     }
-    -- 战场背景 2-8
-    for i = 2, 8 do
-        battleRes[#battleRes + 1] = "image/battle_bg_" .. i .. ".png"
-    end
     for _, uf in ipairs(unitFiles) do
         battleRes[#battleRes + 1] = uf[2]
     end
     for idx, fx in pairs(SKILL_FX_SHEETS) do
         battleRes[#battleRes + 1] = fx.file
     end
-    battleRes[#battleRes + 1] = "image/abyss_bg_sanguo_1_bright_20260408083455.png"
-    battleRes[#battleRes + 1] = "image/abyss_bg_sanguo_2_bright_20260408083457.png"
-    battleRes[#battleRes + 1] = "image/abyss_bg_sanguo_3_bright_20260408083425.png"
-    battleRes[#battleRes + 1] = "image/abyss_bg_sanguo_4_bright_20260408083429.png"
-    battleRes[#battleRes + 1] = "image/abyss_bg_sanguo_5_bright_20260408083431.png"
-    battleRes[#battleRes + 1] = "image/abyss_bg_sanguo_6_bright_20260408083622.png"
-    battleRes[#battleRes + 1] = "image/abyss_bg_sanguo_7_bright_20260408083435.png"
+
     battleRes[#battleRes + 1] = "image/abyss_icon_1_sanguo_bright_20260408083110.png"
     battleRes[#battleRes + 1] = "image/abyss_icon_2_sanguo_bright_20260408083150.png"
     battleRes[#battleRes + 1] = "image/abyss_icon_3_sanguo_bright_20260408083102.png"
@@ -338,7 +363,7 @@ function InitModuleBattle()
     battleRes[#battleRes + 1] = "image/deploy_bg_20260415172852.png"
     battleRes[#battleRes + 1] = "image/home_bg_20260415173103.png"
     battleRes[#battleRes + 1] = "image/panel_bg_20260415173049.png"
-    battleRes[#battleRes + 1] = "image/battle_bg_20260415172845.png"
+
     battleRes[#battleRes + 1] = "image/city_icon_friendly_20260415173137.png"
     battleRes[#battleRes + 1] = "image/city_icon_enemy_20260415173221.png"
     battleRes[#battleRes + 1] = "image/city_icon_neutral_20260415173305.png"
@@ -385,10 +410,33 @@ function HandleServerReady(eventType, eventData)
         CheckWeeklyReset()
         CheckWeeklyRankRewards()
 
+        -- UID 现在可用，打印真实 UID
+        local myUid = GetMyUid()
+        print("============================================")
+        print("[系统] 当前玩家 UID (服务端确认): " .. tostring(myUid))
+        print("============================================")
+
+        -- 修正本地模拟排行榜中 userId=0 的条目（Start() 时 UID 尚未就绪）
+        if myUid ~= 0 then
+            for _, list in ipairs({welfareState.powerRank, welfareState.realmRank, welfareState.dummyRank}) do
+                if list then
+                    for _, e in ipairs(list) do
+                        if e.userId == 0 then e.userId = myUid end
+                    end
+                end
+            end
+        end
+
         -- 重新上报战力和境界（用最新数据）
         ReportPowerScore()
         ReportRealmScore()
         LoadPowerRank()
+
+        -- 已有角色时自动选中服务器（不跳过选服，仅预选）
+        if playerInfo.profileSet and gameState.phase == "SERVER_SELECT" then
+            gameState.selectedServer = 1
+            print("[Main] 已有角色，自动选中服务器1")
+        end
 
         print("[Main] 服务端权威数据已应用完成")
     end)
@@ -574,15 +622,10 @@ function Start()
         end,
     })
 
-    -- 设置管理员 UID 列表 (开发者的游戏内 clientCloud.userId)
+    -- 设置管理员 UID 列表 (开发者的游戏内 UID)
     -- 注意: 首次运行时在控制台查看打印的 UID, 然后填入此列表
     CloudManager.ADMIN_UIDS = { 162525390 }
-    if rawget(_G, "clientCloud") then
-        local myUid = clientCloud.userId
-        print("============================================")
-        print("[系统] 当前玩家 UID: " .. tostring(myUid))
-        print("============================================")
-    end
+    print("[系统] UID 将在服务端连接后确认 (当前: " .. tostring(GetMyUid()) .. ")")
 
     -- 加载存档 & 每日/周重置
     LoadGameProgress()
@@ -603,11 +646,20 @@ function Start()
     DismissEquipRedDots()
     DismissSkillRedDots()
 
-    -- 排位匹配：后台匹配模式，匹配成功后 ServerReady 事件触发连接
-    -- 启动时不连接服务器，仅在排位匹配成功后才初始化网络层
+    -- 多人网络初始化
     if rawget(_G, "IsNetworkMode") and IsNetworkMode() then
-        SubscribeToEvent("ServerReady", "HandleServerReady")
-        print("[Main] 后台匹配模式：等待 ServerReady 事件")
+        -- persistent_world 模式：引擎在脚本加载前已连接好，直接初始化网络层
+        -- background_match 模式：需要等待 ServerReady 事件
+        local conn = network:GetServerConnection()
+        if conn then
+            -- 已连接（persistent_world）：直接启动客户端网络层
+            print("[Main] persistent_world 模式：服务器已连接，直接初始化网络层")
+            HandleServerReady(nil, nil)
+        else
+            -- 未连接（background_match）：等待 ServerReady 事件
+            SubscribeToEvent("ServerReady", "HandleServerReady")
+            print("[Main] 后台匹配模式：等待 ServerReady 事件")
+        end
     end
 
     print("=== 三国武灵录 v5.0 ===")

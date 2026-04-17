@@ -41,7 +41,7 @@ CloudManager._chatSeenTs = {}       -- 已见过的最大 ts (per uid)
 ---@param senderName string 发送者昵称
 function CloudManager.SendFactionChat(text, senderName)
     if CloudManager._factionId == 0 then return false, "未加入阵营" end
-    if not rawget(_G, "clientCloud") then return false, "云端不可用" end
+    if not rawget(_G, "cl_state") then return false, "服务端未连接" end
     if not text or #text == 0 then return false, "消息为空" end
 
     local avIdx = (rawget(_G, "playerInfo") and playerInfo.avatarIdx) or 1
@@ -51,7 +51,7 @@ function CloudManager.SendFactionChat(text, senderName)
         name = senderName or "???",
         time = os.date("%H:%M", ts),
         ts = ts,
-        uid = clientCloud.userId,
+        uid = GetMyUid(),
         av = avIdx,
     }
     -- 追加到本地队列
@@ -60,7 +60,7 @@ function CloudManager.SendFactionChat(text, senderName)
     table.insert(CloudManager._chatMerged, msg)
 
     -- 标记自己的时间戳已见，防止轮询时重复拉取本条消息
-    CloudManager._chatSeenTs[clientCloud.userId] = ts
+    CloudManager._chatSeenTs[GetMyUid()] = ts
 
     -- 发布到排行榜 (保留最近 N 条)
     local toPublish = {}
@@ -91,69 +91,67 @@ function CloudManager.PollFactionChat(callback)
         if callback then callback({}) end
         return
     end
-    if not rawget(_G, "clientCloud") then
+    if not rawget(_G, "cl_state") then
         if callback then callback({}) end
         return
     end
 
-    clientCloud:GetRankList(KEYS.camp_chat_ts, 0, 100, {
-        ok = function(rankList)
-            local newMsgs = {}
-            for _, item in ipairs(rankList) do
-                local chatData = item.score[KEYS.camp_chat]
-                if type(chatData) == "table" then
-                    local senderUid = item.uid or 0
-                    local seenTs = CloudManager._chatSeenTs[senderUid] or 0
+    ClientNet.Request("get_rank_list", {
+        key = KEYS.camp_chat_ts, start = 0, count = 100,
+    }, function(ok, code, data, msg)
+        if not ok or not data or not data.list then
+            if callback then callback(CloudManager._chatMerged) end
+            return
+        end
+        local rankList = data.list
+        local newMsgs = {}
+        for _, item in ipairs(rankList) do
+            local chatData = item.score and item.score[KEYS.camp_chat]
+            if type(chatData) == "table" then
+                local senderUid = item.userId or 0
+                local seenTs = CloudManager._chatSeenTs[senderUid] or 0
+                for _, m in ipairs(chatData) do
+                    if type(m) == "table" and m.ts and m.ts > seenTs then
+                        newMsgs[#newMsgs + 1] = {
+                            text = m.text or "",
+                            name = m.name or "???",
+                            time = m.time or "",
+                            ts = m.ts,
+                            uid = senderUid,
+                            av = m.av or 1,
+                        }
+                    end
+                end
+                if #chatData > 0 then
+                    local maxTs = seenTs
                     for _, m in ipairs(chatData) do
-                        if type(m) == "table" and m.ts and m.ts > seenTs then
-                            -- 新消息
-                            newMsgs[#newMsgs + 1] = {
-                                text = m.text or "",
-                                name = m.name or "???",
-                                time = m.time or "",
-                                ts = m.ts,
-                                uid = senderUid,
-                                av = m.av or 1,
-                            }
-                        end
+                        if type(m) == "table" and m.ts and m.ts > maxTs then maxTs = m.ts end
                     end
-                    -- 更新已见时间戳
-                    if #chatData > 0 then
-                        local maxTs = seenTs
-                        for _, m in ipairs(chatData) do
-                            if type(m) == "table" and m.ts and m.ts > maxTs then maxTs = m.ts end
-                        end
-                        CloudManager._chatSeenTs[senderUid] = maxTs
-                    end
+                    CloudManager._chatSeenTs[senderUid] = maxTs
                 end
             end
+        end
 
-            -- 合并到全局列表 (去重, 使用类型安全的 key)
-            local existingTs = {}
-            for _, m in ipairs(CloudManager._chatMerged) do
-                existingTs[chatMsgKey(m.uid, m.ts)] = true
+        -- 合并到全局列表 (去重, 使用类型安全的 key)
+        local existingTs = {}
+        for _, m in ipairs(CloudManager._chatMerged) do
+            existingTs[chatMsgKey(m.uid, m.ts)] = true
+        end
+        for _, m in ipairs(newMsgs) do
+            local key = chatMsgKey(m.uid, m.ts)
+            if not existingTs[key] then
+                table.insert(CloudManager._chatMerged, m)
             end
-            for _, m in ipairs(newMsgs) do
-                local key = chatMsgKey(m.uid, m.ts)
-                if not existingTs[key] then
-                    table.insert(CloudManager._chatMerged, m)
-                end
-            end
+        end
 
-            -- 按 ts 排序
-            table.sort(CloudManager._chatMerged, function(a, b) return (a.ts or 0) < (b.ts or 0) end)
+        table.sort(CloudManager._chatMerged, function(a, b) return (a.ts or 0) < (b.ts or 0) end)
 
-            -- 保留最近 50 条
-            while #CloudManager._chatMerged > 50 do
-                table.remove(CloudManager._chatMerged, 1)
-            end
+        while #CloudManager._chatMerged > 50 do
+            table.remove(CloudManager._chatMerged, 1)
+        end
 
-            if callback then callback(CloudManager._chatMerged) end
-        end,
-        error = function()
-            if callback then callback(CloudManager._chatMerged) end
-        end,
-    }, KEYS.camp_chat)
+        if callback then callback(CloudManager._chatMerged) end
+    end)
 end
 
 --- 获取当前合并的聊天消息列表 (供UI直接读取)
@@ -179,7 +177,7 @@ CloudManager._worldChatSeenTs = {}
 ---@param senderName string 发送者名字
 ---@return boolean, string?
 function CloudManager.SendWorldChat(text, senderName)
-    if not rawget(_G, "clientCloud") then return false, "云端不可用" end
+    if not rawget(_G, "cl_state") then return false, "服务端未连接" end
     if not text or #text == 0 then return false, "消息为空" end
 
     local avIdx = (rawget(_G, "playerInfo") and playerInfo.avatarIdx) or 1
@@ -195,14 +193,14 @@ function CloudManager.SendWorldChat(text, senderName)
         name = senderName or "???",
         time = os.date("%H:%M", ts),
         ts = ts,
-        uid = clientCloud.userId,
+        uid = GetMyUid(),
         av = avIdx,
     }
     table.insert(CloudManager._worldChatPendingMsgs, msg)
     table.insert(CloudManager._worldChatMerged, msg)
 
     -- 标记自己的时间戳已见，防止轮询时重复拉取本条消息
-    CloudManager._worldChatSeenTs[clientCloud.userId] = ts
+    CloudManager._worldChatSeenTs[GetMyUid()] = ts
 
     -- 发布到排行榜 (保留最近 N 条)
     local toPublish = {}
@@ -223,104 +221,103 @@ end
 --- 拉取世界聊天消息 (从排行榜获取最近30个用户的消息)
 ---@param callback? fun(messages: table[])
 function CloudManager.PollWorldChat(callback)
-    if not rawget(_G, "clientCloud") then
+    if not rawget(_G, "cl_state") then
         if callback then callback({}) end
         return
     end
 
-    clientCloud:GetRankList(KEYS.world_chat_ts, 0, 30, {
-        ok = function(rankList)
-            local newMsgs = {}
-            for _, item in ipairs(rankList) do
-                local chatData = item.score[KEYS.world_chat]
-                if type(chatData) == "table" then
-                    local senderUid = item.uid or 0
-                    local seenTs = CloudManager._worldChatSeenTs[senderUid] or 0
-                    for _, m in ipairs(chatData) do
-                        if type(m) == "table" and m.ts and m.ts > seenTs then
-                            newMsgs[#newMsgs + 1] = {
-                                text = m.text or "",
-                                name = m.name or "???",
-                                time = m.time or "",
-                                ts = m.ts,
-                                uid = senderUid,
-                                av = m.av or 1,
-                            }
-                        end
-                    end
-                    if #chatData > 0 then
-                        local maxTs = seenTs
-                        for _, m in ipairs(chatData) do
-                            if type(m) == "table" and m.ts and m.ts > maxTs then maxTs = m.ts end
-                        end
-                        CloudManager._worldChatSeenTs[senderUid] = maxTs
-                    end
-                end
-            end
-
-            -- 合并到全局列表 (去重, 使用类型安全的 key)
-            local existingTs = {}
-            for _, m in ipairs(CloudManager._worldChatMerged) do
-                existingTs[chatMsgKey(m.uid, m.ts)] = true
-            end
-            for _, m in ipairs(newMsgs) do
-                local key = chatMsgKey(m.uid, m.ts)
-                if not existingTs[key] then
-                    table.insert(CloudManager._worldChatMerged, m)
-                end
-            end
-
-            -- 按 ts 排序
-            table.sort(CloudManager._worldChatMerged, function(a, b) return (a.ts or 0) < (b.ts or 0) end)
-
-            -- 保留最近 100 条
-            while #CloudManager._worldChatMerged > WORLD_CHAT_MAX_MERGED do
-                table.remove(CloudManager._worldChatMerged, 1)
-            end
-
-            -- 批量查询 nickname 覆盖 name 字段
-            local uidSet = {}
-            local uidList = {}
-            for _, m in ipairs(CloudManager._worldChatMerged) do
-                local uid = m.uid or 0
-                if uid > 0 and not uidSet[uid] then
-                    uidSet[uid] = true
-                    uidList[#uidList + 1] = uid
-                end
-            end
-            if #uidList > 0 and rawget(_G, "GetUserNickname") then
-                pcall(function()
-                    GetUserNickname({
-                        userIds = uidList,
-                        onSuccess = function(nicknames)
-                            local nameMap = {}
-                            for _, info in ipairs(nicknames) do
-                                nameMap[info.userId] = info.nickname
-                            end
-                            -- 缓存自己的 TapTap nickname，供发送时直接使用
-                            local myUid = clientCloud.userId
-                            if myUid and nameMap[myUid] and #nameMap[myUid] > 0 then
-                                CloudManager._myTapNickname = nameMap[myUid]
-                            end
-                            for _, m in ipairs(CloudManager._worldChatMerged) do
-                                local nick = nameMap[m.uid or 0]
-                                if nick and #nick > 0 then m.name = nick end
-                            end
-                            if callback then callback(CloudManager._worldChatMerged) end
-                        end,
-                        onError = function()
-                            if callback then callback(CloudManager._worldChatMerged) end
-                        end,
-                    })
-                end)
-            else
-                if callback then callback(CloudManager._worldChatMerged) end
-            end
-        end,
-        error = function()
+    ClientNet.Request("get_rank_list", {
+        key = KEYS.world_chat_ts, start = 0, count = 30,
+    }, function(ok, code, data, msg)
+        if not ok or not data or not data.list then
             if callback then callback(CloudManager._worldChatMerged) end
-        end,
-    }, KEYS.world_chat)
+            return
+        end
+        local rankList = data.list
+        local newMsgs = {}
+        for _, item in ipairs(rankList) do
+            local chatData = item.score and item.score[KEYS.world_chat]
+            if type(chatData) == "table" then
+                local senderUid = item.userId or 0
+                local seenTs = CloudManager._worldChatSeenTs[senderUid] or 0
+                for _, m in ipairs(chatData) do
+                    if type(m) == "table" and m.ts and m.ts > seenTs then
+                        newMsgs[#newMsgs + 1] = {
+                            text = m.text or "",
+                            name = m.name or "???",
+                            time = m.time or "",
+                            ts = m.ts,
+                            uid = senderUid,
+                            av = m.av or 1,
+                        }
+                    end
+                end
+                if #chatData > 0 then
+                    local maxTs = seenTs
+                    for _, m in ipairs(chatData) do
+                        if type(m) == "table" and m.ts and m.ts > maxTs then maxTs = m.ts end
+                    end
+                    CloudManager._worldChatSeenTs[senderUid] = maxTs
+                end
+            end
+        end
+
+        -- 合并到全局列表 (去重, 使用类型安全的 key)
+        local existingTs = {}
+        for _, m in ipairs(CloudManager._worldChatMerged) do
+            existingTs[chatMsgKey(m.uid, m.ts)] = true
+        end
+        for _, m in ipairs(newMsgs) do
+            local key = chatMsgKey(m.uid, m.ts)
+            if not existingTs[key] then
+                table.insert(CloudManager._worldChatMerged, m)
+            end
+        end
+
+        table.sort(CloudManager._worldChatMerged, function(a, b) return (a.ts or 0) < (b.ts or 0) end)
+
+        while #CloudManager._worldChatMerged > WORLD_CHAT_MAX_MERGED do
+            table.remove(CloudManager._worldChatMerged, 1)
+        end
+
+        -- 批量查询 nickname 覆盖 name 字段
+        local uidSet = {}
+        local uidList = {}
+        for _, m in ipairs(CloudManager._worldChatMerged) do
+            local uid = m.uid or 0
+            if uid > 0 and not uidSet[uid] then
+                uidSet[uid] = true
+                uidList[#uidList + 1] = uid
+            end
+        end
+        if #uidList > 0 and rawget(_G, "GetUserNickname") then
+            pcall(function()
+                GetUserNickname({
+                    userIds = uidList,
+                    onSuccess = function(nicknames)
+                        local nameMap = {}
+                        for _, info in ipairs(nicknames) do
+                            nameMap[info.userId] = info.nickname
+                        end
+                        local myUid = GetMyUid()
+                        if myUid and nameMap[myUid] and #nameMap[myUid] > 0 then
+                            CloudManager._myTapNickname = nameMap[myUid]
+                        end
+                        for _, m in ipairs(CloudManager._worldChatMerged) do
+                            local nick = nameMap[m.uid or 0]
+                            if nick and #nick > 0 then m.name = nick end
+                        end
+                        if callback then callback(CloudManager._worldChatMerged) end
+                    end,
+                    onError = function()
+                        if callback then callback(CloudManager._worldChatMerged) end
+                    end,
+                })
+            end)
+        else
+            if callback then callback(CloudManager._worldChatMerged) end
+        end
+    end)
 end
 
 --- 获取当前世界聊天消息列表 (供UI直接读取)
@@ -641,7 +638,7 @@ function CloudManager.Update(dt)
     end
 
     -- 社交轮询: 好友回复 + 阵营审批结果
-    if not rawget(_G, "clientCloud") then return end
+    if not rawget(_G, "cl_state") then return end
     socialPollTimer = socialPollTimer + dt
     if socialPollTimer >= SOCIAL_POLL_INTERVAL and not socialPollBusy then
         socialPollTimer = 0
@@ -742,73 +739,72 @@ CloudManager.BAN_LEVEL_FULL   = BAN_LEVEL_FULL
 --- 原理: 扫描 ban_ts 排行榜, 找到管理员发布的封禁名单, 检查自己是否在列表中
 ---@param callback fun(level: number, reason: string)
 function CloudManager.CheckBanStatus(callback)
-    if not rawget(_G, "clientCloud") then
+    if not rawget(_G, "cl_state") then
         S.banChecked = true
         if callback then callback(BAN_LEVEL_NONE, "") end
         return
     end
 
-    local myUid = clientCloud.userId
+    local myUid = GetMyUid()
     local myUidStr = tostring(myUid)
 
-    -- 扫描 ban_ts 排行榜 (管理员通过 SetInt 发布, 按时间倒序)
-    clientCloud:GetRankList(KEYS.ban_ts, 0, 50, {
-        ok = function(rankList)
-            local foundLevel = BAN_LEVEL_NONE
-            local foundReason = ""
-
-            for _, item in ipairs(rankList) do
-                local banData = item.score[KEYS.ban_data]
-                if type(banData) == "table" then
-                    -- 封禁名单格式: { bans = { ["uid"] = { level=1-3, reason="...", until=timestamp } } }
-                    local bans = banData.bans
-                    if type(bans) == "table" and bans[myUidStr] then
-                        local entry = bans[myUidStr]
-                        -- 检查是否已过期
-                        local untilTime = entry["until"] or 0
-                        if untilTime == 0 or untilTime > os.time() then
-                            local lvl = entry.level or BAN_LEVEL_FULL
-                            if lvl > foundLevel then
-                                foundLevel = lvl
-                                foundReason = entry.reason or "违规操作"
-                            end
-                        end
-                    end
-                end
-            end
-
-            -- 加载隐藏名单 (管理员用)
-            if not CloudManager._hiddenPlayers then CloudManager._hiddenPlayers = {} end
-            for _, item2 in ipairs(rankList) do
-                local bd2 = item2.score[KEYS.ban_data]
-                if type(bd2) == "table" and type(bd2.bans) == "table" then
-                    for uid2, info2 in pairs(bd2.bans) do
-                        if type(info2) == "table" and info2.rankHidden then
-                            CloudManager._hiddenPlayers[tostring(uid2)] = true
-                        end
-                    end
-                end
-            end
-
-            S.banLevel = foundLevel
-            S.banReason = foundReason
+    -- 扫描 ban_ts 排行榜
+    ClientNet.Request("get_rank_list", {
+        key = KEYS.ban_ts, start = 0, count = 50,
+    }, function(ok, code, data, msg)
+        if not ok or not data or not data.list then
+            print("[封禁] 检查封禁状态失败: " .. tostring(msg))
             S.banChecked = true
-
-            if foundLevel > BAN_LEVEL_NONE then
-                print("[封禁] 检测到封禁: 等级=" .. foundLevel .. " 原因=" .. foundReason)
-            else
-                print("[封禁] 未被封禁")
-            end
-
-            if callback then callback(foundLevel, foundReason) end
-        end,
-        error = function(_, reason)
-            print("[封禁] 检查封禁状态失败: " .. tostring(reason))
-            S.banChecked = true
-            -- 网络失败时不封禁 (宽松策略)
             if callback then callback(BAN_LEVEL_NONE, "") end
-        end,
-    }, KEYS.ban_data)
+            return
+        end
+        local rankList = data.list
+        local foundLevel = BAN_LEVEL_NONE
+        local foundReason = ""
+
+        for _, item in ipairs(rankList) do
+            local banData = item.score and item.score[KEYS.ban_data]
+            if type(banData) == "table" then
+                local bans = banData.bans
+                if type(bans) == "table" and bans[myUidStr] then
+                    local entry = bans[myUidStr]
+                    local untilTime = entry["until"] or 0
+                    if untilTime == 0 or untilTime > os.time() then
+                        local lvl = entry.level or BAN_LEVEL_FULL
+                        if lvl > foundLevel then
+                            foundLevel = lvl
+                            foundReason = entry.reason or "违规操作"
+                        end
+                    end
+                end
+            end
+        end
+
+        -- 加载隐藏名单 (管理员用)
+        if not CloudManager._hiddenPlayers then CloudManager._hiddenPlayers = {} end
+        for _, item2 in ipairs(rankList) do
+            local bd2 = item2.score and item2.score[KEYS.ban_data]
+            if type(bd2) == "table" and type(bd2.bans) == "table" then
+                for uid2, info2 in pairs(bd2.bans) do
+                    if type(info2) == "table" and info2.rankHidden then
+                        CloudManager._hiddenPlayers[tostring(uid2)] = true
+                    end
+                end
+            end
+        end
+
+        S.banLevel = foundLevel
+        S.banReason = foundReason
+        S.banChecked = true
+
+        if foundLevel > BAN_LEVEL_NONE then
+            print("[封禁] 检测到封禁: 等级=" .. foundLevel .. " 原因=" .. foundReason)
+        else
+            print("[封禁] 未被封禁")
+        end
+
+        if callback then callback(foundLevel, foundReason) end
+    end)
 end
 
 --- 获取当前封禁等级
@@ -849,24 +845,24 @@ end
 --- 管理员: 获取当前封禁名单 (从排行榜读取自己发布的)
 ---@param callback fun(bans: table|nil, err: string|nil)
 function CloudManager.AdminGetBanList(callback)
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(nil, "clientCloud不可用") end
+    if not rawget(_G, "cl_state") then
+        if callback then callback(nil, "服务端未连接") end
         return
     end
-    local myUid = clientCloud.userId
-    clientCloud:Get(KEYS.ban_data, {
-        ok = function(values)
-            local data = values and values[KEYS.ban_data]
-            if type(data) == "table" and type(data.bans) == "table" then
-                if callback then callback(data.bans, nil) end
-            else
-                if callback then callback({}, nil) end
-            end
-        end,
-        error = function(_, reason)
-            if callback then callback(nil, tostring(reason)) end
-        end,
-    })
+    ClientNet.Request("cloud_get", {
+        key = KEYS.ban_data,
+    }, function(ok, code, data, msg)
+        if not ok or not data then
+            if callback then callback(nil, tostring(msg)) end
+            return
+        end
+        local val = data.value
+        if type(val) == "table" and type(val.bans) == "table" then
+            if callback then callback(val.bans, nil) end
+        else
+            if callback then callback({}, nil) end
+        end
+    end)
 end
 
 --- 管理员: 发布封禁名单 (覆盖式写入)
@@ -874,8 +870,8 @@ end
 ---@param bans table 封禁名单
 ---@param callback fun(ok: boolean, err: string|nil)
 function CloudManager.AdminPublishBanList(bans, callback)
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "clientCloud不可用") end
+    if not rawget(_G, "cl_state") then
+        if callback then callback(false, "服务端未连接") end
         return
     end
     local ts = os.time()
@@ -1107,10 +1103,7 @@ end
 ---@param allData table 所有domain数据 (或domain名→data的映射)
 ---@return number hash值
 function CloudManager._computeSaveHash(allData)
-    local uid = 0
-    if rawget(_G, "clientCloud") then
-        uid = clientCloud.userId or 0
-    end
+    local uid = GetMyUid()
 
     local sum = 0
 
@@ -1226,40 +1219,38 @@ function CloudManager.LoadMailOutbox(callback)
         if callback then callback(true) end
         return
     end
-    if not rawget(_G, "clientCloud") then
+    if not rawget(_G, "cl_state") then
         if callback then callback(false) end
         return
     end
-    clientCloud:BatchGet()
-        :Key(KEYS.mail_outbox)
-        :Fetch({
-            ok = function(values, iscores)
-                local outbox = values and values[KEYS.mail_outbox]
-                if outbox and type(outbox) == "table" then
-                    -- 过滤过期邮件
-                    local now = os.time()
-                    local kept = {}
-                    for _, m in ipairs(outbox) do
-                        if (now - (m.time or 0)) < MAIL_EXPIRE_DAYS * 86400 then
-                            kept[#kept + 1] = m
-                        end
-                    end
-                    CloudManager._mailOutbox = kept
-                    print("[邮件] 云端发件箱加载成功: " .. #kept .. " 封")
-                else
-                    CloudManager._mailOutbox = {}
-                    print("[邮件] 云端发件箱为空")
+    ClientNet.Request("cloud_batch_get", {
+        keys = { KEYS.mail_outbox },
+    }, function(ok, code, data, msg)
+        if not ok or not data then
+            print("[邮件] 云端发件箱加载失败: " .. tostring(msg))
+            CloudManager._mailOutboxLoaded = true
+            if callback then callback(false) end
+            return
+        end
+        local values = data.scores or {}
+        local outbox = values[KEYS.mail_outbox]
+        if outbox and type(outbox) == "table" then
+            local now = os.time()
+            local kept = {}
+            for _, m in ipairs(outbox) do
+                if (now - (m.time or 0)) < MAIL_EXPIRE_DAYS * 86400 then
+                    kept[#kept + 1] = m
                 end
-                CloudManager._mailOutboxLoaded = true
-                if callback then callback(true) end
-            end,
-            error = function(_, reason)
-                print("[邮件] 云端发件箱加载失败: " .. tostring(reason))
-                -- 加载失败也标记，避免反复重试阻塞发信
-                CloudManager._mailOutboxLoaded = true
-                if callback then callback(false) end
-            end,
-        })
+            end
+            CloudManager._mailOutbox = kept
+            print("[邮件] 云端发件箱加载成功: " .. #kept .. " 封")
+        else
+            CloudManager._mailOutbox = {}
+            print("[邮件] 云端发件箱为空")
+        end
+        CloudManager._mailOutboxLoaded = true
+        if callback then callback(true) end
+    end)
 end
 
 --- 发送邮件给指定玩家
@@ -1269,8 +1260,8 @@ end
 ---@param rewards? table 附件奖励 [{type,amount,label}] (仅管理员可发)
 ---@param callback? fun(ok:boolean, msg:string)
 function CloudManager.SendMail(targetUid, subject, body, rewards, callback)
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not rawget(_G, "cl_state") then
+        if callback then callback(false, "服务端未连接") end
         return
     end
 
@@ -1284,7 +1275,7 @@ function CloudManager.SendMail(targetUid, subject, body, rewards, callback)
         return
     end
 
-    local myUid = clientCloud.userId
+    local myUid = GetMyUid()
     local myName = rawget(_G, "playerInfo") and playerInfo.name or ("玩家" .. tostring(myUid))
 
     -- 只有管理员可以发带奖励的邮件
@@ -1352,7 +1343,7 @@ end
 --- 轮询收件箱 (扫描所有玩家的 outbox, 过滤发给自己的)
 ---@param callback? fun(mails:table)
 function CloudManager.PollInbox(callback)
-    if not rawget(_G, "clientCloud") then
+    if not rawget(_G, "cl_state") then
         if callback then callback({}) end
         return
     end
@@ -1366,50 +1357,49 @@ function CloudManager.PollInbox(callback)
         return
     end
     CloudManager._mailLoading = true
-    local myUid = clientCloud.userId
+    local myUid = GetMyUid()
 
-    clientCloud:GetRankList(KEYS.mail_ts, 0, 200, {
-        ok = function(rankList)
-            local inbox = {}
-            local expireThreshold = now - MAIL_EXPIRE_DAYS * 86400
-            for _, entry in ipairs(rankList) do
-                local senderId = entry.player or entry.userId
-                local outbox = entry.score and entry.score[KEYS.mail_outbox]
-                if outbox and type(outbox) == "table" then
-                    for _, m in ipairs(outbox) do
-                        -- to==myUid 或 to==0(广播)
-                        if (m.to == myUid or m.to == 0) and (m.time or 0) > expireThreshold then
-                            -- 广播邮件不显示自己发给自己的
-                            if not (m.to == 0 and senderId == myUid) then
-                                inbox[#inbox + 1] = {
-                                    id = m.id,
-                                    from = senderId,  -- 始终使用平台认证ID，不信任自报m.from
-                                    fromName = m.fromName or ("玩家" .. tostring(senderId)),
-                                    subject = m.subject or "",
-                                    body = m.body or "",
-                                    rewards = m.rewards or {},
-                                    time = m.time or 0,
-                                    isBroadcast = (m.to == 0),
-                                }
-                            end
+    ClientNet.Request("get_rank_list", {
+        key = KEYS.mail_ts, start = 0, count = 200,
+    }, function(ok, code, data, msg)
+        if not ok or not data or not data.list then
+            CloudManager._mailLoading = false
+            print("[邮件] 收件箱刷新失败: " .. tostring(msg))
+            if callback then callback(CloudManager._mailInbox) end
+            return
+        end
+        local rankList = data.list
+        local inbox = {}
+        local expireThreshold = now - MAIL_EXPIRE_DAYS * 86400
+        for _, entry in ipairs(rankList) do
+            local senderId = entry.userId
+            local outbox = entry.score and entry.score[KEYS.mail_outbox]
+            if outbox and type(outbox) == "table" then
+                for _, m in ipairs(outbox) do
+                    if (m.to == myUid or m.to == 0) and (m.time or 0) > expireThreshold then
+                        if not (m.to == 0 and senderId == myUid) then
+                            inbox[#inbox + 1] = {
+                                id = m.id,
+                                from = senderId,
+                                fromName = m.fromName or ("玩家" .. tostring(senderId)),
+                                subject = m.subject or "",
+                                body = m.body or "",
+                                rewards = m.rewards or {},
+                                time = m.time or 0,
+                                isBroadcast = (m.to == 0),
+                            }
                         end
                     end
                 end
             end
-            -- 按时间降序
-            table.sort(inbox, function(a, b) return a.time > b.time end)
-            CloudManager._mailInbox = inbox
-            CloudManager._mailLastPoll = now
-            CloudManager._mailLoading = false
-            print("[邮件] 收件箱刷新: " .. #inbox .. " 封")
-            if callback then callback(inbox) end
-        end,
-        error = function(_, reason)
-            CloudManager._mailLoading = false
-            print("[邮件] 收件箱刷新失败: " .. tostring(reason))
-            if callback then callback(CloudManager._mailInbox) end
-        end,
-    }, KEYS.mail_outbox)
+        end
+        table.sort(inbox, function(a, b) return a.time > b.time end)
+        CloudManager._mailInbox = inbox
+        CloudManager._mailLastPoll = now
+        CloudManager._mailLoading = false
+        print("[邮件] 收件箱刷新: " .. #inbox .. " 封")
+        if callback then callback(inbox) end
+    end)
 end
 
 --- 强制刷新收件箱 (重置冷却)
@@ -1421,9 +1411,9 @@ end
 --- 判断当前玩家是否为管理员
 ---@return boolean
 function CloudManager.IsAdmin()
-    if not rawget(_G, "clientCloud") then return false end
+    if not rawget(_G, "cl_state") then return false end
     local ADMIN_UIDS = CloudManager.ADMIN_UIDS or {}
-    local myUid = clientCloud.userId
+    local myUid = GetMyUid()
     for _, uid in ipairs(ADMIN_UIDS) do
         if uid == myUid then return true end
     end

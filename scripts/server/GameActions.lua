@@ -163,7 +163,12 @@ function GameActions.Dispatch(userId, action, seq, params, replyFn)
         end
 
         -- 7. 执行业务逻辑
-        local success, err = pcall(entry.handler, userId, params, function(code, data, msg)
+        -- handler 的 replyFn 签名: (ok: boolean, code: number, data?: table, msg?: string)
+        -- 底层 replyFn 签名: (code: number, data?: table, msg?: string)
+        local success, err = pcall(entry.handler, userId, params, function(succ, code, data, msg)
+            -- handler 调用签名: (succ: boolean, code: number|nil, data?: table, msg?: string)
+            -- succ=true 且 code=nil 时默认为 CODE.OK（兼容简写）
+            if succ and not code then code = CODE.OK end
             -- 标记幂等
             if opKey and code == CODE.OK then
                 PlayerDataManager.MarkProcessed(userId, opKey)
