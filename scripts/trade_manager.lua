@@ -4,7 +4,7 @@
 --
 -- 鏋舵瀯璇存槑:
 --   浣跨敤鍚屼竴涓?rank list (trade_ts / trade_data) 浣滀负"鍏叡甯傚満琛?
---   姣忎釜鐜╁鐨?slot 鍖呭惈: listings(涓婃灦) + purchases(璐拱璁板綍)
+--   姣忎釜玩家鐨?slot 鍖呭惈: listings(涓婃灦) + purchases(璐拱璁板綍)
 --   涔板璐拱鍚?鈫?鍐欏叆鑷繁 slot 鐨?purchases 鈫?鍗栧鎵弿鍏叡琛ㄥ嵆鍙彂鐜?
 --   鍗栧棰嗗彇鍚?鈫?鍒犻櫎 listing + 娓呯悊鍏叡琛?
 -- ============================================================================
@@ -196,10 +196,10 @@ end
 ---@return boolean, string?
 function TradeManager.CanTrade(tier)
     if tier < 4 then
-        return false, "浠呬警鍝佸強浠ヤ笂鍙氦鏄?
+        return false, "品阶过低，无法交易"
     end
     if not TRADE.PRICE_RANGE[tier] then
-        return false, "璇ュ搧闃朵笉鏀寔浜ゆ槗"
+        return false, "该品阶不支持交易"
     end
     return true
 end
@@ -234,20 +234,20 @@ function TradeManager.ListItem(equipUid, price, callback)
     callback = callback or function() end
 
     if TradeManager.GetListingCount() >= TRADE.MAX_LISTINGS then
-        callback(false, "涓婃灦鏁伴噺宸茶揪涓婇檺(" .. TRADE.MAX_LISTINGS .. "浠?")
+        callback(false, "上架数量已达上限(" .. TRADE.MAX_LISTINGS .. "件")
         return
     end
 
     local item, _ = FindOwnedByUid(equipUid)
     if not item then
-        callback(false, "鏈壘鍒拌瑁呭")
+        callback(false, "未找到该装备")
         return
     end
 
     if playerEquipment and playerEquipment.equipped then
         for _, eqUid in pairs(playerEquipment.equipped) do
             if eqUid == equipUid then
-                callback(false, "璇峰厛鍗镐笅瑁呭鍐嶄笂鏋?)
+                callback(false, "请先卸下装备再上架")
                 return
             end
         end
@@ -262,19 +262,19 @@ function TradeManager.ListItem(equipUid, price, callback)
     local minP, maxP = TradeManager.GetPriceRange(item.tier)
     price = math.floor(price)
     if price < minP or price > maxP then
-        callback(false, "浠锋牸闇€鍦? .. minP .. "~" .. maxP .. "铏庣涔嬮棿")
+        callback(false, "价格需在" .. minP .. "~" .. maxP .. "虎珀之间")
         return
     end
 
     local removed = RemoveOwnedByUid(equipUid)
     if not removed then
-        callback(false, "绉婚櫎瑁呭澶辫触")
+        callback(false, "移除装备失败")
         return
     end
 
     local myUid = CloudAPI.GetUserId()
     local listingKey = makeListingKey(myUid, item.setIdx, item.uid)
-    local sellerName = (playerInfo and playerInfo.nickname) or ("鐜╁" .. tostring(myUid))
+    local sellerName = (playerInfo and playerInfo.nickname) or ("玩家" .. tostring(myUid))
 
     state.myData.listings[listingKey] = {
         equip = {
@@ -303,7 +303,7 @@ function TradeManager.ListItem(equipUid, price, callback)
             state.myData.listings[listingKey] = nil
             saveLocal()
             if SaveGameProgress then SaveGameProgress() end
-            callback(false, "浜戠鍚屾澶辫触锛岃澶囧凡鎭㈠")
+            callback(false, "云端同步失败，装备已恢复")
         end
     end)
 end
@@ -319,7 +319,7 @@ function TradeManager.UnlistItem(listingKey, callback)
     callback = callback or function() end
     local listing = state.myData.listings[listingKey]
     if not listing then
-        callback(false, "鏈壘鍒拌涓婃灦璁板綍")
+        callback(false, "未找到该上架记录")
         return
     end
 
@@ -334,9 +334,9 @@ function TradeManager.UnlistItem(listingKey, callback)
     TradeManager._publishMyData(function(ok)
         if ok then
             print("[TradeManager] 涓嬫灦鎴愬姛: " .. listingKey)
-            callback(true, "瑁呭宸茶繑鍥炰粨搴?)
+            callback(true, "装备已返回仓库")
         else
-            callback(true, "瑁呭宸茶繑鍥炰粨搴?浜戠绋嶅悗鍚屾)")
+            callback(true, "装备已返回仓库（云端稍后同步）")
         end
     end)
 end
@@ -425,7 +425,7 @@ function TradeManager.RefreshMarket(callback)
                                     listingKey = lk,
                                     equip = listing.equip,
                                     price = listing.price,
-                                    sellerName = listing.sellerName or ("鐜╁" .. tostring(playerId)),
+                                    sellerName = listing.sellerName or ("玩家" .. tostring(playerId)),
                                     sellerId = playerId,
                                     listTime = listing.listTime,
                                     remainSec = TRADE.EXPIRE_SECONDS - elapsed,
@@ -559,12 +559,12 @@ function TradeManager.BuyItem(listingKey, expectedSellerId, expectedPrice, callb
     -- 闃叉鑷喘
     local myUid = CloudAPI.GetUserId()
     if expectedSellerId == myUid then
-        callback(false, "涓嶈兘璐拱鑷繁涓婃灦鐨勮澶?)
+        callback(false, "不能购买自己上架的装备")
         return
     end
 
     if (playerInfo.jade or 0) < expectedPrice then
-        callback(false, "铏庣涓嶈冻")
+        callback(false, "虎珀不足")
         return
     end
 
@@ -591,56 +591,62 @@ function TradeManager.BuyItem(listingKey, expectedSellerId, expectedPrice, callb
             end
 
             if not found or not listing then
-                callback(false, "璇ヨ澶囧凡琚叾浠栫帺瀹朵拱涓嬫垨宸蹭笅鏋?)
+                callback(false, "该装备已被其他玩家买走或已下架")
                 state.lastRefreshTime = 0
                 return
             end
 
             if listing.price ~= expectedPrice then
-                callback(false, "浠锋牸宸插彉鍔?璇峰埛鏂板悗閲嶈瘯")
+                callback(false, "价格已变动，请刷新后重试")
                 state.lastRefreshTime = 0
                 return
             end
 
-            -- 鎵ｉ櫎铏庣
-            playerInfo.jade = playerInfo.jade - expectedPrice
-
-            -- 鍒涘缓瑁呭鍒颁拱瀹朵粨搴?
+            -- 服务端原子扣除虎珀（防止客户端伪造余额）
             local eq = listing.equip
-            local newItem = CreateEquipItem(eq.setIdx, eq.slotIdx, eq.tier, eq.quality, eq.level)
-            newItem.enhanceLv = eq.enhanceLv or 0
+            CloudAPI:TradeBuy(PREFIX .. "sv_core", expectedPrice, {
+                ok = function(newJade)
+                    -- 使用服务端确认后的余额（降低客户端篡改风险）
+                    playerInfo.jade = newJade or (playerInfo.jade - expectedPrice)
 
-            -- 鍐欏叆璐拱璁板綍鍒板叕鍏卞競鍦鸿〃 (鏍囪宸插嚭鍞?
-            local buyerName = (playerInfo and playerInfo.nickname) or ("鐜╁" .. tostring(myUid))
-            state.myData.purchases[listingKey] = {
-                sellerId = expectedSellerId,
-                price = expectedPrice,
-                buyTime = os.time(),
-                buyerName = buyerName,
-            }
-            state.dataNeedUpload = true  -- 鏍囪寰呬笂浼?
+                    -- 创建装备到买家仓库
+                    local newItem = CreateEquipItem(eq.setIdx, eq.slotIdx, eq.tier, eq.quality, eq.level)
+                    newItem.enhanceLv = eq.enhanceLv or 0
 
-            saveLocal()
-            if SaveGameProgress then SaveGameProgress() end
+                    -- 写入购买记录到公共市场表（标记已出售）
+                    local buyerName = (playerInfo and playerInfo.nickname) or ("玩家" .. tostring(myUid))
+                    state.myData.purchases[listingKey] = {
+                        sellerId = expectedSellerId,
+                        price = expectedPrice,
+                        buyTime = os.time(),
+                        buyerName = buyerName,
+                    }
+                    state.dataNeedUpload = true
 
-            -- 涓婁紶鍒板叕鍏卞競鍦鸿〃
-            TradeManager._publishMyData(function(ok)
-                if ok then
-                    print("[TradeManager] 璐拱璁板綍宸蹭笂浼? " .. listingKey)
-                else
-                    print("[TradeManager] 璐拱璁板綍涓婁紶澶辫触,灏嗗湪Tick閲嶈瘯: " .. listingKey)
-                end
-            end)
+                    saveLocal()
+                    if SaveGameProgress then SaveGameProgress() end
 
-            -- 鍒锋柊甯傚満缂撳瓨
-            state.lastRefreshTime = 0
+                    -- 上传到公共市场表
+                    TradeManager._publishMyData(function(pubOk)
+                        if pubOk then
+                            print("[TradeManager] 购买记录已上传: " .. listingKey)
+                        else
+                            print("[TradeManager] 购买记录上传失败,将在Tick重试: " .. listingKey)
+                        end
+                    end)
 
-            callback(true, "璐拱鎴愬姛! " .. EQUIP_TIER_NAMES[eq.tier] .. " " ..
-                EQUIP_SLOT_NAMES[eq.slotIdx] .. " 宸插姞鍏ヤ粨搴?)
+                    state.lastRefreshTime = 0
+                    callback(true, "购买成功！" .. EQUIP_TIER_NAMES[eq.tier] .. " " ..
+                        EQUIP_SLOT_NAMES[eq.slotIdx] .. " 已加入仓库")
+                end,
+                error = function(reason)
+                    callback(false, "购买失败：" .. tostring(reason))
+                end,
+            })
         end,
         error = function(code, reason)
             state.marketLoading = false
-            callback(false, "缃戠粶閿欒,璇风◢鍚庨噸璇?)
+            callback(false, "网络错误,请稍后重试")
         end,
     }, KEYS.trade_data)
 end
@@ -794,7 +800,7 @@ function TradeManager._publishMyData(callback)
     CloudAPI:BatchSet()
         :SetInt(KEYS.trade_ts, os.time())
         :Set(KEYS.trade_data, state.myData)
-        :Save("浜ゆ槗琛?鏁版嵁鍚屾", {
+        :Save("交易行数据同步", {
             ok = function()
                 state.dataNeedUpload = false
                 callback(true)

@@ -45,9 +45,9 @@ CloudManager._chatSeenTs = {}       -- 宸茶杩囩殑鏈€澶?ts (per uid)
 ---@param text string 娑堟伅鍐呭
 ---@param senderName string 鍙戦€佽€呮樀绉?
 function CloudManager.SendFactionChat(text, senderName)
-    if CloudManager._factionId == 0 then return false, "鏈姞鍏ラ樀钀? end
-    if not CloudAPI.IsAvailable() then return false, "浜戠涓嶅彲鐢? end
-    if not text or #text == 0 then return false, "娑堟伅涓虹┖" end
+    if CloudManager._factionId == 0 then return false, "未加入阵营" end
+    if not CloudAPI.IsAvailable() then return false, "云端不可用" end
+    if not text or #text == 0 then return false, "消息为空" end
 
     local avIdx = (rawget(_G, "playerInfo") and playerInfo.avatarIdx) or 1
     local ts = os.time()
@@ -78,7 +78,7 @@ function CloudManager.SendFactionChat(text, senderName)
     CloudAPI:BatchSet()
         :SetInt(KEYS.camp_chat_ts, ts)
         :Set(KEYS.camp_chat, toPublish)
-        :Save("鍙戦€侀樀钀ヨ亰澶?)
+        :Save("发送阵营聊天")
 
     CloudManager._chatLastSentTs = ts
     return true
@@ -184,8 +184,8 @@ CloudManager._worldChatSeenTs = {}
 ---@param senderName string 鍙戦€佽€呭悕瀛?
 ---@return boolean, string?
 function CloudManager.SendWorldChat(text, senderName)
-    if not CloudAPI.IsAvailable() then return false, "浜戠涓嶅彲鐢? end
-    if not text or #text == 0 then return false, "娑堟伅涓虹┖" end
+    if not CloudAPI.IsAvailable() then return false, "云端不可用" end
+    if not text or #text == 0 then return false, "消息为空" end
 
     local avIdx = (rawget(_G, "playerInfo") and playerInfo.avatarIdx) or 1
     local ts = os.time()
@@ -220,7 +220,7 @@ function CloudManager.SendWorldChat(text, senderName)
     CloudAPI:BatchSet()
         :SetInt(KEYS.world_chat_ts, ts)
         :Set(KEYS.world_chat, toPublish)
-        :Save("鍙戦€佷笘鐣岃亰澶?)
+        :Save("发送世界聊天")
 
     return true
 end
@@ -658,7 +658,7 @@ function CloudManager.Update(dt)
                 for _, r in ipairs(results) do
                     if r.accepted then
                         print("[绀句氦杞] 濂藉弸璇锋眰琚?" .. tostring(r.toUid) .. " 鍚屾剰, 宸蹭簰鍔?")
-                        if rawget(_G, "ShowToast") then ShowToast("浣犱笌鐜╁" .. tostring(r.toUid) .. "宸叉垚涓哄ソ鍙?") end
+                        if rawget(_G, "ShowToast") then ShowToast("浣犱笌玩家" .. tostring(r.toUid) .. "宸叉垚涓哄ソ鍙?") end
                         if rawget(_G, "playerInfo") then
                             playerInfo.totalFriends = (playerInfo.totalFriends or 0) + 1
                         end
@@ -899,7 +899,7 @@ function CloudManager.AdminPublishBanList(bans, callback)
 end
 
 --- 绠＄悊鍛? 灏嗘帓琛屾鍒嗘暟璁句负鏋佸皬鍊兼潵闅愯棌 (SetInt 璁句负 -999999)
----@param targetUid number 鐩爣鐜╁UID
+---@param targetUid number 鐩爣玩家UID
 ---@param callback fun(ok: boolean, msg: string)
 function CloudManager.AdminHidePlayerRank(targetUid, callback)
     -- 娉ㄦ剰: CloudAPI 鍙兘鎿嶄綔鑷繁鐨勬暟鎹? 鏃犳硶鐩存帴鍒犻櫎浠栦汉鎺掕姒?
@@ -922,7 +922,7 @@ function CloudManager.AdminHidePlayerRank(targetUid, callback)
     end)
 end
 
---- 绠＄悊鍛? 鎭㈠鐜╁鎺掕姒滄樉绀?
+--- 绠＄悊鍛? 鎭㈠玩家鎺掕姒滄樉绀?
 ---@param targetUid number
 ---@param callback fun(ok: boolean, msg: string)
 function CloudManager.AdminUnhidePlayerRank(targetUid, callback)
@@ -1250,16 +1250,16 @@ function CloudManager.LoadMailOutbox(callback)
                         end
                     end
                     CloudManager._mailOutbox = kept
-                    print("[閭欢] 浜戠鍙戜欢绠卞姞杞芥垚鍔? " .. #kept .. " 灏?)
+                    print("[邮件] 浜戠鍙戜欢绠卞姞杞芥垚鍔? " .. #kept .. " 灏?)
                 else
                     CloudManager._mailOutbox = {}
-                    print("[閭欢] 浜戠鍙戜欢绠变负绌?)
+                    print("[邮件] 浜戠鍙戜欢绠变负绌?)
                 end
                 CloudManager._mailOutboxLoaded = true
                 if callback then callback(true) end
             end,
             error = function(_, reason)
-                print("[閭欢] 浜戠鍙戜欢绠卞姞杞藉け璐? " .. tostring(reason))
+                print("[邮件] 浜戠鍙戜欢绠卞姞杞藉け璐? " .. tostring(reason))
                 -- 鍔犺浇澶辫触涔熸爣璁帮紝閬垮厤鍙嶅閲嶈瘯闃诲鍙戜俊
                 CloudManager._mailOutboxLoaded = true
                 if callback then callback(false) end
@@ -1267,21 +1267,21 @@ function CloudManager.LoadMailOutbox(callback)
         })
 end
 
---- 鍙戦€侀偖浠剁粰鎸囧畾鐜╁
----@param targetUid number 鐩爣鐜╁ UID
+--- 鍙戦€侀偖浠剁粰鎸囧畾玩家
+---@param targetUid number 鐩爣玩家 UID
 ---@param subject string 鏍囬
 ---@param body string 姝ｆ枃
 ---@param rewards? table 闄勪欢濂栧姳 [{type,amount,label}] (浠呯鐞嗗憳鍙彂)
 ---@param callback? fun(ok:boolean, msg:string)
 function CloudManager.SendMail(targetUid, subject, body, rewards, callback)
     if not CloudAPI.IsAvailable() then
-        if callback then callback(false, "浜戠涓嶅彲鐢?) end
+        if callback then callback(false, "云端不可用") end
         return
     end
 
     -- 濡傛灉鍙戜欢绠辨湭浠庝簯绔姞杞借繃锛屽厛鍔犺浇鍐嶅彂閫侊紙闃叉瑕嗙洊鏃ч偖浠讹級
     if not CloudManager._mailOutboxLoaded then
-        print("[閭欢] 鍙戜欢绠辨湭鍔犺浇锛屽厛浠庝簯绔姞杞?..")
+        print("[邮件] 鍙戜欢绠辨湭鍔犺浇锛屽厛浠庝簯绔姞杞?..")
         CloudManager.LoadMailOutbox(function(ok)
             -- 鏃犺鍔犺浇鎴愬姛澶辫触閮界户缁彂閫?
             CloudManager.SendMail(targetUid, subject, body, rewards, callback)
@@ -1290,12 +1290,12 @@ function CloudManager.SendMail(targetUid, subject, body, rewards, callback)
     end
 
     local myUid = CloudAPI.GetUserId()
-    local myName = rawget(_G, "playerInfo") and playerInfo.name or ("鐜╁" .. tostring(myUid))
+    local myName = rawget(_G, "playerInfo") and playerInfo.name or ("玩家" .. tostring(myUid))
 
     -- 鍙湁绠＄悊鍛樺彲浠ュ彂甯﹀鍔辩殑閭欢
     if rewards and #rewards > 0 then
         if not CloudManager.IsAdmin() then
-            if callback then callback(false, "鍙湁绠＄悊鍛樺彲浠ュ彂閫佸鍔遍偖浠?) end
+            if callback then callback(false, "仅管理员可发带奖励邮件") end
             return
         end
     end
@@ -1328,13 +1328,13 @@ function CloudManager.SendMail(targetUid, subject, body, rewards, callback)
     CloudAPI:BatchSet()
         :SetInt(KEYS.mail_ts, os.time())
         :Set(KEYS.mail_outbox, CloudManager._mailOutbox)
-        :Save("鍙戦€侀偖浠?, {
+        :Save("发送邮件", {
             ok = function()
-                print("[閭欢] 鍙戦€佹垚鍔?鈫?" .. tostring(targetUid) .. ": " .. subject)
-                if callback then callback(true, "鍙戦€佹垚鍔?) end
+                print("[邮件] 发送成功 → " .. tostring(targetUid) .. ": " .. subject)
+                if callback then callback(true, "发送成功") end
             end,
             error = function(_, reason)
-                print("[閭欢] 鍙戦€佸け璐? " .. tostring(reason))
+                print("[邮件] 发送失败 " .. tostring(reason))
                 if callback then callback(false, tostring(reason)) end
             end,
         })
@@ -1389,7 +1389,7 @@ function CloudManager.PollInbox(callback)
                                 inbox[#inbox + 1] = {
                                     id = m.id,
                                     from = senderId,  -- 濮嬬粓浣跨敤骞冲彴璁よ瘉ID锛屼笉淇′换鑷姤m.from
-                                    fromName = m.fromName or ("鐜╁" .. tostring(senderId)),
+                                    fromName = m.fromName or ("玩家" .. tostring(senderId)),
                                     subject = m.subject or "",
                                     body = m.body or "",
                                     rewards = m.rewards or {},
@@ -1406,12 +1406,12 @@ function CloudManager.PollInbox(callback)
             CloudManager._mailInbox = inbox
             CloudManager._mailLastPoll = now
             CloudManager._mailLoading = false
-            print("[閭欢] 鏀朵欢绠卞埛鏂? " .. #inbox .. " 灏?)
+            print("[邮件] 鏀朵欢绠卞埛鏂? " .. #inbox .. " 灏?)
             if callback then callback(inbox) end
         end,
         error = function(_, reason)
             CloudManager._mailLoading = false
-            print("[閭欢] 鏀朵欢绠卞埛鏂板け璐? " .. tostring(reason))
+            print("[邮件] 鏀朵欢绠卞埛鏂板け璐? " .. tostring(reason))
             if callback then callback(CloudManager._mailInbox) end
         end,
     }, KEYS.mail_outbox)
@@ -1423,7 +1423,7 @@ function CloudManager.ForceRefreshInbox(callback)
     CloudManager.PollInbox(callback)
 end
 
---- 鍒ゆ柇褰撳墠鐜╁鏄惁涓虹鐞嗗憳
+--- 鍒ゆ柇褰撳墠玩家鏄惁涓虹鐞嗗憳
 ---@return boolean
 function CloudManager.IsAdmin()
     if not CloudAPI.IsAvailable() then return false end

@@ -130,6 +130,26 @@ function CloudAPI.Add(maybeSelf, key, delta, callbacks)
     })
 end
 
+-- 服务端原子交易购买：由服务端验证并扣除虎珀，返回扣除后余额
+-- callbacks.ok(jade)  -- 成功，jade 为扣除后余额
+-- callbacks.error(reason)
+function CloudAPI.TradeBuy(maybeSelf, coreKey, price, callbacks)
+    coreKey, price, callbacks = normalizeSelf(maybeSelf, coreKey, price, callbacks)
+    return ClientNet.CallCloud("trade_buy", {
+        coreKey = tostring(coreKey),
+        price   = math.floor(tonumber(price) or 0),
+    }, {
+        ok = function(payload)
+            if callbacks and callbacks.ok then
+                callbacks.ok(payload and payload.jade)
+            end
+        end,
+        error = function(reason)
+            if callbacks and callbacks.error then callbacks.error(reason) end
+        end,
+    })
+end
+
 function CloudAPI.Get(maybeSelf, key, callbacks)
     key, callbacks = normalizeSelf(maybeSelf, key, callbacks)
     return ClientNet.CallCloud("get", {

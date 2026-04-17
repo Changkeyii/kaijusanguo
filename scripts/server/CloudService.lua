@@ -80,20 +80,74 @@ local function handleAddInt(userId, key, delta, connection, requestId)
         return
     end
 
+    -- 使用 BatchCommit:ScoreAddInt 实现原子性增量，避免 read-modify-write 竞争
+    local c = serverCloud:BatchCommit("cloud_add_int")
+    c:ScoreAddInt(userId, key, math.floor(tonumber(delta) or 0))
+    c:Commit({
+        ok = function()
+            sendResponse(connection, requestId, true, { ok = true })
+        end,
+        error = function(code, reasonText)
+            fail(connection, requestId, reasonText or code)
+        end,
+    })
+end
+
+-- 服务端原子交易购买：读取买家核心数据 → 验证虎珀余额 → 扣除 → 写回
+local function handleTradeBuy(userId, params, connection, requestId)
+    if not serverCloud then
+        fail(connection, requestId, "serverCloud unavailable")
+        return
+    end
+
+    local coreKey       = tostring(params.coreKey or "")
+    local expectedPrice = math.floor(tonumber(params.price) or 0)
+
+    if coreKey == "" then
+        fail(connection, requestId, "trade_buy: missing coreKey")
+        return
+    end
+    if expectedPrice <= 0 then
+        fail(connection, requestId, "trade_buy: invalid price " .. expectedPrice)
+        return
+    end
+
+    -- 1. 读取买家核心存档
     serverCloud:BatchGet(userId)
-        :Key(key)
+        :Key(coreKey)
         :Fetch({
-            ok = function(values, iscores)
-                local current = 0
-                if iscores and iscores[key] ~= nil then
-                    current = tonumber(iscores[key]) or 0
-                elseif values and values[key] ~= nil then
-                    current = tonumber(values[key]) or 0
+            ok = function(scores)
+                local coreData = scores and scores[coreKey]
+                if type(coreData) ~= "table" then
+                    fail(connection, requestId, "trade_buy: coreData not found")
+                    return
                 end
-                local nextValue = math.floor(current + (tonumber(delta) or 0))
-                saveBatch(userId, {
-                    { kind = "int", key = key, value = nextValue },
-                }, "cloud_add_int", connection, requestId)
+
+                local pi   = coreData.playerInfo
+                local jade = tonumber(pi and pi.jade) or 0
+
+                -- 2. 服务端验证余额
+                if jade < expectedPrice then
+                    fail(connection, requestId,
+                        "trade_buy: jade insufficient (" .. jade .. " < " .. expectedPrice .. ")")
+                    return
+                end
+
+                -- 3. 原子扣除：更新 blob 后通过 BatchCommit 写回
+                pi.jade = jade - expectedPrice
+
+                local c = serverCloud:BatchCommit("trade_buy")
+                c:ScoreSet(userId, coreKey, coreData)
+                c:Commit({
+                    ok = function()
+                        sendResponse(connection, requestId, true, {
+                            jade = pi.jade,  -- 返回扣除后余额供客户端同步
+                        })
+                    end,
+                    error = function(code, reasonText)
+                        fail(connection, requestId, reasonText or code)
+                    end,
+                })
             end,
             error = function(code, reasonText)
                 fail(connection, requestId, reasonText or code)
@@ -186,6 +240,8 @@ function CloudService.HandleRequest(userId, connection, requestId, action, param
         fetchBatch(userId, { params.key }, connection, requestId)
     elseif action == "add_int" then
         handleAddInt(userId, params.key, params.delta, connection, requestId)
+    elseif action == "trade_buy" then
+        handleTradeBuy(userId, params, connection, requestId)
     elseif action == "get_rank_list" then
         handleGetRankList(params.key, params.start, params.count, params.fields, connection, requestId)
     elseif action == "get_rank_total" then

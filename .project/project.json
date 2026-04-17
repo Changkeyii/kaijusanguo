@@ -1,11 +1,11 @@
 {
   "$schema": "../schemas/project.schema.json",
-  "project_id": "p_0wv1",
+  "project_id": "p_j32d",
   "author": {
     "id": "04ac863d"
   },
   "entry": "main.lua",
-  "version": "1.0.10",
+  "version": "1.0.69",
   "taptap_publish": {
     "title": "<game title, required>",
     "description": "<game description>",
