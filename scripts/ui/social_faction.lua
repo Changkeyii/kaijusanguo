@@ -1,4 +1,4 @@
-﻿-- ui/social_faction.lua - 涓夊浗姝︾伒褰?(浠?social.lua 鎷嗗垎)
+-- ui/social_faction.lua - 涓夊浗姝︾伒褰?(浠?social.lua 鎷嗗垎)
 function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
     local sv = factionUI.subView
     -- 瀛愯鍥捐繑鍥炴寜閽?

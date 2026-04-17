@@ -1,4 +1,4 @@
-﻿-- ui/screens_combat.lua - 涓夊浗姝︾伒褰?(浠?screens.lua 鎷嗗垎)
+-- ui/screens_combat.lua - 涓夊浗姝︾伒褰?(浠?screens.lua 鎷嗗垎)
 function DrawAbyssSelectScreen()
     if gameState.phase ~= "ABYSS_SELECT" then return end
     local W = DESIGN_W

@@ -1,4 +1,4 @@
-﻿-- ui/input_begin_press.lua - 涓夊浗姝︾伒褰?(浠?input.lua 鎷嗗垎)
+-- ui/input_begin_press.lua - 涓夊浗姝︾伒褰?(浠?input.lua 鎷嗗垎)
 ---@diagnostic disable: undefined-global
 function BeginPress(sx, sy, touchId)
     local curFrame = time:GetFrameNumber()
