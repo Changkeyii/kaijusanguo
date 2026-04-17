@@ -33,12 +33,43 @@ netState = netState or {
 local scene_ = nil
 local serverConnection_ = nil
 local eventsSubscribed_ = false
+local nextCloudRequestId_ = 1
+local pendingCloudRequests_ = {}
+local delayedCloudQueue_ = {}
+
+local function decodeCloudPayload(payloadStr)
+    if not payloadStr or payloadStr == "" then
+        return nil
+    end
+    local ok, decoded = pcall(cjson.decode, payloadStr)
+    if ok and type(decoded) == "table" then
+        return decoded
+    end
+    return nil
+end
 
 local function ensureServerConnection()
     if serverConnection_ then
         return true
     end
     return Client.Start()
+end
+
+local function flushDelayedCloudQueue()
+    if not (netState.connected and netState.serverReady and serverConnection_) then
+        return
+    end
+    if #delayedCloudQueue_ == 0 then
+        return
+    end
+    for _, queued in ipairs(delayedCloudQueue_) do
+        local data = VariantMap()
+        data["RequestId"] = Variant(queued.requestId)
+        data["Action"] = Variant(queued.action)
+        data["Params"] = Variant(cjson.encode(queued.params or {}))
+        serverConnection_:SendRemoteEvent(EVENTS.CLOUD_REQUEST, true, data)
+    end
+    delayedCloudQueue_ = {}
 end
 
 -- ============================================================================
@@ -73,6 +104,7 @@ function Client.Start()
     if not eventsSubscribed_ then
         SubscribeToEvent(EVENTS.WELCOME, "HandleWelcome")
         SubscribeToEvent(EVENTS.ERROR, "HandleServerError")
+        SubscribeToEvent(EVENTS.CLOUD_RESPONSE, "HandleCloudResponse")
         SubscribeToEvent(EVENTS.RANKED_MATCHED, "HandleRankedMatched")
         SubscribeToEvent(EVENTS.RANKED_START, "HandleRankedStart")
         SubscribeToEvent(EVENTS.RANKED_UPDATE, "HandleRankedUpdate")
@@ -115,12 +147,39 @@ function HandleWelcome(eventType, eventData)
     if rawget(_G, "OnServerReady") then
         OnServerReady(netState)
     end
+
+    if rawget(_G, "CloudAPI") and CloudAPI._OnServerReady then
+        CloudAPI._OnServerReady(netState)
+    end
+
+    flushDelayedCloudQueue()
 end
 
 function HandleServerError(eventType, eventData)
     local msg = eventData["Message"]:GetString()
     netState.lastError = msg
     print("[Client] Server Error: " .. msg)
+end
+
+function HandleCloudResponse(eventType, eventData)
+    local requestId = eventData["RequestId"]:GetInt()
+    local success = eventData["Success"]:GetBool()
+    local payloadStr = eventData["Payload"]:GetString()
+    local errMsg = eventData["Error"]:GetString()
+
+    local request = pendingCloudRequests_[requestId]
+    pendingCloudRequests_[requestId] = nil
+    if not request then
+        return
+    end
+
+    local payload = decodeCloudPayload(payloadStr)
+
+    if success then
+        if request.ok then request.ok(payload or {}) end
+    else
+        if request.error then request.error(errMsg or "cloud response error") end
+    end
 end
 
 -- ============================================================================
@@ -131,21 +190,30 @@ function HandleRankedMatched(eventType, eventData)
     local success = eventData["Success"]:GetBool()
     local matchType = eventData["MatchType"]:GetString()
     local elo = eventData["Elo"]:GetInt()
+    local payload = decodeCloudPayload(eventData["Payload"] and eventData["Payload"]:GetString())
 
     netState.elo = elo
     print("[Client] RankedMatched: type=" .. matchType .. " elo=" .. elo)
 
     if rawget(_G, "OnRankedMatched") then
-        OnRankedMatched(matchType, elo)
+        OnRankedMatched(matchType, elo, payload or {})
     end
 end
 
 function HandleRankedStart(eventType, eventData)
+    local payload = decodeCloudPayload(eventData["Payload"] and eventData["Payload"]:GetString())
     print("[Client] RankedStart received")
+    if rawget(_G, "OnRankedStart") then
+        OnRankedStart(payload or {})
+    end
 end
 
 function HandleRankedUpdate(eventType, eventData)
+    local payload = decodeCloudPayload(eventData["Payload"] and eventData["Payload"]:GetString())
     print("[Client] RankedUpdate received")
+    if rawget(_G, "OnRankedUpdate") then
+        OnRankedUpdate(payload or {})
+    end
 end
 
 function HandleRankedEnd(eventType, eventData)
@@ -192,7 +260,12 @@ function Client.JoinRanked()
         print("[Client] JoinRanked aborted: no server connection")
         return false
     end
-    serverConnection_:SendRemoteEvent(EVENTS.RANKED_JOIN, true)
+    local data = VariantMap()
+    local snapshot = rawget(_G, "BuildRankedPlayerSnapshot") and BuildRankedPlayerSnapshot() or nil
+    data["Params"] = Variant(cjson.encode({
+        snapshot = snapshot,
+    }))
+    serverConnection_:SendRemoteEvent(EVENTS.RANKED_JOIN, true, data)
     print("[Client] Sent RankedJoin")
     return true
 end
@@ -221,6 +294,37 @@ function Client.SendRankedAction(params)
     return true
 end
 
+function Client.CallCloud(action, params, callbacks)
+    callbacks = callbacks or {}
+
+    if not ensureServerConnection() then
+        if callbacks.error then
+            callbacks.error("no server connection")
+        end
+        return false
+    end
+
+    local requestId = nextCloudRequestId_
+    nextCloudRequestId_ = nextCloudRequestId_ + 1
+    pendingCloudRequests_[requestId] = callbacks
+
+    if netState.connected and netState.serverReady then
+        local data = VariantMap()
+        data["RequestId"] = Variant(requestId)
+        data["Action"] = Variant(action)
+        data["Params"] = Variant(cjson.encode(params or {}))
+        serverConnection_:SendRemoteEvent(EVENTS.CLOUD_REQUEST, true, data)
+    else
+        delayedCloudQueue_[#delayedCloudQueue_ + 1] = {
+            requestId = requestId,
+            action = action,
+            params = params or {},
+        }
+    end
+
+    return true
+end
+
 --- 鎻愪氦鎺掍綅鎴樻枟缁撴灉鍒版湇鍔＄
 function Client.ReportRankedBattleResult(isWin, score, delta, streak)
     return Client.SendRankedAction({
@@ -229,6 +333,10 @@ function Client.ReportRankedBattleResult(isWin, score, delta, streak)
         score = score,
         delta = delta,
         streak = streak,
+        playerBaseHp = gameState and gameState.playerBaseHP or 0,
+        enemyBaseHp = gameState and gameState.enemyBaseHP or 0,
+        battleTime = gameState and gameState.battleTime or 0,
+        totalKills = gameState and gameState.totalKills or 0,
     })
 end
 

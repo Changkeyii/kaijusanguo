@@ -1,5 +1,5 @@
--- ============================================================================
--- systems/misc.lua - 三国武灵录
+﻿-- ============================================================================
+-- systems/misc.lua - 涓夊浗姝︾伒褰?
 -- ============================================================================
 
 function FilterBannedWords(text)
@@ -13,7 +13,7 @@ function FilterBannedWords(text)
 end
 
 
---- 获取当前周标识 (年份+第几周)
+--- 鑾峰彇褰撳墠鍛ㄦ爣璇?(骞翠唤+绗嚑鍛?
 function GetWeekKey()
     return os.date("%Y") .. "_W" .. os.date("%W")
 end
@@ -26,13 +26,13 @@ end
 
 
 -- ===========================
--- 阵营子视图: 升级/捐献/公告
+-- 闃佃惀瀛愯鍥? 鍗囩骇/鎹愮尞/鍏憡
 -- ===========================
--- 加载阵营等级排行榜
---- 从 camp_leader_ts 排行榜加载阵营排行（按等级降序）
----@param target string "factionUI" 或 "welfareState"
+-- 鍔犺浇闃佃惀绛夌骇鎺掕姒?
+--- 浠?camp_leader_ts 鎺掕姒滃姞杞介樀钀ユ帓琛岋紙鎸夌瓑绾ч檷搴忥級
+---@param target string "factionUI" 鎴?"welfareState"
 function LoadFactionRankFrom(target)
-    if not rawget(_G, "clientCloud") then
+    if not CloudAPI.IsAvailable() then
         if target == "factionUI" then
             factionUI.rankList = {}; factionUI.rankLoaded = true; factionUI.rankLoading = false
         else
@@ -41,19 +41,19 @@ function LoadFactionRankFrom(target)
         return
     end
 
-    -- 直接复用 CloudManager.ListFactions（已验证可正常工作）
+    -- 鐩存帴澶嶇敤 CloudManager.ListFactions锛堝凡楠岃瘉鍙甯稿伐浣滐級
     CloudManager.ListFactions(function(factions)
         local result = {}
         for _, f in ipairs(factions) do
             table.insert(result, {
                 campId = f.campId,
-                name = f.name or "未命名",
+                name = f.name or "鏈懡鍚?,
                 level = f.level or 1,
                 exp = f.exp or 0,
                 memberCount = f.memberCount or 0,
             })
         end
-        -- 按等级降序、经验降序排序
+        -- 鎸夌瓑绾ч檷搴忋€佺粡楠岄檷搴忔帓搴?
         table.sort(result, function(a, b)
             if a.level ~= b.level then return a.level > b.level end
             return a.exp > b.exp
@@ -66,3 +66,4 @@ function LoadFactionRankFrom(target)
         end
     end)
 end
+

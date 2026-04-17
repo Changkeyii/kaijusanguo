@@ -1,10 +1,10 @@
--- ============================================================================
--- ui/menu.lua - 三国武灵录
+﻿-- ============================================================================
+-- ui/menu.lua - 涓夊浗姝︾伒褰?
 -- ============================================================================
 
 
 -- ============================================================================
--- 首页菜单 (暗铜NanoVG风格 + 模块下载/讨伐)
+-- 棣栭〉鑿滃崟 (鏆楅摐NanoVG椋庢牸 + 妯″潡涓嬭浇/璁ㄤ紣)
 -- ============================================================================
 
 function DrawMenuScreen()
@@ -15,16 +15,16 @@ function DrawMenuScreen()
     local cx = W / 2
     local t = menuAnimTimer
 
-    -- 1. 统一菜单背景
+    -- 1. 缁熶竴鑿滃崟鑳屾櫙
     DrawMenuBg(W, H)
 
     nvgFontFaceId(vg, GetMainFont())
 
     -- ===========================
-    -- 通用: 侧栏按钮绘制函数
+    -- 閫氱敤: 渚ф爮鎸夐挳缁樺埗鍑芥暟
     -- ===========================
     local function DrawSideBtn(bx, by, bw, bh, label, colors, bPulse, showGlow, iconImg)
-        -- 纯图标+文字，无任何背景
+        -- 绾浘鏍?鏂囧瓧锛屾棤浠讳綍鑳屾櫙
         if iconImg and IsImageReady(iconImg) then
             local iconSize = math.floor(math.min(bw * 0.65, bh * 0.55))
             local iconX = bx + (bw - iconSize) / 2
@@ -32,7 +32,7 @@ function DrawMenuScreen()
             local pat = nvgImagePattern(vg, iconX, iconY, iconSize, iconSize, 0, iconImg, 1.0)
             nvgBeginPath(vg); nvgRect(vg, iconX, iconY, iconSize, iconSize)
             nvgFillPaint(vg, pat); nvgFill(vg)
-            -- 文字
+            -- 鏂囧瓧
             nvgFontFaceId(vg, GetMainFont())
             nvgFontSize(vg, 14)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_BOTTOM)
@@ -46,7 +46,7 @@ function DrawMenuScreen()
     end
 
     -- ===========================
-    -- 2. 中央角色展示区 (横屏: 顶部到底栏之间)
+    -- 2. 涓ぎ瑙掕壊灞曠ず鍖?(妯睆: 椤堕儴鍒板簳鏍忎箣闂?
     -- ===========================
     local centerAreaTop = 4
     local bottomBarH = 72
@@ -56,57 +56,57 @@ function DrawMenuScreen()
 
 
     -- ===========================
-    -- 4. 左侧栏 (竖排功能按钮, 横屏适配, 支持滚动)
+    -- 4. 宸︿晶鏍?(绔栨帓鍔熻兘鎸夐挳, 妯睆閫傞厤, 鏀寔婊氬姩)
     -- ===========================
     local sideBtnW = 72
     local sideBtnH = 58
     local sideGap = 4
     local sideX = 4
-    local leftEndY = bottomBarY - 4       -- 底部留出间距
+    local leftEndY = bottomBarY - 4       -- 搴曢儴鐣欏嚭闂磋窛
     local leftStartY = centerAreaTop + 4
     local leftViewH = leftEndY - leftStartY
 
-    -- 左侧按钮配置 (带图标)
+    -- 宸︿晶鎸夐挳閰嶇疆 (甯﹀浘鏍?
     local leftButtons = {
-        { label = "阵营",   key = "faction",  colors = {70, 55, 30},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[8] },
-        { label = "好友",   key = "friends",  colors = {40, 65, 70},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[9] },
-        { label = "交易行", key = "trade",    colors = {75, 55, 35},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[14] },
-        { label = "编队",   key = "formation", colors = {65, 50, 55},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[15] },
-        { label = "邮件",   key = "mailBox",  colors = {45, 45, 70},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[10] },
-        { label = "武灵录", key = "codex",     colors = {60, 45, 80},  mod = moduleState.heroes,    icon = IMG.menuIcons and IMG.menuIcons[1] },
-        { label = "兵甲",   key = "equip",     colors = {50, 60, 80},  mod = moduleState.equipment, icon = IMG.menuIcons and IMG.menuIcons[2] },
-        { label = "兵甲图录", key = "equipCodex", colors = {45, 55, 75}, mod = moduleState.equipment, icon = IMG.menuIcons and IMG.menuIcons[3] },
-        { label = "武技",   key = "skillCodex", colors = {55, 40, 75},  mod = moduleState.skills,    icon = IMG.menuIcons and IMG.menuIcons[4] },
-        { label = "天命赐福", key = "welfare",  colors = {80, 50, 40},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[5] },
-        { label = "每日任务", key = "progress", colors = {50, 65, 50},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[6] },
+        { label = "闃佃惀",   key = "faction",  colors = {70, 55, 30},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[8] },
+        { label = "濂藉弸",   key = "friends",  colors = {40, 65, 70},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[9] },
+        { label = "浜ゆ槗琛?, key = "trade",    colors = {75, 55, 35},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[14] },
+        { label = "缂栭槦",   key = "formation", colors = {65, 50, 55},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[15] },
+        { label = "閭欢",   key = "mailBox",  colors = {45, 45, 70},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[10] },
+        { label = "姝︾伒褰?, key = "codex",     colors = {60, 45, 80},  mod = moduleState.heroes,    icon = IMG.menuIcons and IMG.menuIcons[1] },
+        { label = "鍏电敳",   key = "equip",     colors = {50, 60, 80},  mod = moduleState.equipment, icon = IMG.menuIcons and IMG.menuIcons[2] },
+        { label = "鍏电敳鍥惧綍", key = "equipCodex", colors = {45, 55, 75}, mod = moduleState.equipment, icon = IMG.menuIcons and IMG.menuIcons[3] },
+        { label = "姝︽妧",   key = "skillCodex", colors = {55, 40, 75},  mod = moduleState.skills,    icon = IMG.menuIcons and IMG.menuIcons[4] },
+        { label = "澶╁懡璧愮", key = "welfare",  colors = {80, 50, 40},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[5] },
+        { label = "姣忔棩浠诲姟", key = "progress", colors = {50, 65, 50},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[6] },
     }
 
-    -- 计算内容总高度
+    -- 璁＄畻鍐呭鎬婚珮搴?
     local leftContentH = #leftButtons * sideBtnH + (#leftButtons - 1) * sideGap
     local leftMaxScroll = math.max(0, leftContentH - leftViewH)
 
-    -- 更新滚动状态的元信息 (供拖拽交互使用)
+    -- 鏇存柊婊氬姩鐘舵€佺殑鍏冧俊鎭?(渚涙嫋鎷戒氦浜掍娇鐢?
     leftSidebarScroll.contentH = leftContentH
     leftSidebarScroll.viewH = leftViewH
     leftSidebarScroll.areaRect = { x = 0, y = leftStartY, w = sideBtnW + sideX * 2, h = leftViewH }
 
-    -- 限制滚动范围
+    -- 闄愬埗婊氬姩鑼冨洿
     leftSidebarScroll.y = math.max(0, math.min(leftSidebarScroll.y, leftMaxScroll))
     local scrollOff = leftSidebarScroll.y
 
-    -- 开启裁剪区域
+    -- 寮€鍚鍓尯鍩?
     nvgSave(vg)
     nvgScissor(vg, 0, leftStartY, sideBtnW + sideX * 2 + 4, leftViewH)
 
     local leftRects = {}
     for i, lb in ipairs(leftButtons) do
         local by = leftStartY + (i - 1) * (sideBtnH + sideGap) - scrollOff
-        -- 仅渲染可见范围内的按钮
+        -- 浠呮覆鏌撳彲瑙佽寖鍥村唴鐨勬寜閽?
         if by + sideBtnH > leftStartY - 10 and by < leftEndY + 10 then
             local bPulse = 0.85 + 0.15 * math.sin(t * 2.0 + i)
             DrawSideBtn(sideX, by, sideBtnW, sideBtnH, lb.label, lb.colors, bPulse, false, lb.icon)
 
-            -- 模块未就绪遮罩
+            -- 妯″潡鏈氨缁伄缃?
             if lb.mod and not lb.mod.ready then
                 nvgBeginPath(vg); nvgRoundedRect(vg, sideX, by, sideBtnW, sideBtnH, 8)
                 nvgFillColor(vg, nvgRGBA(10, 12, 20, 140)); nvgFill(vg)
@@ -119,7 +119,7 @@ function DrawMenuScreen()
         menuBtnRects[lb.key] = leftRects[i]
     end
 
-    -- 左侧红点 (按 key 查找，在裁剪区域内绘制)
+    -- 宸︿晶绾㈢偣 (鎸?key 鏌ユ壘锛屽湪瑁佸壀鍖哄煙鍐呯粯鍒?
     local function DrawKeyRedDot(key)
         local r = menuBtnRects[key]
         if r then DrawRedDot(r.x + r.w - 6, r.y + 6, 6) end
@@ -127,7 +127,7 @@ function DrawMenuScreen()
     if HasEquipRedDot() then DrawKeyRedDot("equip") end
     if HasSkillRedDot() then DrawKeyRedDot("skillCodex") end
     if HasProgressRedDot() then DrawKeyRedDot("progress") end
-    -- 邮件红点
+    -- 閭欢绾㈢偣
     local hasUnreadMail = false
     for _, md in ipairs(welfareState.mailDefs) do
         if not welfareState.mail.claimed[md.id] then hasUnreadMail = true; break end
@@ -140,9 +140,9 @@ function DrawMenuScreen()
         end
     end
     if hasUnreadMail then DrawKeyRedDot("mailBox") end
-    -- 好友请求红点 (定时轮询, 首次5秒后检查, 之后每30秒)
+    -- 濂藉弸璇锋眰绾㈢偣 (瀹氭椂杞, 棣栨5绉掑悗妫€鏌? 涔嬪悗姣?0绉?
     local now = os.time()
-    local friendCheckInterval = friendsUI.pendingReqChecked and 30 or 5  -- 首次5秒, 之后30秒
+    local friendCheckInterval = friendsUI.pendingReqChecked and 30 or 5  -- 棣栨5绉? 涔嬪悗30绉?
     if now - friendsUI.lastReqCheckTime >= friendCheckInterval
        and rawget(_G, "CloudManager")
        and CloudManager.CheckIncomingRequests then
@@ -153,7 +153,7 @@ function DrawMenuScreen()
         end)
     end
     if friendsUI.pendingReqCount > 0 then DrawKeyRedDot("friends") end
-    -- 阵营申请红点 (仅盟主/副盟主, 定时轮询, 首次5秒后检查)
+    -- 闃佃惀鐢宠绾㈢偣 (浠呯洘涓?鍓洘涓? 瀹氭椂杞, 棣栨5绉掑悗妫€鏌?
     do
         local fInfo = rawget(_G, "CloudManager") and CloudManager.GetFactionInfo and CloudManager.GetFactionInfo()
         if fInfo and (fInfo.role == "leader" or fInfo.role == "vice_leader") then
@@ -171,38 +171,38 @@ function DrawMenuScreen()
         end
     end
 
-    -- 结束裁剪
+    -- 缁撴潫瑁佸壀
     nvgRestore(vg)
 
-    -- 滚动箭头提示 (当内容超出可见区域时，在侧栏外侧显示动态箭头)
+    -- 婊氬姩绠ご鎻愮ず (褰撳唴瀹硅秴鍑哄彲瑙佸尯鍩熸椂锛屽湪渚ф爮澶栦晶鏄剧ず鍔ㄦ€佺澶?
     if leftMaxScroll > 0 then
         local arrowX = sideX + sideBtnW / 2
-        local arrowBob = math.sin(t * 3.0) * 4  -- 上下浮动动画
-        -- 上箭头 (可向上滚动时显示)
+        local arrowBob = math.sin(t * 3.0) * 4  -- 涓婁笅娴姩鍔ㄧ敾
+        -- 涓婄澶?(鍙悜涓婃粴鍔ㄦ椂鏄剧ず)
         if scrollOff > 2 then
             local upY = leftStartY - 14 + arrowBob
             local arrowA = math.min(200, math.floor(scrollOff / leftMaxScroll * 200 + 60))
             nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 200, 100, arrowA))
-            nvgText(vg, arrowX, upY, "▲", nil)
+            nvgText(vg, arrowX, upY, "鈻?, nil)
         end
-        -- 下箭头 (可向下滚动时显示)
+        -- 涓嬬澶?(鍙悜涓嬫粴鍔ㄦ椂鏄剧ず)
         if scrollOff < leftMaxScroll - 2 then
             local downY = leftEndY + 4 - arrowBob
             local arrowA = math.min(200, math.floor((1 - scrollOff / leftMaxScroll) * 200 + 60))
             nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 200, 100, arrowA))
-            nvgText(vg, arrowX, downY, "▼", nil)
+            nvgText(vg, arrowX, downY, "鈻?, nil)
         end
     end
 
-    --[=[ 已移除右侧栏 (排位/爬塔/讨伐/副本/探索)
-    -- 右侧挑战模式已全部删除, 30s打桩也已移除
+    --[=[ 宸茬Щ闄ゅ彸渚ф爮 (鎺掍綅/鐖/璁ㄤ紣/鍓湰/鎺㈢储)
+    -- 鍙充晶鎸戞垬妯″紡宸插叏閮ㄥ垹闄? 30s鎵撴々涔熷凡绉婚櫎
     --]=]
 
-    -- 30s 打桩按钮 (右上角小按钮)
+    -- 30s 鎵撴々鎸夐挳 (鍙充笂瑙掑皬鎸夐挳)
     do
         local dummyBtnW = 70
         local dummyBtnH = 36
@@ -221,7 +221,7 @@ function DrawMenuScreen()
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         DrawWhiteInkText(dummyBtnX + dummyBtnW / 2, dummyBtnY + dummyBtnH / 2, "30s")
         dummyState.btnRect = { x = dummyBtnX, y = dummyBtnY, w = dummyBtnW, h = dummyBtnH }
-        -- 30s打桩 战斗模块未就绪遮罩
+        -- 30s鎵撴々 鎴樻枟妯″潡鏈氨缁伄缃?
         if not moduleState.battle.ready then
             nvgBeginPath(vg); nvgRoundedRect(vg, dummyBtnX, dummyBtnY, dummyBtnW, dummyBtnH, 6)
             nvgFillColor(vg, nvgRGBA(80, 60, 30, 160)); nvgFill(vg)
@@ -229,38 +229,38 @@ function DrawMenuScreen()
     end
 
     -- ===========================
-    -- 5.5 右侧卷轴面板 (图片素材 + 按钮叠加)
+    -- 5.5 鍙充晶鍗疯酱闈㈡澘 (鍥剧墖绱犳潗 + 鎸夐挳鍙犲姞)
     -- ===========================
     do
-        -- 面板尺寸和位置 (素材原始比例 429:768 ≈ 9:16)
-        local rpH = H * 0.88            -- 面板高度占屏幕88%
-        local rpW = rpH * (600 / 804)   -- 加宽后素材比例 600:804
-        local rpX = W - rpW - 12        -- 右侧留边距
-        local rpY = (H - rpH) / 2       -- 垂直居中
+        -- 闈㈡澘灏哄鍜屼綅缃?(绱犳潗鍘熷姣斾緥 429:768 鈮?9:16)
+        local rpH = H * 0.88            -- 闈㈡澘楂樺害鍗犲睆骞?8%
+        local rpW = rpH * (600 / 804)   -- 鍔犲鍚庣礌鏉愭瘮渚?600:804
+        local rpX = W - rpW - 12        -- 鍙充晶鐣欒竟璺?
+        local rpY = (H - rpH) / 2       -- 鍨傜洿灞呬腑
 
-        -- 绘制卷轴面板图片
+        -- 缁樺埗鍗疯酱闈㈡澘鍥剧墖
         if IMG.scrollPanel and IsImageReady(IMG.scrollPanel) then
             local pat = nvgImagePattern(vg, rpX, rpY, rpW, rpH, 0, IMG.scrollPanel, 1.0)
             nvgBeginPath(vg); nvgRect(vg, rpX, rpY, rpW, rpH)
             nvgFillPaint(vg, pat); nvgFill(vg)
         end
 
-        -- 面板内按钮配置
+        -- 闈㈡澘鍐呮寜閽厤缃?
         local rpBtns = {
-            { label = "乱世征途", key = "rpBattle",    primary = true },
-            { label = "角色养成", key = "rpCodex",     primary = false },
-            { label = "设置",     key = "rpSettings",  primary = false },
-            { label = "退出",     key = "rpExit",      primary = false },
+            { label = "涔变笘寰侀€?, key = "rpBattle",    primary = true },
+            { label = "瑙掕壊鍏绘垚", key = "rpCodex",     primary = false },
+            { label = "璁剧疆",     key = "rpSettings",  primary = false },
+            { label = "閫€鍑?,     key = "rpExit",      primary = false },
         }
 
-        -- 按钮布局 (在卷轴内部区域居中排列)
-        local innerX = rpX + rpW * 0.12   -- 卷轴内边距
-        local innerW = rpW * 0.76         -- 按钮可用宽度
+        -- 鎸夐挳甯冨眬 (鍦ㄥ嵎杞村唴閮ㄥ尯鍩熷眳涓帓鍒?
+        local innerX = rpX + rpW * 0.12   -- 鍗疯酱鍐呰竟璺?
+        local innerW = rpW * 0.76         -- 鎸夐挳鍙敤瀹藉害
         local rpBtnW = innerW
-        local rpBtnH = rpH * 0.09         -- 按钮高度
-        local rpBtnGap = rpH * 0.04       -- 按钮间距
+        local rpBtnH = rpH * 0.09         -- 鎸夐挳楂樺害
+        local rpBtnGap = rpH * 0.04       -- 鎸夐挳闂磋窛
         local totalBtnH = #rpBtns * rpBtnH + (#rpBtns - 1) * rpBtnGap
-        local rpBtnStartY = rpY + (rpH - totalBtnH) / 2  -- 在面板内垂直居中
+        local rpBtnStartY = rpY + (rpH - totalBtnH) / 2  -- 鍦ㄩ潰鏉垮唴鍨傜洿灞呬腑
         local rpBtnX = innerX
 
         for i, rb in ipairs(rpBtns) do
@@ -268,7 +268,7 @@ function DrawMenuScreen()
             local isPrimary = rb.primary
             local bPulse = isPrimary and (0.7 + 0.3 * math.sin(t * 2.5)) or 1.0
 
-            -- 按钮图片素材背景
+            -- 鎸夐挳鍥剧墖绱犳潗鑳屾櫙
             local btnImg = isPrimary and IMG.btnMenuPrimary or IMG.btnMenuNormal
             if btnImg and IsImageReady(btnImg) then
                 local btnAlpha = isPrimary and bPulse or 1.0
@@ -276,13 +276,13 @@ function DrawMenuScreen()
                 nvgBeginPath(vg); nvgRoundedRect(vg, rpBtnX, by, rpBtnW, rpBtnH, 6)
                 nvgFillPaint(vg, btnPat); nvgFill(vg)
             else
-                -- 素材未就绪时回退纯色
+                -- 绱犳潗鏈氨缁椂鍥為€€绾壊
                 nvgBeginPath(vg); nvgRoundedRect(vg, rpBtnX, by, rpBtnW, rpBtnH, 6)
                 nvgFillColor(vg, isPrimary and nvgRGBA(160, 40, 20, 200) or nvgRGBA(120, 95, 60, 200))
                 nvgFill(vg)
             end
 
-            -- 主按钮外发光
+            -- 涓绘寜閽鍙戝厜
             if isPrimary then
                 local glow = nvgRadialGradient(vg,
                     rpBtnX + rpBtnW / 2, by + rpBtnH / 2,
@@ -293,14 +293,14 @@ function DrawMenuScreen()
                 nvgFillPaint(vg, glow); nvgFill(vg)
             end
 
-            -- 按钮文字
+            -- 鎸夐挳鏂囧瓧
             nvgFontFaceId(vg, GetMainFont())
             nvgFontSize(vg, isPrimary and 22 or 19)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            -- 文字阴影
+            -- 鏂囧瓧闃村奖
             nvgFillColor(vg, nvgRGBA(0, 0, 0, 60))
             nvgText(vg, rpBtnX + rpBtnW / 2 + 1, by + rpBtnH / 2 + 1, rb.label, nil)
-            -- 文字正体
+            -- 鏂囧瓧姝ｄ綋
             if isPrimary then
                 DrawWhiteInkText(rpBtnX + rpBtnW / 2, by + rpBtnH / 2, rb.label)
             else
@@ -308,20 +308,20 @@ function DrawMenuScreen()
                 nvgText(vg, rpBtnX + rpBtnW / 2, by + rpBtnH / 2, rb.label, nil)
             end
 
-            -- 存储按钮点击区域
+            -- 瀛樺偍鎸夐挳鐐瑰嚮鍖哄煙
             menuBtnRects[rb.key] = { x = rpBtnX, y = by, w = rpBtnW, h = rpBtnH }
         end
     end
 
     -- ===========================
-    -- 6. 底部操作栏 (横排5按钮, 仿参考图)
+    -- 6. 搴曢儴鎿嶄綔鏍?(妯帓5鎸夐挳, 浠垮弬鑰冨浘)
     -- ===========================
-    -- 底栏背景 (国风暖色横条)
+    -- 搴曟爮鑳屾櫙 (鍥介鏆栬壊妯潯)
     local barBgGrad = nvgLinearGradient(vg, 0, bottomBarY - 8, 0, bottomBarY + bottomBarH,
         nvgRGBA(120, 80, 40, 0), nvgRGBA(90, 55, 25, 180))
     nvgBeginPath(vg); nvgRect(vg, 0, bottomBarY - 8, W, bottomBarH + 16)
     nvgFillPaint(vg, barBgGrad); nvgFill(vg)
-    -- 顶部金色分隔线
+    -- 椤堕儴閲戣壊鍒嗛殧绾?
     local sepGradL = nvgLinearGradient(vg, 0, bottomBarY - 2, W, bottomBarY - 2,
         nvgRGBA(255, 200, 80, 0), nvgRGBA(255, 200, 80, 150))
     nvgBeginPath(vg); nvgMoveTo(vg, 0, bottomBarY - 2); nvgLineTo(vg, cx, bottomBarY - 2)
@@ -331,21 +331,21 @@ function DrawMenuScreen()
     nvgBeginPath(vg); nvgMoveTo(vg, cx, bottomBarY - 2); nvgLineTo(vg, W, bottomBarY - 2)
     nvgStrokeWidth(vg, 1.5); nvgStrokePaint(vg, sepGradR); nvgStroke(vg)
 
-    -- 底栏按钮配置 (6个, 带图标, 横屏适配)
+    -- 搴曟爮鎸夐挳閰嶇疆 (6涓? 甯﹀浘鏍? 妯睆閫傞厤)
     local botBtnCount = 6
-    local botPad = 80  -- 左侧留出侧栏空间
+    local botPad = 80  -- 宸︿晶鐣欏嚭渚ф爮绌洪棿
     local botTotalW = W - botPad - 10
     local botBtnW = (botTotalW - (botBtnCount - 1) * 6) / botBtnCount
     local botBtnH = 62
     local botBtnY = bottomBarY + (bottomBarH - botBtnH) / 2
 
     local bottomButtons = {
-        { label = "设置",     key = "settings",  colors = {40, 35, 55},  primary = false, mod = nil, icon = IMG.menuIcons and IMG.menuIcons[13] },
-        { label = "战令",     key = "battlepass", colors = {120, 70, 30}, primary = false, mod = nil, icon = IMG.dragonPortal },
-        { label = "战力榜",   key = "powerRank",  colors = {35, 40, 65},  primary = false, mod = nil, icon = IMG.menuIcons and IMG.menuIcons[12] },
-        { label = "兵符召唤", key = "gachaSeal",  colors = {80, 50, 130}, primary = false, mod = nil, icon = IMG.sealItem1 },
-        { label = "武技召唤", key = "gachaSkill", colors = {50, 100, 80}, primary = false, mod = moduleState.skills, icon = IMG.menuIcons and IMG.menuIcons[4] },
-        { label = "乱世征途", key = "battle",     colors = {180, 45, 25}, primary = true,  mod = moduleState.battle, icon = IMG.abyssTicket },
+        { label = "璁剧疆",     key = "settings",  colors = {40, 35, 55},  primary = false, mod = nil, icon = IMG.menuIcons and IMG.menuIcons[13] },
+        { label = "鎴樹护",     key = "battlepass", colors = {120, 70, 30}, primary = false, mod = nil, icon = IMG.dragonPortal },
+        { label = "鎴樺姏姒?,   key = "powerRank",  colors = {35, 40, 65},  primary = false, mod = nil, icon = IMG.menuIcons and IMG.menuIcons[12] },
+        { label = "鍏电鍙敜", key = "gachaSeal",  colors = {80, 50, 130}, primary = false, mod = nil, icon = IMG.sealItem1 },
+        { label = "姝︽妧鍙敜", key = "gachaSkill", colors = {50, 100, 80}, primary = false, mod = moduleState.skills, icon = IMG.menuIcons and IMG.menuIcons[4] },
+        { label = "涔变笘寰侀€?, key = "battle",     colors = {180, 45, 25}, primary = true,  mod = moduleState.battle, icon = IMG.abyssTicket },
     }
 
     local pulse = 0.7 + 0.3 * math.sin(t * 2.5)
@@ -355,7 +355,7 @@ function DrawMenuScreen()
         local isPrimary = bb.primary
         local bPulse = isPrimary and pulse or (0.85 + 0.15 * math.sin(t * 2.0 + i))
 
-        -- 纯图标+文字，无任何背景 (横屏适配)
+        -- 绾浘鏍?鏂囧瓧锛屾棤浠讳綍鑳屾櫙 (妯睆閫傞厤)
         local hasIcon = bb.icon and IsImageReady(bb.icon)
         if hasIcon then
             local iconSize
@@ -369,7 +369,7 @@ function DrawMenuScreen()
             local pat = nvgImagePattern(vg, iconX, iconY, iconSize, iconSize, 0, bb.icon, 1.0)
             nvgBeginPath(vg); nvgRect(vg, iconX, iconY, iconSize, iconSize)
             nvgFillPaint(vg, pat); nvgFill(vg)
-            -- 文字
+            -- 鏂囧瓧
             nvgFontFaceId(vg, GetMainFont())
             nvgFontSize(vg, isPrimary and 16 or 15)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_BOTTOM)
@@ -382,9 +382,9 @@ function DrawMenuScreen()
             DrawWhiteInkText(bx + botBtnW / 2, by + botBtnH / 2, bb.label)
         end
 
-        -- 存储点击区域
+        -- 瀛樺偍鐐瑰嚮鍖哄煙
         local rect = { x = bx, y = by, w = botBtnW, h = botBtnH }
-        -- 模块未就绪遮罩 (通用)
+        -- 妯″潡鏈氨缁伄缃?(閫氱敤)
         if bb.mod and not bb.mod.ready then
             nvgBeginPath(vg); nvgRoundedRect(vg, bx, by, botBtnW, botBtnH, 8)
             nvgFillColor(vg, nvgRGBA(10, 12, 20, 140)); nvgFill(vg)
@@ -398,7 +398,7 @@ function DrawMenuScreen()
             menuBtnRects.gachaSeal = rect
         elseif bb.key == "gachaSkill" then
             menuBtnRects.gachaSkill = rect
-            -- 武技碎片红点
+            -- 姝︽妧纰庣墖绾㈢偣
             local hasComposable = false
             for _, cnt in pairs(skillFragments) do
                 if cnt >= SKILL_FRAG_EXCHANGE then hasComposable = true; break end
@@ -406,7 +406,7 @@ function DrawMenuScreen()
             if hasComposable then DrawRedDot(bx + botBtnW - 6, by + 6, 6) end
         elseif bb.key == "battlepass" then
             menuBtnRects.battlepass = rect
-            -- 战令红点
+            -- 鎴樹护绾㈢偣
             if HasBattlePassRedDot() then DrawRedDot(bx + botBtnW - 6, by + 6, 6) end
         elseif bb.key == "powerRank" then
             menuBtnRects.powerRank = rect
@@ -418,28 +418,28 @@ function DrawMenuScreen()
     menuBtnRects.editor = nil
 
     -- ===========================
-    -- 6.5 世界聊天 (底栏上方, 正中)
+    -- 6.5 涓栫晫鑱婂ぉ (搴曟爮涓婃柟, 姝ｄ腑)
     -- ===========================
     do
         local msgs = CloudManager.GetWorldChatMessages()
         worldChatUI.miniAnim = (worldChatUI.miniAnim or 0) + (1.0 / 60.0)
 
         if not worldChatUI.expanded then
-            -- ── 小窗模式: 显示最新一条消息 ──
+            -- 鈹€鈹€ 灏忕獥妯″紡: 鏄剧ず鏈€鏂颁竴鏉℃秷鎭?鈹€鈹€
             local miniW = math.min(W * 0.6, 340)
             local miniH = 32
             local miniX = (W - miniW) / 2
             local miniY = bottomBarY - miniH - 6
-            -- 半透明背景 (暖色)
+            -- 鍗婇€忔槑鑳屾櫙 (鏆栬壊)
             nvgBeginPath(vg); nvgRoundedRect(vg, miniX, miniY, miniW, miniH, 6)
             nvgFillColor(vg, nvgRGBA(220, 200, 160, 180)); nvgFill(vg)
             nvgStrokeColor(vg, nvgRGBA(180, 140, 60, 120)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
-            -- 频道标签
+            -- 棰戦亾鏍囩
             nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 13)
             nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(160, 80, 20, 220))
-            nvgText(vg, miniX + 8, miniY + miniH / 2, "【世界】", nil)
-            -- 最新消息内容
+            nvgText(vg, miniX + 8, miniY + miniH / 2, "銆愪笘鐣屻€?, nil)
+            -- 鏈€鏂版秷鎭唴瀹?
             if #msgs > 0 then
                 local last = msgs[#msgs]
                 local displayText = (last.name or "?") .. ": " .. (last.text or "")
@@ -450,34 +450,34 @@ function DrawMenuScreen()
                 nvgText(vg, miniX + 58, miniY + miniH / 2, displayText, nil)
             else
                 nvgFontSize(vg, 13); nvgFillColor(vg, nvgRGBA(120, 90, 50, 150))
-                nvgText(vg, miniX + 58, miniY + miniH / 2, "点击打开世界聊天...", nil)
+                nvgText(vg, miniX + 58, miniY + miniH / 2, "鐐瑰嚮鎵撳紑涓栫晫鑱婂ぉ...", nil)
             end
             menuBtnRects.worldChatMini = { x = miniX, y = miniY, w = miniW, h = miniH }
         else
-            -- ── 展开模式: 大聊天窗口 ──
+            -- 鈹€鈹€ 灞曞紑妯″紡: 澶ц亰澶╃獥鍙?鈹€鈹€
             local chatW = math.min(W * 0.88, 460)
             local chatH = math.min(H * 0.55, 420)
             local chatX = (W - chatW) / 2
             local chatY = (H - chatH) / 2
 
-            -- 遮罩
+            -- 閬僵
             nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
             nvgFillColor(vg, nvgRGBA(0, 0, 0, 120)); nvgFill(vg)
 
-            -- 窗口背景 (暖色卷轴)
+            -- 绐楀彛鑳屾櫙 (鏆栬壊鍗疯酱)
             nvgBeginPath(vg); nvgRoundedRect(vg, chatX, chatY, chatW, chatH, 12)
             nvgFillColor(vg, nvgRGBA(235, 215, 175, 240)); nvgFill(vg)
             nvgStrokeColor(vg, nvgRGBA(180, 140, 60, 180)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
 
-            -- 标题栏 (暖色深棕)
+            -- 鏍囬鏍?(鏆栬壊娣辨)
             local titleH2 = 36
             nvgBeginPath(vg); nvgRoundedRect(vg, chatX, chatY, chatW, titleH2, 12)
             nvgFillColor(vg, nvgRGBA(140, 90, 40, 220)); nvgFill(vg)
             nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 20)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 240, 200, 240))
-            nvgText(vg, chatX + chatW / 2, chatY + titleH2 / 2, "世界聊天", nil)
-            -- 关闭按钮
+            nvgText(vg, chatX + chatW / 2, chatY + titleH2 / 2, "涓栫晫鑱婂ぉ", nil)
+            -- 鍏抽棴鎸夐挳
             local closeBtnS = 28
             local closeBtnX = chatX + chatW - closeBtnS - 4
             local closeBtnY2 = chatY + (titleH2 - closeBtnS) / 2
@@ -486,17 +486,17 @@ function DrawMenuScreen()
             nvgText(vg, closeBtnX + closeBtnS / 2, closeBtnY2 + closeBtnS / 2, "X", nil)
             menuBtnRects.worldChatClose = { x = closeBtnX, y = closeBtnY2, w = closeBtnS, h = closeBtnS }
 
-            -- 消息区域
+            -- 娑堟伅鍖哄煙
             local msgAreaY = chatY + titleH2 + 4
             local inputH = 40
             local msgAreaH = chatH - titleH2 - inputH - 12
             nvgSave(vg)
             nvgScissor(vg, chatX + 4, msgAreaY, chatW - 8, msgAreaH)
 
-            local avS = 24  -- 头像尺寸
-            local lineH = avS + 6  -- 每条消息行高
+            local avS = 24  -- 澶村儚灏哄
+            local lineH = avS + 6  -- 姣忔潯娑堟伅琛岄珮
             local maxVisible = math.floor(msgAreaH / lineH)
-            -- 自动滚到底
+            -- 鑷姩婊氬埌搴?
             if #msgs ~= worldChatUI.lastMsgCount then
                 worldChatUI.lastMsgCount = #msgs
                 worldChatUI.scrollOffset = math.max(0, #msgs - maxVisible)
@@ -509,7 +509,7 @@ function DrawMenuScreen()
                 local m = msgs[i]
                 local row = i - startIdx
                 local my2 = msgAreaY + row * lineH + 3
-                -- 头像 (可点击)
+                -- 澶村儚 (鍙偣鍑?
                 local avX = chatX + 8
                 local avY = my2
                 local avIdx = m.av or 1
@@ -520,7 +520,7 @@ function DrawMenuScreen()
                     local cellH2 = imgH2 / AVATAR_ROWS
                     local sx2 = avData.col * cellW2
                     local sy2 = avData.row * cellH2
-                    -- 头像底框
+                    -- 澶村儚搴曟
                     nvgBeginPath(vg); nvgRoundedRect(vg, avX - 1, avY - 1, avS + 2, avS + 2, 4)
                     nvgFillColor(vg, nvgRGBA(180, 150, 100, 150)); nvgFill(vg)
                     nvgStrokeColor(vg, nvgRGBA(160, 120, 60, 150)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
@@ -530,32 +530,32 @@ function DrawMenuScreen()
                     nvgBeginPath(vg); nvgRoundedRect(vg, avX, avY, avS, avS, 3)
                     nvgFillPaint(vg, pat2); nvgFill(vg)
                 else
-                    -- 无头像图时画默认色块
+                    -- 鏃犲ご鍍忓浘鏃剁敾榛樿鑹插潡
                     nvgBeginPath(vg); nvgRoundedRect(vg, avX, avY, avS, avS, 3)
                     nvgFillColor(vg, nvgRGBA(180, 150, 100, 200)); nvgFill(vg)
                 end
-                -- 记录头像点击区域
+                -- 璁板綍澶村儚鐐瑰嚮鍖哄煙
                 if m.uid and m.uid > 0 then
                     worldChatUI._avatarRects[#worldChatUI._avatarRects + 1] = {
                         x = avX, y = avY, w = avS, h = avS,
                         uid = m.uid, name = m.name or "???", av = avIdx,
                     }
                 end
-                -- 名字
+                -- 鍚嶅瓧
                 local textX = avX + avS + 6
                 nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 13)
                 nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
                 nvgFillColor(vg, nvgRGBA(140, 70, 20, 220))
                 local nameOnlyStr = m.name or "???"
                 nvgText(vg, textX, my2, nameOnlyStr, nil)
-                -- 内容 (第二行)
+                -- 鍐呭 (绗簩琛?
                 nvgFontSize(vg, 14)
                 nvgFillColor(vg, nvgRGBA(60, 40, 20, 220))
                 nvgText(vg, textX, my2 + 14, m.text or "", nil)
             end
             nvgRestore(vg)
 
-            -- 玩家信息弹窗（点击头像弹出：头像 + 名字 + 添加好友按钮）
+            -- 鐜╁淇℃伅寮圭獥锛堢偣鍑诲ご鍍忓脊鍑猴細澶村儚 + 鍚嶅瓧 + 娣诲姞濂藉弸鎸夐挳锛?
             if worldChatUI.namePopup then
                 local pp = worldChatUI.namePopup
                 local ppW, ppH = 160, 60
@@ -563,11 +563,11 @@ function DrawMenuScreen()
                 local ppY = pp.y - 4
                 if ppY + ppH > chatY + chatH - 50 then ppY = pp.y - ppH - 4 end
                 if ppY < chatY + titleH2 then ppY = chatY + titleH2 + 4 end
-                -- 弹窗背景 (暖色)
+                -- 寮圭獥鑳屾櫙 (鏆栬壊)
                 nvgBeginPath(vg); nvgRoundedRect(vg, ppX, ppY, ppW, ppH, 8)
                 nvgFillColor(vg, nvgRGBA(240, 225, 190, 245)); nvgFill(vg)
                 nvgStrokeColor(vg, nvgRGBA(180, 140, 60, 200)); nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
-                -- 弹窗内头像
+                -- 寮圭獥鍐呭ご鍍?
                 local ppAvS = 32
                 local ppAvX = ppX + 8
                 local ppAvY = ppY + (ppH - ppAvS) / 2
@@ -588,36 +588,36 @@ function DrawMenuScreen()
                     nvgBeginPath(vg); nvgRoundedRect(vg, ppAvX, ppAvY, ppAvS, ppAvS, 3)
                     nvgFillPaint(vg, pat3); nvgFill(vg)
                 end
-                -- 名字
+                -- 鍚嶅瓧
                 local ppTxtX = ppAvX + ppAvS + 8
                 nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 15)
                 nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(80, 40, 10, 240))
                 nvgText(vg, ppTxtX, ppY + ppH / 2 - 8, pp.name or "???", nil)
-                -- 添加好友按钮
+                -- 娣诲姞濂藉弸鎸夐挳
                 local addBtnW, addBtnH = 70, 22
                 local addBtnX = ppTxtX
                 local addBtnY = ppY + ppH / 2 + 6
                 local isFriend = CloudManager.IsFriend(pp.uid)
-                local isMe = (rawget(_G, "clientCloud") and pp.uid == clientCloud.userId)
+                local isMe = (CloudAPI.IsAvailable() and pp.uid == CloudAPI.GetUserId())
                 if isMe then
                     nvgFontSize(vg, 12); nvgFillColor(vg, nvgRGBA(120, 90, 50, 180))
                     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-                    nvgText(vg, addBtnX, addBtnY + addBtnH / 2, "（自己）", nil)
+                    nvgText(vg, addBtnX, addBtnY + addBtnH / 2, "锛堣嚜宸憋級", nil)
                 elseif isFriend then
                     nvgFontSize(vg, 12); nvgFillColor(vg, nvgRGBA(40, 130, 60, 200))
                     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-                    nvgText(vg, addBtnX, addBtnY + addBtnH / 2, "已是好友", nil)
+                    nvgText(vg, addBtnX, addBtnY + addBtnH / 2, "宸叉槸濂藉弸", nil)
                 else
                     nvgBeginPath(vg); nvgRoundedRect(vg, addBtnX, addBtnY, addBtnW, addBtnH, 4)
                     nvgFillColor(vg, nvgRGBA(40, 100, 60, 220)); nvgFill(vg)
                     nvgStrokeColor(vg, nvgRGBA(100, 220, 140, 180)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
                     nvgFontSize(vg, 13); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(100, 240, 140, 255))
-                    nvgText(vg, addBtnX + addBtnW / 2, addBtnY + addBtnH / 2, "+ 加好友", nil)
+                    nvgText(vg, addBtnX + addBtnW / 2, addBtnY + addBtnH / 2, "+ 鍔犲ソ鍙?, nil)
                     menuBtnRects.worldChatAddFriend = { x = addBtnX, y = addBtnY, w = addBtnW, h = addBtnH, uid = pp.uid, name = pp.name }
                 end
-                -- 整个弹窗区域（点击外部关闭用）
+                -- 鏁翠釜寮圭獥鍖哄煙锛堢偣鍑诲閮ㄥ叧闂敤锛?
                 menuBtnRects.worldChatPopupArea = { x = ppX, y = ppY, w = ppW, h = ppH }
                 if not menuBtnRects.worldChatAddFriend or isMe or isFriend then
                     menuBtnRects.worldChatAddFriend = nil
@@ -627,44 +627,44 @@ function DrawMenuScreen()
                 menuBtnRects.worldChatPopupArea = nil
             end
 
-            -- 输入区域
+            -- 杈撳叆鍖哄煙
             local inputY = chatY + chatH - inputH - 4
             local sendBtnW = 56
             local inputW = chatW - sendBtnW - 20
-            -- 输入框背景 (暖色)
+            -- 杈撳叆妗嗚儗鏅?(鏆栬壊)
             nvgBeginPath(vg); nvgRoundedRect(vg, chatX + 8, inputY, inputW, inputH - 4, 6)
             nvgFillColor(vg, nvgRGBA(255, 245, 225, 220)); nvgFill(vg)
             nvgStrokeColor(vg, nvgRGBA(180, 140, 60, 120)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
-            -- 输入框文字
+            -- 杈撳叆妗嗘枃瀛?
             nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             if worldChatUI.chatInput and #worldChatUI.chatInput > 0 then
                 nvgFillColor(vg, nvgRGBA(50, 30, 10, 230))
                 nvgText(vg, chatX + 14, inputY + (inputH - 4) / 2, worldChatUI.chatInput, nil)
             else
                 nvgFillColor(vg, nvgRGBA(150, 120, 80, 150))
-                nvgText(vg, chatX + 14, inputY + (inputH - 4) / 2, "输入消息...", nil)
+                nvgText(vg, chatX + 14, inputY + (inputH - 4) / 2, "杈撳叆娑堟伅...", nil)
             end
             menuBtnRects.worldChatInput = { x = chatX + 8, y = inputY, w = inputW, h = inputH - 4 }
-            -- 发送按钮
+            -- 鍙戦€佹寜閽?
             local sendX = chatX + chatW - sendBtnW - 8
             nvgBeginPath(vg); nvgRoundedRect(vg, sendX, inputY, sendBtnW, inputH - 4, 6)
             nvgFillColor(vg, nvgRGBA(160, 90, 30, 220)); nvgFill(vg)
             nvgFontSize(vg, 17); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 245, 220, 240))
-            nvgText(vg, sendX + sendBtnW / 2, inputY + (inputH - 4) / 2, "发送", nil)
+            nvgText(vg, sendX + sendBtnW / 2, inputY + (inputH - 4) / 2, "鍙戦€?, nil)
             menuBtnRects.worldChatSend = { x = sendX, y = inputY, w = sendBtnW, h = inputH - 4 }
         end
     end
 
     -- ===========================
-    -- 7. 左上角玩家面板 (横屏适配)
+    -- 7. 宸︿笂瑙掔帺瀹堕潰鏉?(妯睆閫傞厤)
     -- ===========================
     local panelW = 200
     local panelH = 70
     local panelX = 6
     local panelY = 4
 
-    -- 面板背景 (国风暖色卷轴)
+    -- 闈㈡澘鑳屾櫙 (鍥介鏆栬壊鍗疯酱)
     nvgBeginPath(vg); nvgRoundedRect(vg, panelX + 3, panelY + 3, panelW, panelH, 8)
     nvgFillColor(vg, nvgRGBA(60, 40, 20, 50)); nvgFill(vg)
     local panelGrad = nvgLinearGradient(vg, panelX, panelY, panelX, panelY + panelH,
@@ -673,7 +673,7 @@ function DrawMenuScreen()
     nvgFillPaint(vg, panelGrad); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(180, 140, 60, 180)); nvgStrokeWidth(vg, 2.5); nvgStroke(vg)
 
-    -- 头像 (横屏缩小)
+    -- 澶村儚 (妯睆缂╁皬)
     local avatarSize = 40
     local avatarX = panelX + 6
     local avatarY = panelY + (panelH - avatarSize) / 2
@@ -694,7 +694,7 @@ function DrawMenuScreen()
         nvgFillPaint(vg, pat); nvgFill(vg)
     end
 
-    -- 文字信息 (三行紧凑: 名字 / 官职 / 战力)
+    -- 鏂囧瓧淇℃伅 (涓夎绱у噾: 鍚嶅瓧 / 瀹樿亴 / 鎴樺姏)
     local infoX = avatarX + avatarSize + 6
     local infoTopY = panelY + 8
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
@@ -721,19 +721,19 @@ function DrawMenuScreen()
     nvgFillColor(vg, nvgRGBA(180, 60, 50, 220))
     nvgText(vg, infoX, infoTopY + 18, rankName, nil)
 
-    -- 战力 (第三行, 在名字/官职下方)
+    -- 鎴樺姏 (绗笁琛? 鍦ㄥ悕瀛?瀹樿亴涓嬫柟)
     local totalPwr = CalcPlayerTotalPower()
     nvgFontSize(vg, 14)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
     local statX = infoX
     local statY = infoTopY + 34
     nvgFillColor(vg, nvgRGBA(255, 240, 210, 120))
-    nvgText(vg, statX + 0.5, statY + 0.5, "战力 " .. FormatPower(totalPwr), nil)
+    nvgText(vg, statX + 0.5, statY + 0.5, "鎴樺姏 " .. FormatPower(totalPwr), nil)
     nvgFillColor(vg, nvgRGBA(80, 50, 20, 230))
-    nvgText(vg, statX, statY, "战力 " .. FormatPower(totalPwr), nil)
+    nvgText(vg, statX, statY, "鎴樺姏 " .. FormatPower(totalPwr), nil)
 
-    -- 战力 "?" 按钮
-    local pwrTextW = nvgTextBounds(vg, 0, 0, "战力 " .. FormatPower(totalPwr), nil)
+    -- 鎴樺姏 "?" 鎸夐挳
+    local pwrTextW = nvgTextBounds(vg, 0, 0, "鎴樺姏 " .. FormatPower(totalPwr), nil)
     local qBtnX = statX + pwrTextW + 4
     local qBtnY = statY - 1
     local qBtnS = 14
@@ -748,7 +748,7 @@ function DrawMenuScreen()
     playerDetailBtnRect = { x = panelX, y = panelY, w = panelW, h = panelH }
 
     -- ===========================
-    -- 8. 右上角虎符显示 + 广告
+    -- 8. 鍙充笂瑙掕檸绗︽樉绀?+ 骞垮憡
     -- ===========================
     local jadeBoxW = 160
     local jadeBoxH = 28
@@ -763,12 +763,12 @@ function DrawMenuScreen()
 
     nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 17)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(jadeBoxX + 5, jadeBoxY + jadeBoxH / 2, "虎符")
+    DrawWhiteInkText(jadeBoxX + 5, jadeBoxY + jadeBoxH / 2, "铏庣")
     nvgFontSize(vg, 17)
     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
     DrawWhiteInkText(jadeBoxX + jadeBoxW - 32, jadeBoxY + jadeBoxH / 2, FormatJade(playerInfo.jade))
 
-    -- 广告 (+)
+    -- 骞垮憡 (+)
     local adBtnW = 30
     local adBtnH = 22
     local adBtnX = jadeBoxX + jadeBoxW - adBtnW - 3
@@ -783,13 +783,13 @@ function DrawMenuScreen()
     DrawWhiteInkText(adBtnX + adBtnW/2, adBtnY + adBtnH/2, "+")
     local adPad = 6
     adRects.jade = { x = adBtnX - adPad, y = adBtnY - adPad, w = adBtnW + adPad*2, h = adBtnH + adPad*2 }
-    -- 广告提示
+    -- 骞垮憡鎻愮ず
     nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
     nvgFillColor(vg, nvgRGBA(180, 50, 30, math.floor(160 * adPulse)))
-    nvgText(vg, jadeBoxX + jadeBoxW / 2, jadeBoxY + jadeBoxH + 1, "+2000虎符", nil)
+    nvgText(vg, jadeBoxX + jadeBoxW / 2, jadeBoxY + jadeBoxH + 1, "+2000铏庣", nil)
 
     -- ===========================
-    -- 9. 下载按钮 + 下载面板
+    -- 9. 涓嬭浇鎸夐挳 + 涓嬭浇闈㈡澘
     -- ===========================
     local allModulesReady = moduleState.equipment.ready and moduleState.heroes.ready
         and moduleState.skills.ready and moduleState.battle.ready
@@ -818,7 +818,7 @@ function DrawMenuScreen()
         end
         nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-        DrawWhiteInkText(dlBtnX + dlBtnW/2, dlBtnY + (dlBtnH - miniBarH)/2, "下载" .. totalPct .. "%")
+        DrawWhiteInkText(dlBtnX + dlBtnW/2, dlBtnY + (dlBtnH - miniBarH)/2, "涓嬭浇" .. totalPct .. "%")
         downloadUI.btnRect = { x = dlBtnX, y = dlBtnY, w = dlBtnW, h = dlBtnH }
 
         if downloadUI.panelOpen then
@@ -832,12 +832,12 @@ function DrawMenuScreen()
             downloadUI.panelRect = { x = panX, y = panY, w = panW, h = panH }
             nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 20)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
-            DrawWhiteInkText(panX + panW/2, panY + 6, "资源下载进度")
+            DrawWhiteInkText(panX + panW/2, panY + 6, "璧勬簮涓嬭浇杩涘害")
             local modules = {
-                { name = "兵甲", mod = moduleState.equipment },
-                { name = "武灵", mod = moduleState.heroes },
-                { name = "武技", mod = moduleState.skills },
-                { name = "战斗", mod = moduleState.battle },
+                { name = "鍏电敳", mod = moduleState.equipment },
+                { name = "姝︾伒", mod = moduleState.heroes },
+                { name = "姝︽妧", mod = moduleState.skills },
+                { name = "鎴樻枟", mod = moduleState.battle },
             }
             local rowH = 22; local rowStartY2 = panY + 24
             local barX2 = panX + 46; local barW2 = panW - 58; local barH2 = 7
@@ -866,7 +866,7 @@ function DrawMenuScreen()
     end
 
     -- ===========================
-    -- 10. 漂浮粒子 (金色闪星)
+    -- 10. 婕傛诞绮掑瓙 (閲戣壊闂槦)
     -- ===========================
     for i = 1, 6 do
         local px = W * (0.15 + 0.7 * ((i * 137 + math.floor(t * 18)) % 100) / 100)
@@ -885,14 +885,14 @@ end
 
 
 -- ============================================================================
--- 按钮位置调整模式 (战斗场景实时预览, 设计坐标)
+-- 鎸夐挳浣嶇疆璋冩暣妯″紡 (鎴樻枟鍦烘櫙瀹炴椂棰勮, 璁捐鍧愭爣)
 -- ============================================================================
 function DrawBtnAdjustMode()
     local W = DESIGN_W
     local H = DESIGN_H
     local t = menuAnimTimer
 
-    -- 1. 绘制战斗背景
+    -- 1. 缁樺埗鎴樻枟鑳屾櫙
     if IsImageReady(IMG.bg) then
         local p = nvgImagePattern(vg, 0, 0, W, H, 0, IMG.bg, 1.0)
         nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
@@ -903,19 +903,19 @@ function DrawBtnAdjustMode()
         DrawSpinner(W / 2, H / 2, 20)
     end
 
-    -- 半透明遮罩让按钮更清晰
+    -- 鍗婇€忔槑閬僵璁╂寜閽洿娓呮櫚
     nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
     nvgFillColor(vg, nvgRGBA(0, 0, 0, 50)); nvgFill(vg)
 
     nvgFontFaceId(vg, GetMainFont())
 
-    -- 2. 绘制战斗区域参考线
+    -- 2. 缁樺埗鎴樻枟鍖哄煙鍙傝€冪嚎
     nvgBeginPath(vg)
     nvgRect(vg, BATTLE_ZONE.left, BATTLE_ZONE.top,
         BATTLE_ZONE.right - BATTLE_ZONE.left, BATTLE_ZONE.bottom - BATTLE_ZONE.top)
     nvgStrokeColor(vg, nvgRGBA(100, 90, 60, 60)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
-    -- 3. 绘制实际大小的三圈按钮（使用与 DrawBottomActionBar 完全相同的布局逻辑）
+    -- 3. 缁樺埗瀹為檯澶у皬鐨勪笁鍦堟寜閽紙浣跨敤涓?DrawBottomActionBar 瀹屽叏鐩稿悓鐨勫竷灞€閫昏緫锛?
     local btnSc = settingsPage.adjScale
     local R = math.floor(26 * btnSc)
     local gap = math.floor(6 * btnSc)
@@ -930,23 +930,23 @@ function DrawBtnAdjustMode()
     local topCX = (leftCX + rightCX) / 2
     local topCY = bottomCY - R * 2 - gap
 
-    -- 绘制三个操作圈
+    -- 缁樺埗涓変釜鎿嶄綔鍦?
     local circles = {
-        { cx = topCX, cy = topCY, label = "自动", sub = "行军" },
-        { cx = leftCX, cy = bottomCY, label = "武技", sub = "1" },
-        { cx = rightCX, cy = bottomCY, label = "武技", sub = "2" },
+        { cx = topCX, cy = topCY, label = "鑷姩", sub = "琛屽啗" },
+        { cx = leftCX, cy = bottomCY, label = "姝︽妧", sub = "1" },
+        { cx = rightCX, cy = bottomCY, label = "姝︽妧", sub = "2" },
     }
     for _, c in ipairs(circles) do
-        -- 外发光
+        -- 澶栧彂鍏?
         local glowGrad = nvgRadialGradient(vg, c.cx, c.cy, R * 0.8, R * 1.6,
             nvgRGBA(120, 50, 55, 40), nvgRGBA(120, 50, 55, 0))
         nvgBeginPath(vg); nvgCircle(vg, c.cx, c.cy, R * 1.6)
         nvgFillPaint(vg, glowGrad); nvgFill(vg)
-        -- 按钮本体
+        -- 鎸夐挳鏈綋
         nvgBeginPath(vg); nvgCircle(vg, c.cx, c.cy, R)
         nvgFillColor(vg, nvgRGBA(30, 35, 50, 220)); nvgFill(vg)
         nvgStrokeColor(vg, nvgRGBA(120, 50, 55, 200)); nvgStrokeWidth(vg, 2); nvgStroke(vg)
-        -- 文字
+        -- 鏂囧瓧
         nvgFontSize(vg, math.floor(11 * btnSc))
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         DrawWhiteInkText(c.cx, c.cy - 5 * btnSc, c.label)
@@ -954,7 +954,7 @@ function DrawBtnAdjustMode()
         DrawWhiteInkText(c.cx, c.cy + 7 * btnSc, c.sub)
     end
 
-    -- 拖拽中的视觉提示 (仅当前选中组高亮)
+    -- 鎷栨嫿涓殑瑙嗚鎻愮ず (浠呭綋鍓嶉€変腑缁勯珮浜?
     local activeGrp = settingsPage.adjActiveGroup or "skill"
     if settingsPage.adjDragging and activeGrp == "skill" then
         for _, c in ipairs(circles) do
@@ -962,7 +962,7 @@ function DrawBtnAdjustMode()
             nvgStrokeColor(vg, nvgRGBA(100, 200, 255, 120)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
         end
     end
-    -- 选中高亮框 (技能组)
+    -- 閫変腑楂樹寒妗?(鎶€鑳界粍)
     if activeGrp == "skill" then
         for _, c in ipairs(circles) do
             nvgBeginPath(vg); nvgCircle(vg, c.cx, c.cy, R + 2)
@@ -970,7 +970,7 @@ function DrawBtnAdjustMode()
         end
     end
 
-    -- 3b. 绘制右上角按钮组预览
+    -- 3b. 缁樺埗鍙充笂瑙掓寜閽粍棰勮
     local rbOfsX = settingsPage.adjRightBtnOffsetX
     local rbOfsY = settingsPage.adjRightBtnOffsetY
     local rbBtnW = 72
@@ -979,7 +979,7 @@ function DrawBtnAdjustMode()
     local rbRightMargin = 4
     local rbStartY = 28 + rbOfsY
     local rbX = W - rbBtnW - rbRightMargin + rbOfsX
-    local rbLabels = { "军资", "刷新", "退出" }
+    local rbLabels = { "鍐涜祫", "鍒锋柊", "閫€鍑? }
     local rbCurY = rbStartY
     for idx, lbl in ipairs(rbLabels) do
         nvgBeginPath(vg); nvgRoundedRect(vg, rbX, rbCurY, rbBtnW, rbBtnH, 3)
@@ -1005,7 +1005,7 @@ function DrawBtnAdjustMode()
         nvgStrokeColor(vg, nvgRGBA(100, 200, 255, 120)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
     end
 
-    -- 3c. 绘制顶部HUD预览
+    -- 3c. 缁樺埗椤堕儴HUD棰勮
     local hudOfsX = settingsPage.adjHudOffsetX
     local hudOfsY = settingsPage.adjHudOffsetY
     local hudH2 = 22
@@ -1013,14 +1013,14 @@ function DrawBtnAdjustMode()
     nvgFillColor(vg, nvgRGBA(30, 25, 16, 190)); nvgFill(vg)
     nvgFontSize(vg, 20)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(16 + hudOfsX, 13 + hudOfsY, "军资")
+    DrawWhiteInkText(16 + hudOfsX, 13 + hudOfsY, "鍐涜祫")
     nvgFontSize(vg, 22)
     DrawWhiteInkText(50 + hudOfsX, 13 + hudOfsY, "99")
     nvgFontSize(vg, 20)
-    DrawWhiteInkText(120 + hudOfsX, 13 + hudOfsY, "斩")
+    DrawWhiteInkText(120 + hudOfsX, 13 + hudOfsY, "鏂?)
     nvgFontSize(vg, 22)
     DrawWhiteInkText(140 + hudOfsX, 13 + hudOfsY, "0")
-    -- 倒计时预览
+    -- 鍊掕鏃堕瑙?
     local tmrW2 = 72
     local tmrH2 = 20
     local tmrX2 = W / 2 - tmrW2 / 2 + hudOfsX
@@ -1036,7 +1036,7 @@ function DrawBtnAdjustMode()
         nvgStrokeColor(vg, nvgRGBA(100, 200, 255, 180)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
     end
 
-    -- 3d. 绘制左上角信息面板预览
+    -- 3d. 缁樺埗宸︿笂瑙掍俊鎭潰鏉块瑙?
     local ipOfsX = settingsPage.adjInfoPanelOffsetX
     local ipOfsY = settingsPage.adjInfoPanelOffsetY
     local ipW = 110
@@ -1048,41 +1048,41 @@ function DrawBtnAdjustMode()
     nvgStrokeColor(vg, nvgRGBA(160, 130, 70, 40)); nvgStrokeWidth(vg, 0.5); nvgStroke(vg)
     nvgFontSize(vg, 13.5)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
-    DrawWhiteInkText(ipX + 6, ipY + 10, "阵容 3/6")
-    DrawWhiteInkText(ipX + 6, ipY + 23, "总攻: 100")
-    DrawWhiteInkText(ipX + 6, ipY + 35, "总防: 80")
+    DrawWhiteInkText(ipX + 6, ipY + 10, "闃靛 3/6")
+    DrawWhiteInkText(ipX + 6, ipY + 23, "鎬绘敾: 100")
+    DrawWhiteInkText(ipX + 6, ipY + 35, "鎬婚槻: 80")
     nvgFontSize(vg, 11.2)
-    DrawWhiteInkText(ipX + 6, ipY + 51, "点击查看 - 拖拽换位")
-    DrawWhiteInkText(ipX + 6, ipY + 61, "拖拽卡牌至石台放置")
+    DrawWhiteInkText(ipX + 6, ipY + 51, "鐐瑰嚮鏌ョ湅 - 鎷栨嫿鎹綅")
+    DrawWhiteInkText(ipX + 6, ipY + 61, "鎷栨嫿鍗＄墝鑷崇煶鍙版斁缃?)
     if activeGrp == "infoPanel" then
         nvgBeginPath(vg); nvgRoundedRect(vg, ipX - 3, ipY - 3, ipW + 6, ipH + 6, 5)
         nvgStrokeColor(vg, nvgRGBA(100, 200, 255, 180)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
     end
 
-    -- 4. 顶部提示条
+    -- 4. 椤堕儴鎻愮ず鏉?
     local tipBarH = 36
     nvgBeginPath(vg); nvgRect(vg, 0, 0, W, tipBarH)
     nvgFillColor(vg, nvgRGBA(10, 15, 30, 200)); nvgFill(vg)
     nvgFontSize(vg, 24)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(W / 2, tipBarH / 2, "拖拽屏幕移动选中组位置")
+    DrawWhiteInkText(W / 2, tipBarH / 2, "鎷栨嫿灞忓箷绉诲姩閫変腑缁勪綅缃?)
 
-    -- 5. 底部工具栏 (增高以容纳组切换标签)
+    -- 5. 搴曢儴宸ュ叿鏍?(澧為珮浠ュ绾崇粍鍒囨崲鏍囩)
     local barH = 90
     local barY = H - barH
     nvgBeginPath(vg); nvgRect(vg, 0, barY, W, barH)
     nvgFillColor(vg, nvgRGBA(10, 15, 30, 220)); nvgFill(vg)
-    -- 顶部分隔线
+    -- 椤堕儴鍒嗛殧绾?
     nvgBeginPath(vg)
     nvgMoveTo(vg, 0, barY); nvgLineTo(vg, W, barY)
     nvgStrokeColor(vg, nvgRGBA(90, 45, 55, 100)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
-    -- 5a. 组切换标签栏
+    -- 5a. 缁勫垏鎹㈡爣绛炬爮
     local groups = {
-        { key = "skill",     label = "技能按钮" },
-        { key = "rightBtn",  label = "右侧按钮" },
-        { key = "hud",       label = "顶部信息" },
-        { key = "infoPanel", label = "左侧面板" },
+        { key = "skill",     label = "鎶€鑳芥寜閽? },
+        { key = "rightBtn",  label = "鍙充晶鎸夐挳" },
+        { key = "hud",       label = "椤堕儴淇℃伅" },
+        { key = "infoPanel", label = "宸︿晶闈㈡澘" },
     }
     local tabY = barY + 6
     local tabH = 26
@@ -1116,10 +1116,10 @@ function DrawBtnAdjustMode()
         tabCurX = tabCurX + tw + tabGap
     end
 
-    -- 5b. 缩放滑条 (仅技能按钮组显示)
+    -- 5b. 缂╂斁婊戞潯 (浠呮妧鑳芥寜閽粍鏄剧ず)
     local row2Y = tabY + tabH + 8
     if activeGrp == "skill" then
-        local sliderLabel = "大小"
+        local sliderLabel = "澶у皬"
         local sliderX = 60
         local sliderW = W - 260
         local sliderH = 8
@@ -1145,22 +1145,22 @@ function DrawBtnAdjustMode()
         settingsPage.adjScaleSliderRect = nil
     end
 
-    -- 5c. 按钮区域 (底部右侧)
+    -- 5c. 鎸夐挳鍖哄煙 (搴曢儴鍙充晶)
     local btnAreaX = W - 190
     local btnY = row2Y
     local btnW2 = 54
     local btnH2 = 32
 
-    -- 重置按钮
+    -- 閲嶇疆鎸夐挳
     nvgBeginPath(vg); nvgRoundedRect(vg, btnAreaX, btnY, btnW2, btnH2, 5)
     nvgFillColor(vg, nvgRGBA(60, 55, 70, 220)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(90, 45, 55, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
     nvgFontSize(vg, 24)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(btnAreaX + btnW2 / 2, btnY + btnH2 / 2, "重置")
+    DrawWhiteInkText(btnAreaX + btnW2 / 2, btnY + btnH2 / 2, "閲嶇疆")
     settingsPage.adjResetBtnRect = { x = btnAreaX, y = btnY, w = btnW2, h = btnH2 }
 
-    -- 保存按钮
+    -- 淇濆瓨鎸夐挳
     local saveBtnX = btnAreaX + btnW2 + 8
     nvgBeginPath(vg); nvgRoundedRect(vg, saveBtnX, btnY, btnW2, btnH2, 5)
     local saveGrad = nvgLinearGradient(vg, saveBtnX, btnY, saveBtnX, btnY + btnH2,
@@ -1168,17 +1168,17 @@ function DrawBtnAdjustMode()
     nvgFillPaint(vg, saveGrad); nvgFill(vg)
     nvgFontSize(vg, 24)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(saveBtnX + btnW2 / 2, btnY + btnH2 / 2, "保存")
+    DrawWhiteInkText(saveBtnX + btnW2 / 2, btnY + btnH2 / 2, "淇濆瓨")
     settingsPage.adjSaveBtnRect = { x = saveBtnX, y = btnY, w = btnW2, h = btnH2 }
 
-    -- 返回按钮
+    -- 杩斿洖鎸夐挳
     local backBtnX = saveBtnX + btnW2 + 8
     nvgBeginPath(vg); nvgRoundedRect(vg, backBtnX, btnY, btnW2, btnH2, 5)
     nvgFillColor(vg, nvgRGBA(50, 35, 35, 220)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(180, 100, 80, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
     nvgFontSize(vg, 24)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(backBtnX + btnW2 / 2, btnY + btnH2 / 2, "返回")
+    DrawWhiteInkText(backBtnX + btnW2 / 2, btnY + btnH2 / 2, "杩斿洖")
     settingsPage.adjBackBtnRect = { x = backBtnX, y = btnY, w = btnW2, h = btnH2 }
 end
 
@@ -1194,14 +1194,14 @@ function DrawFormationScreen()
     nvgFontFaceId(vg, GetMainFont())
 
     -- ===========================
-    -- 1. 顶部栏: 返回 + 标题
+    -- 1. 椤堕儴鏍? 杩斿洖 + 鏍囬
     -- ===========================
     local topBarY = 12
     local backW, backH = 110, 48
     local backX = 10
 
     -- ===========================
-    -- 2. 编队槽区域 (上半部分, 最多10个槽)
+    -- 2. 缂栭槦妲藉尯鍩?(涓婂崐閮ㄥ垎, 鏈€澶?0涓Ы)
     -- ===========================
     local FORMATION_MAX = 10
     local slotCols = 5
@@ -1213,28 +1213,28 @@ function DrawFormationScreen()
     local slotStartX = (W - slotAreaW) / 2
     local slotStartY = topBarY + backH + 16
 
-    -- 统计信息
+    -- 缁熻淇℃伅
     local formation = gameSettings.formation or {}
     local formCount = #formation
     local ownedCount = formationUI.ownedCount or GetOwnedHeroCount()
     local targetCount = math.min(FORMATION_MAX, ownedCount)
     local canManualEdit = ownedCount >= 10
 
-    -- 标题栏
+    -- 鏍囬鏍?
     nvgFontSize(vg, 15)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    local titleStr = "编队 (" .. formCount .. "/" .. targetCount .. ")"
+    local titleStr = "缂栭槦 (" .. formCount .. "/" .. targetCount .. ")"
     DrawWhiteInkText(W / 2, slotStartY - 8, titleStr)
 
-    -- 编队说明 (根据状态不同显示)
+    -- 缂栭槦璇存槑 (鏍规嵁鐘舵€佷笉鍚屾樉绀?
     nvgFontSize(vg, 11)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     if canManualEdit then
         nvgFillColor(vg, nvgRGBA(180, 170, 140, 180))
-        nvgText(vg, W / 2, slotStartY + 4, "点击卡牌可调整编队阵容")
+        nvgText(vg, W / 2, slotStartY + 4, "鐐瑰嚮鍗＄墝鍙皟鏁寸紪闃熼樀瀹?)
     else
         nvgFillColor(vg, nvgRGBA(255, 200, 100, math.floor(150 + 60 * math.sin(t * 2.5))))
-        nvgText(vg, W / 2, slotStartY + 4, "武灵不足10人, 已全部自动上阵")
+        nvgText(vg, W / 2, slotStartY + 4, "姝︾伒涓嶈冻10浜? 宸插叏閮ㄨ嚜鍔ㄤ笂闃?)
     end
 
     slotStartY = slotStartY + 14
@@ -1250,11 +1250,11 @@ function DrawFormationScreen()
 
         local cardIdx = formation[i]
         if cardIdx and HERO_CARDS[cardIdx] and playerHeroes[cardIdx] and playerHeroes[cardIdx].owned then
-            -- 已放置武灵
+            -- 宸叉斁缃鐏?
             local card = HERO_CARDS[cardIdx]
             local hero = playerHeroes[cardIdx]
             DrawInventoryCard(sx, sy, slotW, slotH, card, hero.constellation or 0, false, false)
-            -- 移除标记 (右上角x) — 仅满10人可手动编辑时显示
+            -- 绉婚櫎鏍囪 (鍙充笂瑙抶) 鈥?浠呮弧10浜哄彲鎵嬪姩缂栬緫鏃舵樉绀?
             if canManualEdit then
                 nvgBeginPath(vg)
                 nvgCircle(vg, sx + slotW - 6, sy + 6, 8)
@@ -1262,10 +1262,10 @@ function DrawFormationScreen()
                 nvgFontSize(vg, 14)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(255, 255, 255, 240))
-                nvgText(vg, sx + slotW - 6, sy + 6, "×")
+                nvgText(vg, sx + slotW - 6, sy + 6, "脳")
             end
         else
-            -- 空槽位
+            -- 绌烘Ы浣?
             local isEmpty = i > targetCount
             nvgBeginPath(vg); nvgRoundedRect(vg, sx, sy, slotW, slotH, 4)
             if isEmpty then
@@ -1292,7 +1292,7 @@ function DrawFormationScreen()
     end
 
     -- ===========================
-    -- 3. 功能按钮区 (一键编队 / 清空)
+    -- 3. 鍔熻兘鎸夐挳鍖?(涓€閿紪闃?/ 娓呯┖)
     -- ===========================
     local btnAreaY = slotStartY + slotRows * (slotH + slotGap + 4) + 8
     local btnW = 90
@@ -1301,7 +1301,7 @@ function DrawFormationScreen()
     local totalBtnW = btnW * 2 + btnGap
     local btnStartX = (W - totalBtnW) / 2
 
-    -- 一键编队按钮
+    -- 涓€閿紪闃熸寜閽?
     local autoBtnX = btnStartX
     nvgBeginPath(vg); nvgRoundedRect(vg, autoBtnX, btnAreaY, btnW, btnH, 6)
     local autoGrad = nvgLinearGradient(vg, autoBtnX, btnAreaY, autoBtnX, btnAreaY + btnH,
@@ -1311,10 +1311,10 @@ function DrawFormationScreen()
     nvgStrokeColor(vg, nvgRGBA(120, 200, 80, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
     nvgFontSize(vg, 16)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(autoBtnX + btnW / 2, btnAreaY + btnH / 2, "一键编队")
+    DrawWhiteInkText(autoBtnX + btnW / 2, btnAreaY + btnH / 2, "涓€閿紪闃?)
     formationUI.autoBtnRect = { x = autoBtnX, y = btnAreaY, w = btnW, h = btnH }
 
-    -- 清空按钮 (不满10人时显示灰色锁定)
+    -- 娓呯┖鎸夐挳 (涓嶆弧10浜烘椂鏄剧ず鐏拌壊閿佸畾)
     local clearBtnX = btnStartX + btnW + btnGap
     nvgBeginPath(vg); nvgRoundedRect(vg, clearBtnX, btnAreaY, btnW, btnH, 6)
     if canManualEdit then
@@ -1331,25 +1331,25 @@ function DrawFormationScreen()
     nvgFontSize(vg, 16)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     if canManualEdit then
-        DrawWhiteInkText(clearBtnX + btnW / 2, btnAreaY + btnH / 2, "清空")
+        DrawWhiteInkText(clearBtnX + btnW / 2, btnAreaY + btnH / 2, "娓呯┖")
     else
         nvgFillColor(vg, nvgRGBA(120, 110, 100, 120))
-        nvgText(vg, clearBtnX + btnW / 2, btnAreaY + btnH / 2, "清空")
+        nvgText(vg, clearBtnX + btnW / 2, btnAreaY + btnH / 2, "娓呯┖")
     end
     formationUI.clearBtnRect = { x = clearBtnX, y = btnAreaY, w = btnW, h = btnH }
 
     -- ===========================
-    -- 4. 品质筛选标签页
+    -- 4. 鍝佽川绛涢€夋爣绛鹃〉
     -- ===========================
     local tabY = btnAreaY + btnH + 12
     local tabH = 26
     local TAB_DEFS = {
-        { label = "全部", quality = 0 },
+        { label = "鍏ㄩ儴", quality = 0 },
         { label = "N",    quality = 1 },
         { label = "R",    quality = 2 },
         { label = "SR",   quality = 3 },
         { label = "SSR",  quality = 4 },
-        { label = "限定", quality = 5 },
+        { label = "闄愬畾", quality = 5 },
     }
     local tabW = math.floor((W - 20) / #TAB_DEFS) - 4
     local tabStartX = 12
@@ -1378,13 +1378,13 @@ function DrawFormationScreen()
     end
 
     -- ===========================
-    -- 5. 已拥有武灵列表 (可滚动)
+    -- 5. 宸叉嫢鏈夋鐏靛垪琛?(鍙粴鍔?
     -- ===========================
     local listStartY = tabY + tabH + 8
     local listEndY = H - 10
     local listViewH = listEndY - listStartY
 
-    -- 筛选已拥有 + 品质过滤
+    -- 绛涢€夊凡鎷ユ湁 + 鍝佽川杩囨护
     local filteredOwned = {}
     local inFormationSet = {}
     for _, idx in ipairs(formation) do inFormationSet[idx] = true end
@@ -1400,7 +1400,7 @@ function DrawFormationScreen()
         end
     end
 
-    -- 排序: 已编队的排后面, 同组按品质降序
+    -- 鎺掑簭: 宸茬紪闃熺殑鎺掑悗闈? 鍚岀粍鎸夊搧璐ㄩ檷搴?
     table.sort(filteredOwned, function(a, b)
         if a.inFormation ~= b.inFormation then return not a.inFormation end
         if a.card.quality ~= b.card.quality then return a.card.quality > b.card.quality end
@@ -1415,12 +1415,12 @@ function DrawFormationScreen()
     local rows = math.ceil(#filteredOwned / cols)
     local contentH = rows * (cardH + cardGap + 4)
 
-    -- 滚动范围限制
+    -- 婊氬姩鑼冨洿闄愬埗
     local maxScroll = math.max(0, contentH - listViewH)
     formationUI.scrollY = math.max(0, math.min(formationUI.scrollY or 0, maxScroll))
     local scrollY = formationUI.scrollY
 
-    -- 滚动裁剪
+    -- 婊氬姩瑁佸壀
     nvgSave(vg)
     nvgScissor(vg, 0, listStartY, W, listViewH)
 
@@ -1434,29 +1434,29 @@ function DrawFormationScreen()
 
         formationUI.cardRects[fi] = { x = cx, y = cy, w = cardW, h = cardH, cardIdx = entry.cardIdx }
 
-        -- 跳过不可见
+        -- 璺宠繃涓嶅彲瑙?
         if cy + cardH >= listStartY - 10 and cy <= listEndY + 10 then
             if entry.inFormation then
-                -- 已编队: 暗化显示
+                -- 宸茬紪闃? 鏆楀寲鏄剧ず
                 DrawInventoryCard(cx, cy, cardW, cardH, entry.card, entry.hero.constellation or 0, false, false)
                 nvgBeginPath(vg); nvgRoundedRect(vg, cx, cy, cardW, cardH, 4)
                 nvgFillColor(vg, nvgRGBA(10, 10, 15, 150)); nvgFill(vg)
-                -- "已编入" 标记
+                -- "宸茬紪鍏? 鏍囪
                 nvgFontSize(vg, 13)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(120, 200, 100, 220))
-                nvgText(vg, cx + cardW / 2, cy + cardH / 2, "已编入")
+                nvgText(vg, cx + cardW / 2, cy + cardH / 2, "宸茬紪鍏?)
             else
-                -- 未编队
+                -- 鏈紪闃?
                 DrawInventoryCard(cx, cy, cardW, cardH, entry.card, entry.hero.constellation or 0, false, false)
-                -- 不满10人锁定时，未编队卡牌也显示暗化锁定
+                -- 涓嶆弧10浜洪攣瀹氭椂锛屾湭缂栭槦鍗＄墝涔熸樉绀烘殫鍖栭攣瀹?
                 if not canManualEdit then
                     nvgBeginPath(vg); nvgRoundedRect(vg, cx, cy, cardW, cardH, 4)
                     nvgFillColor(vg, nvgRGBA(10, 10, 15, 100)); nvgFill(vg)
                     nvgFontSize(vg, 20)
                     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(160, 140, 100, 120))
-                    nvgText(vg, cx + cardW / 2, cy + cardH / 2, "🔒")
+                    nvgText(vg, cx + cardW / 2, cy + cardH / 2, "馃敀")
                 end
             end
         end
@@ -1464,7 +1464,7 @@ function DrawFormationScreen()
 
     nvgRestore(vg)
 
-    -- 滚动条
+    -- 婊氬姩鏉?
     if contentH > listViewH then
         local barH = math.max(20, listViewH * listViewH / contentH)
         local barY = listStartY + (scrollY / maxScroll) * (listViewH - barH)
@@ -1473,40 +1473,41 @@ function DrawFormationScreen()
     end
 
     -- ===========================
-    -- 6. 顶部栏 (覆盖在上层)
+    -- 6. 椤堕儴鏍?(瑕嗙洊鍦ㄤ笂灞?
     -- ===========================
     nvgBeginPath(vg); nvgRect(vg, 0, 0, W, topBarY + backH + 4)
     nvgFillColor(vg, nvgRGBA(15, 20, 38, 230)); nvgFill(vg)
 
-    -- 返回按钮
+    -- 杩斿洖鎸夐挳
     nvgBeginPath(vg); nvgRoundedRect(vg, backX, topBarY, backW, backH, 8)
     nvgFillColor(vg, nvgRGBA(32, 38, 58, 200)); nvgFill(vg)
     nvgBeginPath(vg); nvgRoundedRect(vg, backX, topBarY, backW, backH, 8)
     nvgStrokeColor(vg, nvgRGBA(100, 85, 55, 100)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
     nvgFontSize(vg, 20)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(backX + backW / 2, topBarY + backH / 2, "◁ 返回")
+    DrawWhiteInkText(backX + backW / 2, topBarY + backH / 2, "鈼?杩斿洖")
     formationBackBtnRect = { x = backX, y = topBarY, w = backW, h = backH }
 
-    -- 标题
+    -- 鏍囬
     nvgFontSize(vg, 22)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(W / 2, topBarY + backH / 2, "出征编队")
+    DrawWhiteInkText(W / 2, topBarY + backH / 2, "鍑哄緛缂栭槦")
 
-    -- 右上角状态提示
+    -- 鍙充笂瑙掔姸鎬佹彁绀?
     nvgFontSize(vg, 12)
     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
     if not canManualEdit then
-        -- 不满10人: 锁定提示
+        -- 涓嶆弧10浜? 閿佸畾鎻愮ず
         nvgFillColor(vg, nvgRGBA(255, 200, 100, math.floor(150 + 80 * math.sin(t * 3))))
-        nvgText(vg, W - 14, topBarY + backH / 2, "自动编队中")
+        nvgText(vg, W - 14, topBarY + backH / 2, "鑷姩缂栭槦涓?)
     elseif formCount < targetCount then
-        -- 满10人但编队未满
+        -- 婊?0浜轰絾缂栭槦鏈弧
         nvgFillColor(vg, nvgRGBA(255, 180, 80, math.floor(150 + 80 * math.sin(t * 3))))
-        nvgText(vg, W - 14, topBarY + backH / 2, "需补齐" .. targetCount .. "人")
+        nvgText(vg, W - 14, topBarY + backH / 2, "闇€琛ラ綈" .. targetCount .. "浜?)
     else
-        -- 编队已满
+        -- 缂栭槦宸叉弧
         nvgFillColor(vg, nvgRGBA(120, 220, 100, 180))
-        nvgText(vg, W - 14, topBarY + backH / 2, "编队完成")
+        nvgText(vg, W - 14, topBarY + backH / 2, "缂栭槦瀹屾垚")
     end
 end
+

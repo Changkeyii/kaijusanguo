@@ -1,11 +1,11 @@
--- ============================================================================
--- slg/slg_main.lua - 三国武灵传：SLG入口模块
--- 将所有子模块挂载到全局 WorldMap 表，保持对外接口兼容
+﻿-- ============================================================================
+-- slg/slg_main.lua - 涓夊浗姝︾伒浼狅細SLG鍏ュ彛妯″潡
+-- 灏嗘墍鏈夊瓙妯″潡鎸傝浇鍒板叏灞€ WorldMap 琛紝淇濇寔瀵瑰鎺ュ彛鍏煎
 -- ============================================================================
 
 ---@diagnostic disable: undefined-global
 
--- 加载子模块（顺序重要：Data/State 先于 Logic，Logic 先于 Input）
+-- 鍔犺浇瀛愭ā鍧楋紙椤哄簭閲嶈锛欴ata/State 鍏堜簬 Logic锛孡ogic 鍏堜簬 Input锛?
 local Data   = require("systems.slg.slg_data")
 local State  = require("systems.slg.slg_state")
 local Logic  = require("systems.slg.slg_logic")
@@ -14,11 +14,11 @@ local Panels = require("systems.slg.slg_panels")
 local Input  = require("systems.slg.slg_input")
 
 -- ============================================================================
--- 全局 WorldMap 表 (保持向后兼容)
+-- 鍏ㄥ眬 WorldMap 琛?(淇濇寔鍚戝悗鍏煎)
 -- ============================================================================
 WorldMap = WorldMap or {}
 
--- Logic 模块
+-- Logic 妯″潡
 WorldMap.Init              = Logic.Init
 WorldMap.EndTurn           = Logic.EndTurn
 WorldMap.MoveArmy          = Logic.MoveArmy
@@ -36,7 +36,7 @@ WorldMap.GetCityById       = Logic.GetCityById
 WorldMap.GetCityData       = Logic.GetCityData
 WorldMap.IsConnected       = Logic.IsConnected
 
--- B4: 武将管理/招降/补兵/存档
+-- B4: 姝﹀皢绠＄悊/鎷涢檷/琛ュ叺/瀛樻。
 WorldMap.SetHeroTroop      = Logic.SetHeroTroop
 WorldMap.LearnSkill        = Logic.LearnSkill
 WorldMap.TrySurrender      = Logic.TrySurrender
@@ -47,7 +47,7 @@ WorldMap.LoadSLG           = Logic.LoadSLG
 WorldMap.HasSave           = Logic.HasSave
 WorldMap.DeleteSave        = Logic.DeleteSave
 
--- Input 模块 (行军动画 + 引导 + 输入)
+-- Input 妯″潡 (琛屽啗鍔ㄧ敾 + 寮曞 + 杈撳叆)
 WorldMap.HandleInput       = Input.HandleInput
 WorldMap.HandleScroll      = Input.HandleScroll
 WorldMap.StartMarchAnim    = Input.StartMarchAnim
@@ -62,19 +62,20 @@ WorldMap.HandleGuideInput  = Input.HandleGuideInput
 WorldMap.UpdateMapDrag     = Input.UpdateMapDrag
 WorldMap.CenterOnCity      = Input.CenterOnCity
 
--- Render 模块 (地图绘制)
+-- Render 妯″潡 (鍦板浘缁樺埗)
 WorldMap.GetFC             = Render.GetFC
 WorldMap.GetFactionStats   = Render.GetFactionStats
 WorldMap.DrawBtn           = Render.DrawBtn
 
--- 主绘制入口：将 Panels.DrawPanel 作为回调传入 Render
+-- 涓荤粯鍒跺叆鍙ｏ細灏?Panels.DrawPanel 浣滀负鍥炶皟浼犲叆 Render
 function WorldMap.DrawWorldMapScreen()
     Render.DrawWorldMapScreen(Panels.DrawPanel)
 end
 
--- 征途模式：纯单机 + clientCloud 存档，不依赖服务端
+-- 寰侀€旀ā寮忥細绾崟鏈?+ CloudAPI 瀛樻。锛屼笉渚濊禆鏈嶅姟绔?
 
--- 向后兼容：battle_hud_core 等外部文件以裸全局函数调用
+-- 鍚戝悗鍏煎锛歜attle_hud_core 绛夊閮ㄦ枃浠朵互瑁稿叏灞€鍑芥暟璋冪敤
 DrawWorldMapScreen = WorldMap.DrawWorldMapScreen
 
 return WorldMap
+

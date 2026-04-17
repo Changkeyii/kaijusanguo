@@ -1,10 +1,10 @@
--- ============================================================================
--- cloud_manager_social.lua - 三国武灵录 (从 cloud_manager.lua 拆分)
--- 社交系统: 公开资料、好友、公会(阵营)
+﻿-- ============================================================================
+-- cloud_manager_social.lua - 涓夊浗姝︾伒褰?(浠?cloud_manager.lua 鎷嗗垎)
+-- 绀句氦绯荤粺: 鍏紑璧勬枡銆佸ソ鍙嬨€佸叕浼?闃佃惀)
 -- ============================================================================
 ---@diagnostic disable: undefined-global
 
--- 从 core 模块导入常量和共享状态
+-- 浠?core 妯″潡瀵煎叆甯搁噺鍜屽叡浜姸鎬?
 local C = CloudManager._C
 local S = CloudManager._S
 local KEYS = C.KEYS
@@ -34,21 +34,21 @@ local function _getRankItemUserId(item)
 end
 
 -- ============================================================================
--- 公开档案
+-- 鍏紑妗ｆ
 -- ============================================================================
 
---- 发布公开档案 (自动从全局变量提取, 有频率限制)
+--- 鍙戝竷鍏紑妗ｆ (鑷姩浠庡叏灞€鍙橀噺鎻愬彇, 鏈夐鐜囬檺鍒?
 function CloudManager._publishProfile(allData)
-    if not rawget(_G, "clientCloud") then return end
-    -- 封禁检查
+    if not CloudAPI.IsAvailable() then return end
+    -- 灏佺妫€鏌?
     if S.banLevel >= BAN_LEVEL_CORE then return end
-    -- 频率限制
+    -- 棰戠巼闄愬埗
     if not CloudManager._checkCooldown("publish_profile", COOLDOWN_PROFILE_PUBLISH) then return end
 
     local coreData = allData and allData.core or CloudManager.CollectDomainData("core")
     local pi = coreData.playerInfo or {}
 
-    -- 构建轻量公开资料
+    -- 鏋勫缓杞婚噺鍏紑璧勬枡
     local profile = {
         heroLineup = {},
         skillLineup = {},
@@ -62,25 +62,25 @@ function CloudManager._publishProfile(allData)
         updatedAt = os.time(),
     }
 
-    -- 上阵武灵
+    -- 涓婇樀姝︾伒
     if rawget(_G, "playerHeroes") then
         for idx, hero in pairs(playerHeroes) do
             if hero.owned then
                 profile.heroLineup[#profile.heroLineup + 1] = tonumber(idx) or idx
             end
         end
-        -- 只保留前6个
+        -- 鍙繚鐣欏墠6涓?
         while #profile.heroLineup > 6 do table.remove(profile.heroLineup) end
     end
 
-    -- 装备武技
+    -- 瑁呭姝︽妧
     if rawget(_G, "playerEquippedSkills") then
         for _, skillIdx in ipairs(playerEquippedSkills) do
             profile.skillLineup[#profile.skillLineup + 1] = skillIdx
         end
     end
 
-    -- 最高装备品阶
+    -- 鏈€楂樿澶囧搧闃?
     if rawget(_G, "playerEquipment") and playerEquipment.owned then
         for _, item in ipairs(playerEquipment.owned) do
             if item.tier and item.tier > profile.mainEquipTier then
@@ -89,7 +89,7 @@ function CloudManager._publishProfile(allData)
         end
     end
 
-    -- 计算战力 (与现有逻辑保持一致)
+    -- 璁＄畻鎴樺姏 (涓庣幇鏈夐€昏緫淇濇寔涓€鑷?
     local combatPower = 0
     if rawget(_G, "CalcPlayerTotalPower") then
         combatPower = CalcPlayerTotalPower() or 0
@@ -97,30 +97,30 @@ function CloudManager._publishProfile(allData)
         combatPower = (pi.rankIdx or 1) * 100 + (pi.totalWins or 0) * 10
     end
 
-    -- BatchSet: 公开资料 + 战力排行
-    clientCloud:BatchSet()
+    -- BatchSet: 鍏紑璧勬枡 + 鎴樺姏鎺掕
+    CloudAPI:BatchSet()
         :Set(KEYS.pub_profile, profile)
         :SetInt(KEYS.combat_power, combatPower)
         :SetInt(KEYS.realm_level, pi.rankIdx or 1)
-        :Save("发布公开档案")
+        :Save("鍙戝竷鍏紑妗ｆ")
 end
 
---- 手动发布公开档案
+--- 鎵嬪姩鍙戝竷鍏紑妗ｆ
 function CloudManager.PublishProfile()
     CloudManager._publishProfile(nil)
 end
 
---- 获取其他玩家的公开档案 (通过战力排行榜)
----@param start number 起始位置 (0开始)
----@param count number 获取数量
+--- 鑾峰彇鍏朵粬鐜╁鐨勫叕寮€妗ｆ (閫氳繃鎴樺姏鎺掕姒?
+---@param start number 璧峰浣嶇疆 (0寮€濮?
+---@param count number 鑾峰彇鏁伴噺
 ---@param callback fun(profiles: table[])
 function CloudManager.GetPublicProfiles(start, count, callback)
-    if not rawget(_G, "clientCloud") then
+    if not CloudAPI.IsAvailable() then
         if callback then callback({}) end
         return
     end
 
-    clientCloud:GetRankList(KEYS.combat_power, start, count, {
+    CloudAPI:GetRankList(KEYS.combat_power, start, count, {
         ok = function(rankList)
             local profiles = {}
             local userIds = {}
@@ -135,13 +135,13 @@ function CloudManager.GetPublicProfiles(start, count, callback)
                     realmLevel = (item.iscore and item.iscore[KEYS.realm_level]) or 1,
                     profile = profile,
                     nickname = "",
-                    isMe = uid == clientCloud.userId,
+                    isMe = uid == CloudAPI.GetUserId(),
                 }
                 profiles[#profiles + 1] = entry
                 userIds[#userIds + 1] = entry.userId
             end
 
-            -- 批量查询昵称
+            -- 鎵归噺鏌ヨ鏄电О
             if #userIds > 0 and rawget(_G, "GetUserNickname") then
                 GetUserNickname({
                     userIds = userIds,
@@ -151,7 +151,7 @@ function CloudManager.GetPublicProfiles(start, count, callback)
                             map[info.userId] = info.nickname or ""
                         end
                         for _, entry in ipairs(profiles) do
-                            entry.nickname = map[entry.userId] or "未知"
+                            entry.nickname = map[entry.userId] or "鏈煡"
                         end
                         if callback then callback(profiles) end
                     end,
@@ -164,22 +164,22 @@ function CloudManager.GetPublicProfiles(start, count, callback)
             end
         end,
         error = function(code, reason)
-            print("[CloudManager] 获取排行榜失败: " .. tostring(reason))
+            print("[CloudManager] 鑾峰彇鎺掕姒滃け璐? " .. tostring(reason))
             if callback then callback({}) end
         end,
     }, KEYS.pub_profile, KEYS.realm_level)
 end
 
 -- ============================================================================
--- 好友系统 (公共申请池模型 — 安全版)
--- 核心: 排行榜做公共信箱, 每人只写自己数据, 永不写别人存档
+-- 濂藉弸绯荤粺 (鍏叡鐢宠姹犳ā鍨?鈥?瀹夊叏鐗?
+-- 鏍稿績: 鎺掕姒滃仛鍏叡淇＄, 姣忎汉鍙啓鑷繁鏁版嵁, 姘镐笉鍐欏埆浜哄瓨妗?
 -- ============================================================================
 
-CloudManager._friendIds = {}           -- 已确认好友 { userId1, userId2, ... }
-CloudManager._outgoingRequests = {}    -- 本地缓存: 我发出的申请 { [toUid]={time=ts}, ... }
-CloudManager._outgoingResponses = {}   -- 本地缓存: 我的回复 { [toUid]={accepted=bool, time=ts}, ... }
+CloudManager._friendIds = {}           -- 宸茬‘璁ゅソ鍙?{ userId1, userId2, ... }
+CloudManager._outgoingRequests = {}    -- 鏈湴缂撳瓨: 鎴戝彂鍑虹殑鐢宠 { [toUid]={time=ts}, ... }
+CloudManager._outgoingResponses = {}   -- 鏈湴缂撳瓨: 鎴戠殑鍥炲 { [toUid]={accepted=bool, time=ts}, ... }
 
--- ── 工具: 过期清理 ──
+-- 鈹€鈹€ 宸ュ叿: 杩囨湡娓呯悊 鈹€鈹€
 
 local function _purgeExpired(tbl)
     local now = os.time()
@@ -199,14 +199,14 @@ local function _tableCount(t)
     return n
 end
 
--- ── 初始化时从云端拉取自己的出站信箱 ──
+-- 鈹€鈹€ 鍒濆鍖栨椂浠庝簯绔媺鍙栬嚜宸辩殑鍑虹珯淇＄ 鈹€鈹€
 
 function CloudManager._loadMyOutbox(callback)
-    if not rawget(_G, "clientCloud") then
+    if not CloudAPI.IsAvailable() then
         if callback then callback() end
         return
     end
-    clientCloud:BatchGet()
+    CloudAPI:BatchGet()
         :Key(KEYS.freq_outbox)
         :Key(KEYS.freq_resp)
         :Key(KEYS.camp_apply)
@@ -214,7 +214,7 @@ function CloudManager._loadMyOutbox(callback)
         :Key(KEYS.camp_meta)
         :Fetch({
             ok = function(values, _)
-                -- 好友出站
+                -- 濂藉弸鍑虹珯
                 if values[KEYS.freq_outbox] then
                     CloudManager._outgoingRequests = values[KEYS.freq_outbox] or {}
                     _purgeExpired(CloudManager._outgoingRequests)
@@ -223,7 +223,7 @@ function CloudManager._loadMyOutbox(callback)
                     CloudManager._outgoingResponses = values[KEYS.freq_resp] or {}
                     _purgeExpired(CloudManager._outgoingResponses)
                 end
-                -- 阵营出站
+                -- 闃佃惀鍑虹珯
                 if values[KEYS.camp_apply] and type(values[KEYS.camp_apply]) == "table"
                    and values[KEYS.camp_apply].campId then
                     CloudManager._campOutApply = values[KEYS.camp_apply]
@@ -231,91 +231,91 @@ function CloudManager._loadMyOutbox(callback)
                 if values[KEYS.camp_resp] and type(values[KEYS.camp_resp]) == "table" then
                     CloudManager._campOutResp = values[KEYS.camp_resp]
                 end
-                -- 盟主阵营元数据
+                -- 鐩熶富闃佃惀鍏冩暟鎹?
                 if values[KEYS.camp_meta] and type(values[KEYS.camp_meta]) == "table"
                    and values[KEYS.camp_meta].id then
                     CloudManager._factionMeta = values[KEYS.camp_meta]
                 end
-                print("[社交] 出站信箱已加载: 好友申请=" .. _tableCount(CloudManager._outgoingRequests)
-                    .. " 好友回复=" .. _tableCount(CloudManager._outgoingResponses)
-                    .. " 阵营申请=" .. (CloudManager._campOutApply and "有" or "无"))
-                -- 阵营继位检测: 如果有阵营归属, 自动检查是否发生了盟主转让
+                print("[绀句氦] 鍑虹珯淇＄宸插姞杞? 濂藉弸鐢宠=" .. _tableCount(CloudManager._outgoingRequests)
+                    .. " 濂藉弸鍥炲=" .. _tableCount(CloudManager._outgoingResponses)
+                    .. " 闃佃惀鐢宠=" .. (CloudManager._campOutApply and "鏈? or "鏃?))
+                -- 闃佃惀缁т綅妫€娴? 濡傛灉鏈夐樀钀ュ綊灞? 鑷姩妫€鏌ユ槸鍚﹀彂鐢熶簡鐩熶富杞
                 if CloudManager._factionId ~= 0 then
                     CloudManager._refreshFactionStatus()
                 end
                 if callback then callback() end
             end,
             error = function(_, reason)
-                print("[社交] 加载出站信箱失败: " .. tostring(reason))
+                print("[绀句氦] 鍔犺浇鍑虹珯淇＄澶辫触: " .. tostring(reason))
                 if callback then callback() end
             end,
         })
 end
 
--- ── 发布自己的出站信箱到排行榜 ──
+-- 鈹€鈹€ 鍙戝竷鑷繁鐨勫嚭绔欎俊绠卞埌鎺掕姒?鈹€鈹€
 
 function CloudManager._publishOutbox()
-    if not rawget(_G, "clientCloud") then return end
+    if not CloudAPI.IsAvailable() then return end
     _purgeExpired(CloudManager._outgoingRequests)
-    clientCloud:BatchSet()
+    CloudAPI:BatchSet()
         :SetInt(KEYS.freq_outbox_ts, os.time())
         :Set(KEYS.freq_outbox, CloudManager._outgoingRequests)
-        :Save("发布好友申请出站")
+        :Save("鍙戝竷濂藉弸鐢宠鍑虹珯")
 end
 
 function CloudManager._publishResponses()
-    if not rawget(_G, "clientCloud") then return end
+    if not CloudAPI.IsAvailable() then return end
     _purgeExpired(CloudManager._outgoingResponses)
-    clientCloud:BatchSet()
+    CloudAPI:BatchSet()
         :SetInt(KEYS.freq_resp_ts, os.time())
         :Set(KEYS.freq_resp, CloudManager._outgoingResponses)
-        :Save("发布好友回复")
+        :Save("鍙戝竷濂藉弸鍥炲")
 end
 
--- ── 发送好友申请 ──
+-- 鈹€鈹€ 鍙戦€佸ソ鍙嬬敵璇?鈹€鈹€
 
---- 向目标玩家发送好友申请 (写入自己的出站信箱)
+--- 鍚戠洰鏍囩帺瀹跺彂閫佸ソ鍙嬬敵璇?(鍐欏叆鑷繁鐨勫嚭绔欎俊绠?
 ---@param targetUserId number
----@param message? string 申请留言
+---@param message? string 鐢宠鐣欒█
 ---@return boolean success
 ---@return string? reason
 function CloudManager.SendFriendRequest(targetUserId, message)
-    -- 封禁检查: 社交封禁及以上禁止
+    -- 灏佺妫€鏌? 绀句氦灏佺鍙婁互涓婄姝?
     if S.banLevel >= BAN_LEVEL_SOCIAL then
-        return false, "社交功能已被限制"
+        return false, "绀句氦鍔熻兘宸茶闄愬埗"
     end
     if not targetUserId or targetUserId == 0 then
-        return false, "无效的用户ID"
+        return false, "鏃犳晥鐨勭敤鎴稩D"
     end
-    local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+    local myUid = CloudAPI.GetUserId()
     if targetUserId == myUid then
-        return false, "不能添加自己"
+        return false, "涓嶈兘娣诲姞鑷繁"
     end
-    -- 频率限制
+    -- 棰戠巼闄愬埗
     if not CloudManager._checkCooldown("friend_request", COOLDOWN_FRIEND_REQUEST) then
-        return false, "操作过于频繁, 请" .. COOLDOWN_FRIEND_REQUEST .. "秒后再试"
+        return false, "鎿嶄綔杩囦簬棰戠箒, 璇? .. COOLDOWN_FRIEND_REQUEST .. "绉掑悗鍐嶈瘯"
     end
-    -- 已是好友
+    -- 宸叉槸濂藉弸
     if CloudManager.IsFriend(targetUserId) then
-        return false, "已是好友"
+        return false, "宸叉槸濂藉弸"
     end
-    -- 已有待处理申请 (7天内防重复)
+    -- 宸叉湁寰呭鐞嗙敵璇?(7澶╁唴闃查噸澶?
     local uidKey = tostring(targetUserId)
     if CloudManager._outgoingRequests[uidKey] then
-        return false, "已发送过申请, 等待对方回应"
+        return false, "宸插彂閫佽繃鐢宠, 绛夊緟瀵规柟鍥炲簲"
     end
-    -- 被拒绝冷却: 24小时内不能重复申请同一人
+    -- 琚嫆缁濆喎鍗? 24灏忔椂鍐呬笉鑳介噸澶嶇敵璇峰悓涓€浜?
     local rejectTime = S.rejectedByCache[uidKey]
     if rejectTime and (os.time() - rejectTime) < COOLDOWN_REJECTED_RETRY then
         local remaining = COOLDOWN_REJECTED_RETRY - (os.time() - rejectTime)
         local hours = math.ceil(remaining / 3600)
-        return false, "对方曾拒绝你的申请, " .. hours .. "小时后可重试"
+        return false, "瀵规柟鏇炬嫆缁濅綘鐨勭敵璇? " .. hours .. "灏忔椂鍚庡彲閲嶈瘯"
     end
-    -- 出站上限
+    -- 鍑虹珯涓婇檺
     if _tableCount(CloudManager._outgoingRequests) >= MAX_OUTBOX then
         _purgeExpired(CloudManager._outgoingRequests)
         if _tableCount(CloudManager._outgoingRequests) >= MAX_OUTBOX then
-            return false, "待处理申请过多, 请等待回应或清理"
+            return false, "寰呭鐞嗙敵璇疯繃澶? 璇风瓑寰呭洖搴旀垨娓呯悊"
         end
     end
 
@@ -324,27 +324,27 @@ function CloudManager.SendFriendRequest(targetUserId, message)
         msg = message or "",
     }
     CloudManager._publishOutbox()
-    print("[好友] 已发送申请给 " .. uidKey)
+    print("[濂藉弸] 宸插彂閫佺敵璇风粰 " .. uidKey)
     return true
 end
 
--- ── 拉取发给我的好友申请 (扫描所有人的出站信箱) ──
+-- 鈹€鈹€ 鎷夊彇鍙戠粰鎴戠殑濂藉弸鐢宠 (鎵弿鎵€鏈変汉鐨勫嚭绔欎俊绠? 鈹€鈹€
 
---- 检查收到的好友申请
+--- 妫€鏌ユ敹鍒扮殑濂藉弸鐢宠
 ---@param callback fun(requests: table[]) {fromUid, time, msg, nickname}
 function CloudManager.CheckIncomingRequests(callback)
     if S.banLevel >= BAN_LEVEL_SOCIAL then
         if callback then callback({}) end
         return
     end
-    if not rawget(_G, "clientCloud") then
+    if not CloudAPI.IsAvailable() then
         if callback then callback({}) end
         return
     end
-    local myUid = clientCloud.userId
+    local myUid = CloudAPI.GetUserId()
 
-    -- 扫描 freq_outbox_ts 排行榜 (按最近更新排序, 拉200人)
-    clientCloud:GetRankList(KEYS.freq_outbox_ts, 0, 200, {
+    -- 鎵弿 freq_outbox_ts 鎺掕姒?(鎸夋渶杩戞洿鏂版帓搴? 鎷?00浜?
+    CloudAPI:GetRankList(KEYS.freq_outbox_ts, 0, 200, {
         ok = function(rankList)
             local incoming = {}
             local senderIds = {}
@@ -356,9 +356,9 @@ function CloudManager.CheckIncomingRequests(callback)
                     local outbox = item.score[KEYS.freq_outbox]
                     if type(outbox) == "table" and outbox[myUidStr] then
                         local req = outbox[myUidStr]
-                        -- 检查过期
+                        -- 妫€鏌ヨ繃鏈?
                         if req.time and (os.time() - req.time) <= REQUEST_EXPIRE_SECONDS then
-                            -- 排除已是好友 & 已回复的
+                            -- 鎺掗櫎宸叉槸濂藉弸 & 宸插洖澶嶇殑
                             if not CloudManager.IsFriend(senderId)
                                and not CloudManager._outgoingResponses[tostring(senderId)] then
                                 table.insert(incoming, {
@@ -374,7 +374,7 @@ function CloudManager.CheckIncomingRequests(callback)
                 end
             end
 
-            -- 批量查昵称
+            -- 鎵归噺鏌ユ樀绉?
             if #senderIds > 0 and rawget(_G, "GetUserNickname") then
                 GetUserNickname({
                     userIds = senderIds,
@@ -384,7 +384,7 @@ function CloudManager.CheckIncomingRequests(callback)
                             map[info.userId] = info.nickname or ""
                         end
                         for _, r in ipairs(incoming) do
-                            r.nickname = map[r.fromUid] or "未知"
+                            r.nickname = map[r.fromUid] or "鏈煡"
                         end
                         if callback then callback(incoming) end
                     end,
@@ -397,15 +397,15 @@ function CloudManager.CheckIncomingRequests(callback)
             end
         end,
         error = function(_, reason)
-            print("[好友] 扫描入站申请失败: " .. tostring(reason))
+            print("[濂藉弸] 鎵弿鍏ョ珯鐢宠澶辫触: " .. tostring(reason))
             if callback then callback({}) end
         end,
     }, KEYS.freq_outbox)
 end
 
--- ── 同意好友申请 ──
+-- 鈹€鈹€ 鍚屾剰濂藉弸鐢宠 鈹€鈹€
 
---- 同意来自 fromUserId 的好友申请
+--- 鍚屾剰鏉ヨ嚜 fromUserId 鐨勫ソ鍙嬬敵璇?
 ---@param fromUserId number
 ---@return boolean
 function CloudManager.AcceptFriendRequest(fromUserId)
@@ -413,14 +413,14 @@ function CloudManager.AcceptFriendRequest(fromUserId)
     if not fromUserId or fromUserId == 0 then return false end
     if CloudManager.IsFriend(fromUserId) then return false end
     if #CloudManager._friendIds >= MAX_FRIENDS then
-        print("[好友] 好友数已满 " .. MAX_FRIENDS)
+        print("[濂藉弸] 濂藉弸鏁板凡婊?" .. MAX_FRIENDS)
         return false
     end
 
-    -- 1. 加入自己好友列表
+    -- 1. 鍔犲叆鑷繁濂藉弸鍒楄〃
     table.insert(CloudManager._friendIds, fromUserId)
 
-    -- 2. 发布回复到自己的 resp 信箱 (对方下次登录会扫到)
+    -- 2. 鍙戝竷鍥炲鍒拌嚜宸辩殑 resp 淇＄ (瀵规柟涓嬫鐧诲綍浼氭壂鍒?
     CloudManager._outgoingResponses[tostring(fromUserId)] = {
         accepted = true,
         time = os.time(),
@@ -428,11 +428,11 @@ function CloudManager.AcceptFriendRequest(fromUserId)
     CloudManager._publishResponses()
     CloudManager._syncSocialDomain()
 
-    print("[好友] 已同意 " .. tostring(fromUserId) .. " 的申请, 当前好友 " .. #CloudManager._friendIds .. " 人")
+    print("[濂藉弸] 宸插悓鎰?" .. tostring(fromUserId) .. " 鐨勭敵璇? 褰撳墠濂藉弸 " .. #CloudManager._friendIds .. " 浜?)
     return true
 end
 
---- 拒绝来自 fromUserId 的好友申请 (仅标记, 不加好友)
+--- 鎷掔粷鏉ヨ嚜 fromUserId 鐨勫ソ鍙嬬敵璇?(浠呮爣璁? 涓嶅姞濂藉弸)
 ---@param fromUserId number
 function CloudManager.RejectFriendRequest(fromUserId)
     if not fromUserId or fromUserId == 0 then return end
@@ -441,22 +441,22 @@ function CloudManager.RejectFriendRequest(fromUserId)
         time = os.time(),
     }
     CloudManager._publishResponses()
-    print("[好友] 已拒绝 " .. tostring(fromUserId) .. " 的申请")
+    print("[濂藉弸] 宸叉嫆缁?" .. tostring(fromUserId) .. " 鐨勭敵璇?)
 end
 
--- ── 检查我发出的申请的回复 (自动完成双向加好友) ──
+-- 鈹€鈹€ 妫€鏌ユ垜鍙戝嚭鐨勭敵璇风殑鍥炲 (鑷姩瀹屾垚鍙屽悜鍔犲ソ鍙? 鈹€鈹€
 
---- 检查我发出的申请是否被对方回复, 自动完成互加
+--- 妫€鏌ユ垜鍙戝嚭鐨勭敵璇锋槸鍚﹁瀵规柟鍥炲, 鑷姩瀹屾垚浜掑姞
 ---@param callback? fun(results: table[]) {toUid, accepted, nickname}
 function CloudManager.CheckMyRequestResponses(callback)
-    if not rawget(_G, "clientCloud") then
+    if not CloudAPI.IsAvailable() then
         if callback then callback({}) end
         return
     end
-    local myUid = clientCloud.userId
+    local myUid = CloudAPI.GetUserId()
     local myUidStr = tostring(myUid)
 
-    -- 我有哪些待处理的出站申请?
+    -- 鎴戞湁鍝簺寰呭鐞嗙殑鍑虹珯鐢宠?
     local pendingUids = {}
     for uidStr, _ in pairs(CloudManager._outgoingRequests) do
         table.insert(pendingUids, tonumber(uidStr))
@@ -466,8 +466,8 @@ function CloudManager.CheckMyRequestResponses(callback)
         return
     end
 
-    -- 扫描 freq_resp_ts 排行榜, 找对方的回复
-    clientCloud:GetRankList(KEYS.freq_resp_ts, 0, 200, {
+    -- 鎵弿 freq_resp_ts 鎺掕姒? 鎵惧鏂圭殑鍥炲
+    CloudAPI:GetRankList(KEYS.freq_resp_ts, 0, 200, {
         ok = function(rankList)
             local results = {}
             local completedUids = {}
@@ -478,68 +478,68 @@ function CloudManager.CheckMyRequestResponses(callback)
                 if type(respData) == "table" and respData[myUidStr] then
                     local resp = respData[myUidStr]
                     if resp.accepted then
-                        -- 对方同意了! 加入我的好友列表
+                        -- 瀵规柟鍚屾剰浜? 鍔犲叆鎴戠殑濂藉弸鍒楄〃
                         if not CloudManager.IsFriend(responder)
                            and #CloudManager._friendIds < MAX_FRIENDS then
                             table.insert(CloudManager._friendIds, responder)
                             table.insert(completedUids, responder)
                         end
                     else
-                        -- 对方拒绝了, 记录到被拒缓存 (24h冷却)
+                        -- 瀵规柟鎷掔粷浜? 璁板綍鍒拌鎷掔紦瀛?(24h鍐峰嵈)
                         S.rejectedByCache[tostring(responder)] = os.time()
                     end
                     table.insert(results, {
                         toUid = responder,
                         accepted = resp.accepted or false,
                     })
-                    -- 从出站信箱移除已处理的
+                    -- 浠庡嚭绔欎俊绠辩Щ闄ゅ凡澶勭悊鐨?
                     CloudManager._outgoingRequests[tostring(responder)] = nil
                 end
             end
 
-            -- 如果有新增好友, 同步
+            -- 濡傛灉鏈夋柊澧炲ソ鍙? 鍚屾
             if #completedUids > 0 then
-                CloudManager._publishOutbox()  -- 更新出站 (移除已处理)
+                CloudManager._publishOutbox()  -- 鏇存柊鍑虹珯 (绉婚櫎宸插鐞?
                 CloudManager._syncSocialDomain()
-                print("[好友] 自动互加完成: +" .. #completedUids .. " 人")
+                print("[濂藉弸] 鑷姩浜掑姞瀹屾垚: +" .. #completedUids .. " 浜?)
             end
 
             if callback then callback(results) end
         end,
         error = function(_, reason)
-            print("[好友] 扫描回复失败: " .. tostring(reason))
+            print("[濂藉弸] 鎵弿鍥炲澶辫触: " .. tostring(reason))
             if callback then callback({}) end
         end,
     }, KEYS.freq_resp)
 end
 
--- ── 随机推荐玩家 ──
+-- 鈹€鈹€ 闅忔満鎺ㄨ崘鐜╁ 鈹€鈹€
 
---- 从战力排行榜随机抽取 count 个玩家 (排除自己和已有好友)
+--- 浠庢垬鍔涙帓琛屾闅忔満鎶藉彇 count 涓帺瀹?(鎺掗櫎鑷繁鍜屽凡鏈夊ソ鍙?
 ---@param count number
 ---@param callback fun(players: table[])
 function CloudManager.GetRandomPlayers(count, callback)
     count = count or 10
-    if not rawget(_G, "clientCloud") then
+    if not CloudAPI.IsAvailable() then
         if callback then callback({}) end
         return
     end
 
-    -- 先获取排行榜总人数
-    clientCloud:GetRankTotal(KEYS.combat_power, {
+    -- 鍏堣幏鍙栨帓琛屾鎬讳汉鏁?
+    CloudAPI:GetRankTotal(KEYS.combat_power, {
         ok = function(total)
             if total <= 0 then
                 if callback then callback({}) end
                 return
             end
-            -- 随机偏移, 拉 count*3 条 (留余量过滤)
+            -- 闅忔満鍋忕Щ, 鎷?count*3 鏉?(鐣欎綑閲忚繃婊?
             local fetchCount = math.min(total, count * 3, 200)
             local maxStart = math.max(0, total - fetchCount)
             local startPos = math.random(0, maxStart)
 
             CloudManager.GetPublicProfiles(startPos, fetchCount, function(profiles)
-                -- 过滤自己、好友、3天未在线
-                local myUid = clientCloud.userId
+                -- 杩囨护鑷繁銆佸ソ鍙嬨€?澶╂湭鍦ㄧ嚎
+                local myUid = CloudAPI.GetUserId()
                 local now = os.time()
                 local friendSet = {}
                 for _, fid in ipairs(CloudManager._friendIds) do friendSet[fid] = true end
@@ -554,7 +554,7 @@ function CloudManager.GetRandomPlayers(count, callback)
                     end
                 end
 
-                -- 随机打乱 & 截取
+                -- 闅忔満鎵撲贡 & 鎴彇
                 for i = #candidates, 2, -1 do
                     local j = math.random(1, i)
                     candidates[i], candidates[j] = candidates[j], candidates[i]
@@ -572,23 +572,23 @@ function CloudManager.GetRandomPlayers(count, callback)
     })
 end
 
---- 搜索玩家 (按userId精确匹配)
+--- 鎼滅储鐜╁ (鎸塽serId绮剧‘鍖归厤)
 ---@param targetUserId number
 ---@param callback fun(player: table|nil)
 function CloudManager.SearchPlayer(targetUserId, callback)
-    if not rawget(_G, "clientCloud") or not targetUserId then
+    if not CloudAPI.IsAvailable() or not targetUserId then
         if callback then callback(nil) end
         return
     end
 
-    -- 通过 GetUserRank 查找
-    clientCloud:GetUserRank(targetUserId, KEYS.combat_power, {
+    -- 閫氳繃 GetUserRank 鏌ユ壘
+    CloudAPI:GetUserRank(targetUserId, KEYS.combat_power, {
         ok = function(rank, scoreValue)
             if not rank then
                 if callback then callback(nil) end
                 return
             end
-            -- 找到了, 拉取详细资料 (从排行榜偏移)
+            -- 鎵惧埌浜? 鎷夊彇璇︾粏璧勬枡 (浠庢帓琛屾鍋忕Щ)
             local startPos = math.max(0, rank - 1)
             CloudManager.GetPublicProfiles(startPos, 1, function(profiles)
                 local found = nil
@@ -607,9 +607,9 @@ function CloudManager.SearchPlayer(targetUserId, callback)
     })
 end
 
--- ── 好友管理 ──
+-- 鈹€鈹€ 濂藉弸绠＄悊 鈹€鈹€
 
---- 移除好友
+--- 绉婚櫎濂藉弸
 ---@param userId number
 ---@return boolean
 function CloudManager.RemoveFriend(userId)
@@ -617,46 +617,46 @@ function CloudManager.RemoveFriend(userId)
         if id == userId then
             table.remove(CloudManager._friendIds, i)
             CloudManager._syncSocialDomain()
-            print("[好友] 移除好友: " .. tostring(userId))
+            print("[濂藉弸] 绉婚櫎濂藉弸: " .. tostring(userId))
             return true
         end
     end
     return false
 end
 
---- 获取好友ID列表
+--- 鑾峰彇濂藉弸ID鍒楄〃
 ---@return number[]
 function CloudManager.GetFriendIds()
     return CloudManager._friendIds
 end
 
 -- ============================================================================
--- 阵营养成系统 (升级 / 捐献 / 公告)
+-- 闃佃惀鍏绘垚绯荤粺 (鍗囩骇 / 鎹愮尞 / 鍏憡)
 -- ============================================================================
 
--- 阵营等级经验表: 升到该等级所需的累计经验
--- 公式: Lv N → 成员上限 (10+10N), 每人捐 N×10000, 单级需 (10+10N)×N×10000
+-- 闃佃惀绛夌骇缁忛獙琛? 鍗囧埌璇ョ瓑绾ф墍闇€鐨勭疮璁＄粡楠?
+-- 鍏紡: Lv N 鈫?鎴愬憳涓婇檺 (10+10N), 姣忎汉鎹?N脳10000, 鍗曠骇闇€ (10+10N)脳N脳10000
 local FACTION_LEVEL_EXP = {
-    [1]  = 0,          -- 起始
-    [2]  = 200000,     -- 20人×1w = 20w
-    [3]  = 800000,     -- +30人×2w = +60w
-    [4]  = 2000000,    -- +40人×3w = +120w
-    [5]  = 4000000,    -- +50人×4w = +200w
-    [6]  = 7000000,    -- +60人×5w = +300w
-    [7]  = 11200000,   -- +70人×6w = +420w
-    [8]  = 16800000,   -- +80人×7w = +560w
-    [9]  = 24000000,   -- +90人×8w = +720w
-    [10] = 33000000,   -- +100人×9w = +900w
+    [1]  = 0,          -- 璧峰
+    [2]  = 200000,     -- 20浜好?w = 20w
+    [3]  = 800000,     -- +30浜好?w = +60w
+    [4]  = 2000000,    -- +40浜好?w = +120w
+    [5]  = 4000000,    -- +50浜好?w = +200w
+    [6]  = 7000000,    -- +60浜好?w = +300w
+    [7]  = 11200000,   -- +70浜好?w = +420w
+    [8]  = 16800000,   -- +80浜好?w = +560w
+    [9]  = 24000000,   -- +90浜好?w = +720w
+    [10] = 33000000,   -- +100浜好?w = +900w
 }
--- 阵营每级成员上限: Lv N → 10 + 10×N
+-- 闃佃惀姣忕骇鎴愬憳涓婇檺: Lv N 鈫?10 + 10脳N
 local FACTION_LEVEL_MAX_MEMBERS = {
     [1]  = 20,  [2]  = 30,  [3]  = 40,  [4]  = 50,  [5]  = 60,
     [6]  = 70,  [7]  = 80,  [8]  = 90,  [9]  = 100, [10] = 100,
 }
 local FACTION_MAX_LEVEL = 10
-local FACTION_DONATE_MIN = 100         -- 单次最少捐献
+local FACTION_DONATE_MIN = 100         -- 鍗曟鏈€灏戞崘鐚?
 
--- 职位额外加成系数 (每阵营等级额外+x%战力, 盟主最高, 成员无额外)
+-- 鑱屼綅棰濆鍔犳垚绯绘暟 (姣忛樀钀ョ瓑绾ч澶?x%鎴樺姏, 鐩熶富鏈€楂? 鎴愬憳鏃犻澶?
 local ROLE_BUFF_PER_LEVEL = {
     leader      = 0.6,
     vice_leader = 0.5,
@@ -667,7 +667,7 @@ local ROLE_BUFF_PER_LEVEL = {
     member      = 0,
 }
 
---- 获取阵营等级信息
+--- 鑾峰彇闃佃惀绛夌骇淇℃伅
 ---@return table { level, exp, nextExp, maxLevel, buffPercent, roleBonusPercent, totalBuffPercent }
 function CloudManager.GetFactionLevelInfo()
     local meta = CloudManager._factionMeta
@@ -677,29 +677,29 @@ function CloudManager.GetFactionLevelInfo()
     if lv > FACTION_MAX_LEVEL then lv = FACTION_MAX_LEVEL end
     local nextExp = FACTION_LEVEL_EXP[lv + 1] or FACTION_LEVEL_EXP[FACTION_MAX_LEVEL]
     local curNeed = FACTION_LEVEL_EXP[lv] or 0
-    local baseBuff = lv * 2  -- 每级+2%战力加成(全员)
+    local baseBuff = lv * 2  -- 姣忕骇+2%鎴樺姏鍔犳垚(鍏ㄥ憳)
     local role = CloudManager._factionRole or "member"
     local roleCoeff = ROLE_BUFF_PER_LEVEL[role] or 0
-    local roleBonus = lv * roleCoeff  -- 职位额外加成
+    local roleBonus = lv * roleCoeff  -- 鑱屼綅棰濆鍔犳垚
     return {
         level = lv,
         exp = exp,
         curLevelExp = curNeed,
         nextLevelExp = nextExp,
         maxLevel = FACTION_MAX_LEVEL,
-        buffPercent = baseBuff,          -- 全员基础加成%
-        roleBonusPercent = roleBonus,    -- 职位额外加成%
-        totalBuffPercent = baseBuff + roleBonus,  -- 总加成%
+        buffPercent = baseBuff,          -- 鍏ㄥ憳鍩虹鍔犳垚%
+        roleBonusPercent = roleBonus,    -- 鑱屼綅棰濆鍔犳垚%
+        totalBuffPercent = baseBuff + roleBonus,  -- 鎬诲姞鎴?
         maxMembers = FACTION_LEVEL_MAX_MEMBERS[lv] or 20,
     }
 end
 
---- 获取当日个人已捐献额度 (本地追踪)
+--- 鑾峰彇褰撴棩涓汉宸叉崘鐚搴?(鏈湴杩借釜)
 ---@return number
 function CloudManager.GetTodayDonation()
     local meta = CloudManager._factionMeta
     if not meta then return 0 end
-    local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+    local myUid = CloudAPI.GetUserId()
     local uidStr = tostring(myUid)
     local today = os.date("%Y%m%d")
     if not meta.donateDaily then return 0 end
@@ -708,34 +708,34 @@ function CloudManager.GetTodayDonation()
     return meta.donateDaily[uidStr].amount or 0
 end
 
---- 捐献虎符给阵营
----@param amount number 捐献数量
+--- 鎹愮尞铏庣缁欓樀钀?
+---@param amount number 鎹愮尞鏁伴噺
 ---@param callback? fun(success: boolean, reason: string)
 function CloudManager.DonateFaction(amount, callback)
     local meta = CloudManager._factionMeta
     if not meta then
-        if callback then callback(false, "阵营数据未加载") end
+        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?) end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not CloudAPI.IsAvailable() then
+        if callback then callback(false, "浜戠涓嶅彲鐢?) end
         return
     end
     amount = math.floor(amount)
     if amount < FACTION_DONATE_MIN then
-        if callback then callback(false, "最少捐献" .. FACTION_DONATE_MIN .. "虎符") end
+        if callback then callback(false, "鏈€灏戞崘鐚? .. FACTION_DONATE_MIN .. "铏庣") end
         return
     end
     if not rawget(_G, "playerInfo") or (playerInfo.jade or 0) < amount then
-        if callback then callback(false, "虎符不足") end
+        if callback then callback(false, "铏庣涓嶈冻") end
         return
     end
 
-    local myUid = clientCloud.userId or 0
+    local myUid = CloudAPI.GetUserId()
     local uidStr = tostring(myUid)
     local today = os.date("%Y%m%d")
 
-    -- 检查每日限额
+    -- 妫€鏌ユ瘡鏃ラ檺棰?
     if not meta.donateDaily then meta.donateDaily = {} end
     if not meta.donateDaily[uidStr] then meta.donateDaily[uidStr] = { day = today, amount = 0 } end
     if meta.donateDaily[uidStr].day ~= today then
@@ -743,19 +743,19 @@ function CloudManager.DonateFaction(amount, callback)
     end
     local todayDone = meta.donateDaily[uidStr].amount or 0
 
-    -- 扣虎符
+    -- 鎵ｈ檸绗?
     playerInfo.jade = playerInfo.jade - amount
 
-    -- 更新 meta
+    -- 鏇存柊 meta
     meta.exp = (meta.exp or 0) + amount
     meta.funds = (meta.funds or 0) + amount
     meta.donateDaily[uidStr].amount = todayDone + amount
 
-    -- 个人累计贡献
+    -- 涓汉绱璐＄尞
     if not meta.contributions then meta.contributions = {} end
     meta.contributions[uidStr] = (meta.contributions[uidStr] or 0) + amount
 
-    -- 检查升级
+    -- 妫€鏌ュ崌绾?
     local oldLevel = meta.level or 1
     local newLevel = oldLevel
     for lv = oldLevel + 1, FACTION_MAX_LEVEL do
@@ -767,25 +767,25 @@ function CloudManager.DonateFaction(amount, callback)
     end
     local leveled = newLevel > oldLevel
     meta.level = newLevel
-    -- 升级后更新成员上限
+    -- 鍗囩骇鍚庢洿鏂版垚鍛樹笂闄?
     if leveled then
         meta.maxMembers = FACTION_LEVEL_MAX_MEMBERS[newLevel] or meta.maxMembers
     end
 
-    clientCloud:BatchSet()
+    CloudAPI:BatchSet()
         :Set(KEYS.camp_meta, meta)
-        :Save("阵营捐献", {
+        :Save("闃佃惀鎹愮尞", {
             ok = function()
-                print("[阵营] 捐献成功: " .. amount .. "虎符, 经验=" .. meta.exp .. ", 等级=" .. meta.level)
-                -- 上报阵营等级到排行榜 (等级*1000000+经验, 等级优先)
+                print("[闃佃惀] 鎹愮尞鎴愬姛: " .. amount .. "铏庣, 缁忛獙=" .. meta.exp .. ", 绛夌骇=" .. meta.level)
+                -- 涓婃姤闃佃惀绛夌骇鍒版帓琛屾 (绛夌骇*1000000+缁忛獙, 绛夌骇浼樺厛)
                 local rankScore = meta.level * 1000000 + math.min(meta.exp, 999999)
                 local rankKey = (rawget(_G, "PROJECT_PREFIX") or "p_49dd_") .. "faction_level"
-                clientCloud:SetInt(rankKey, rankScore, {})
+                CloudAPI:SetInt(rankKey, rankScore, {})
                 if rawget(_G, "SaveGameProgress") then SaveGameProgress() end
-                if callback then callback(true, leveled and ("阵营升级到Lv." .. newLevel .. "!") or nil) end
+                if callback then callback(true, leveled and ("闃佃惀鍗囩骇鍒癓v." .. newLevel .. "!") or nil) end
             end,
             error = function(_, reason)
-                -- 回滚
+                -- 鍥炴粴
                 playerInfo.jade = playerInfo.jade + amount
                 meta.exp = meta.exp - amount
                 meta.funds = meta.funds - amount
@@ -797,12 +797,12 @@ function CloudManager.DonateFaction(amount, callback)
         })
 end
 
---- 检查今日是否已签到
+--- 妫€鏌ヤ粖鏃ユ槸鍚﹀凡绛惧埌
 ---@return boolean
 function CloudManager.HasSignedInToday()
     local meta = CloudManager._factionMeta
     if not meta then return false end
-    local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+    local myUid = CloudAPI.GetUserId()
     local uidStr = tostring(myUid)
     local today = os.date("%Y%m%d")
     if not meta.donateDaily then return false end
@@ -810,48 +810,48 @@ function CloudManager.HasSignedInToday()
     return meta.donateDaily[uidStr].day == today and meta.donateDaily[uidStr].signedIn == true
 end
 
---- 阵营签到 (每日免费捐献500经验，不消耗虎符)
+--- 闃佃惀绛惧埌 (姣忔棩鍏嶈垂鎹愮尞500缁忛獙锛屼笉娑堣€楄檸绗?
 ---@param callback? fun(success: boolean, reason: string)
 function CloudManager.FactionSignIn(callback)
     local meta = CloudManager._factionMeta
     if not meta then
-        if callback then callback(false, "阵营数据未加载") end
+        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?) end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not CloudAPI.IsAvailable() then
+        if callback then callback(false, "浜戠涓嶅彲鐢?) end
         return
     end
 
-    local myUid = clientCloud.userId or 0
+    local myUid = CloudAPI.GetUserId()
     local uidStr = tostring(myUid)
     local today = os.date("%Y%m%d")
     local signInAmount = 500
 
-    -- 初始化每日记录
+    -- 鍒濆鍖栨瘡鏃ヨ褰?
     if not meta.donateDaily then meta.donateDaily = {} end
     if not meta.donateDaily[uidStr] then meta.donateDaily[uidStr] = { day = today, amount = 0 } end
     if meta.donateDaily[uidStr].day ~= today then
         meta.donateDaily[uidStr] = { day = today, amount = 0 }
     end
 
-    -- 检查是否已签到
+    -- 妫€鏌ユ槸鍚﹀凡绛惧埌
     if meta.donateDaily[uidStr].signedIn then
-        if callback then callback(false, "今日已签到") end
+        if callback then callback(false, "浠婃棩宸茬鍒?) end
         return
     end
 
-    -- 更新 meta (不扣虎符)
+    -- 鏇存柊 meta (涓嶆墸铏庣)
     meta.exp = (meta.exp or 0) + signInAmount
     meta.funds = (meta.funds or 0) + signInAmount
     meta.donateDaily[uidStr].signedIn = true
     meta.donateDaily[uidStr].amount = (meta.donateDaily[uidStr].amount or 0) + signInAmount
 
-    -- 个人累计贡献
+    -- 涓汉绱璐＄尞
     if not meta.contributions then meta.contributions = {} end
     meta.contributions[uidStr] = (meta.contributions[uidStr] or 0) + signInAmount
 
-    -- 检查升级
+    -- 妫€鏌ュ崌绾?
     local oldLevel = meta.level or 1
     local newLevel = oldLevel
     for lv = oldLevel + 1, FACTION_MAX_LEVEL do
@@ -867,19 +867,19 @@ function CloudManager.FactionSignIn(callback)
         meta.maxMembers = FACTION_LEVEL_MAX_MEMBERS[newLevel] or meta.maxMembers
     end
 
-    clientCloud:BatchSet()
+    CloudAPI:BatchSet()
         :Set(KEYS.camp_meta, meta)
-        :Save("阵营签到", {
+        :Save("闃佃惀绛惧埌", {
             ok = function()
-                print("[阵营] 签到成功: +" .. signInAmount .. " 经验")
+                print("[闃佃惀] 绛惧埌鎴愬姛: +" .. signInAmount .. " 缁忛獙")
                 local rankScore = meta.level * 1000000 + math.min(meta.exp, 999999)
                 local rankKey = (rawget(_G, "PROJECT_PREFIX") or "p_49dd_") .. "faction_level"
-                clientCloud:SetInt(rankKey, rankScore, {})
+                CloudAPI:SetInt(rankKey, rankScore, {})
                 if rawget(_G, "SaveGameProgress") then SaveGameProgress() end
-                if callback then callback(true, leveled and ("阵营升级到Lv." .. newLevel .. "!") or nil) end
+                if callback then callback(true, leveled and ("闃佃惀鍗囩骇鍒癓v." .. newLevel .. "!") or nil) end
             end,
             error = function(_, reason)
-                -- 回滚
+                -- 鍥炴粴
                 meta.exp = meta.exp - signInAmount
                 meta.funds = meta.funds - signInAmount
                 meta.donateDaily[uidStr].signedIn = false
@@ -891,7 +891,7 @@ function CloudManager.FactionSignIn(callback)
         })
 end
 
---- 获取阵营成员贡献排行 (从meta.contributions排序)
+--- 鑾峰彇闃佃惀鎴愬憳璐＄尞鎺掕 (浠巑eta.contributions鎺掑簭)
 ---@return table[] { uid, amount, name }
 function CloudManager.GetContributionRank()
     local meta = CloudManager._factionMeta
@@ -904,37 +904,37 @@ function CloudManager.GetContributionRank()
     return list
 end
 
---- 设置阵营公告 (盟主/副盟主)
----@param text string 公告内容
+--- 璁剧疆闃佃惀鍏憡 (鐩熶富/鍓洘涓?
+---@param text string 鍏憡鍐呭
 ---@param callback? fun(success: boolean, reason: string)
 function CloudManager.SetFactionAnnouncement(text, callback)
     local meta = CloudManager._factionMeta
     if not meta then
-        if callback then callback(false, "阵营数据未加载") end
+        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?) end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not CloudAPI.IsAvailable() then
+        if callback then callback(false, "浜戠涓嶅彲鐢?) end
         return
     end
     local myRole = CloudManager._factionRole
     if _getRoleLevel(myRole) < _getRoleLevel("vice_leader") then
-        if callback then callback(false, "副盟主及以上才能设置公告") end
+        if callback then callback(false, "鍓洘涓诲強浠ヤ笂鎵嶈兘璁剧疆鍏憡") end
         return
     end
     if text and #text > 200 then
-        if callback then callback(false, "公告最多200字") end
+        if callback then callback(false, "鍏憡鏈€澶?00瀛?) end
         return
     end
 
     local oldAnn = meta.announcement
     meta.announcement = text or ""
 
-    clientCloud:BatchSet()
+    CloudAPI:BatchSet()
         :Set(KEYS.camp_meta, meta)
-        :Save("设置公告", {
+        :Save("璁剧疆鍏憡", {
             ok = function()
-                print("[阵营] 公告已更新")
+                print("[闃佃惀] 鍏憡宸叉洿鏂?)
                 if callback then callback(true, nil) end
             end,
             error = function(_, reason)
@@ -944,16 +944,16 @@ function CloudManager.SetFactionAnnouncement(text, callback)
         })
 end
 
---- 获取个人累计贡献
+--- 鑾峰彇涓汉绱璐＄尞
 ---@return number
 function CloudManager.GetMyContribution()
     local meta = CloudManager._factionMeta
     if not meta or not meta.contributions then return 0 end
-    local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+    local myUid = CloudAPI.GetUserId()
     return meta.contributions[tostring(myUid)] or 0
 end
 
---- 获取阵营公告
+--- 鑾峰彇闃佃惀鍏憡
 ---@return string
 function CloudManager.GetFactionAnnouncement()
     local meta = CloudManager._factionMeta
@@ -961,7 +961,7 @@ function CloudManager.GetFactionAnnouncement()
     return meta.announcement or ""
 end
 
---- 获取阵营资金总额
+--- 鑾峰彇闃佃惀璧勯噾鎬婚
 ---@return number
 function CloudManager.GetFactionFunds()
     local meta = CloudManager._factionMeta
@@ -969,13 +969,13 @@ function CloudManager.GetFactionFunds()
     return meta.funds or 0
 end
 
---- 获取捐献配置常量
+--- 鑾峰彇鎹愮尞閰嶇疆甯搁噺
 ---@return table { minAmount: number }
 function CloudManager.GetDonateConfig()
     return { minAmount = FACTION_DONATE_MIN }
 end
 
---- 获取好友档案列表 (通过排行榜匹配)
+--- 鑾峰彇濂藉弸妗ｆ鍒楄〃 (閫氳繃鎺掕姒滃尮閰?
 ---@param callback fun(friends: table[])
 function CloudManager.GetFriendProfiles(callback)
     if #CloudManager._friendIds == 0 then
@@ -995,7 +995,7 @@ function CloudManager.GetFriendProfiles(callback)
     end)
 end
 
---- 是否是好友
+--- 鏄惁鏄ソ鍙?
 ---@param userId number
 ---@return boolean
 function CloudManager.IsFriend(userId)
@@ -1005,63 +1005,63 @@ function CloudManager.IsFriend(userId)
     return false
 end
 
---- 同步社交域到云端 (好友列表 + 阵营归属)
+--- 鍚屾绀句氦鍩熷埌浜戠 (濂藉弸鍒楄〃 + 闃佃惀褰掑睘)
 function CloudManager._syncSocialDomain()
-    if not rawget(_G, "clientCloud") then return end
+    if not CloudAPI.IsAvailable() then return end
     local data = CloudManager.CollectDomainData("social")
-    clientCloud:Set(DOMAINS.social, data, {
+    CloudAPI:Set(DOMAINS.social, data, {
         ok = function()
-            print("[社交] social域已同步")
+            print("[绀句氦] social鍩熷凡鍚屾")
         end,
     })
 end
 
 -- ============================================================================
--- 阵营系统 (公共申请池模型 — 安全版)
--- 核心: 盟主通过排行榜发布阵营, 申请者通过排行榜提交, 盟主审批后更新成员表
--- 角色体系: leader(盟主) > vice_leader(副盟主) > member(成员)
--- 继承链: 盟主退出 → 副盟主继位 → 最早成员继位 → 最后一人退出=解散
+-- 闃佃惀绯荤粺 (鍏叡鐢宠姹犳ā鍨?鈥?瀹夊叏鐗?
+-- 鏍稿績: 鐩熶富閫氳繃鎺掕姒滃彂甯冮樀钀? 鐢宠鑰呴€氳繃鎺掕姒滄彁浜? 鐩熶富瀹℃壒鍚庢洿鏂版垚鍛樿〃
+-- 瑙掕壊浣撶郴: leader(鐩熶富) > vice_leader(鍓洘涓? > member(鎴愬憳)
+-- 缁ф壙閾? 鐩熶富閫€鍑?鈫?鍓洘涓荤户浣?鈫?鏈€鏃╂垚鍛樼户浣?鈫?鏈€鍚庝竴浜洪€€鍑?瑙ｆ暎
 -- ============================================================================
 
 CloudManager._factionId = 0
 CloudManager._factionName = ""
 CloudManager._factionRole = "none"  -- "leader" / "vice_leader" / "member" / "none"
-CloudManager._factionMeta = nil     -- 阵营元数据 (盟主维护, 含 roles 字段)
-CloudManager._campOutApply = nil    -- 本地缓存: 我的入营申请
-CloudManager._campOutResp = {}      -- 本地缓存: 盟主的审批回复
+CloudManager._factionMeta = nil     -- 闃佃惀鍏冩暟鎹?(鐩熶富缁存姢, 鍚?roles 瀛楁)
+CloudManager._campOutApply = nil    -- 鏈湴缂撳瓨: 鎴戠殑鍏ヨ惀鐢宠
+CloudManager._campOutResp = {}      -- 鏈湴缂撳瓨: 鐩熶富鐨勫鎵瑰洖澶?
 
--- ── 创建阵营 ──
+-- 鈹€鈹€ 鍒涘缓闃佃惀 鈹€鈹€
 
---- 创建阵营 (消耗虎符, 先扣再建)
+--- 鍒涘缓闃佃惀 (娑堣€楄檸绗? 鍏堟墸鍐嶅缓)
 ---@param name string
 ---@param desc string
 ---@param callback? fun(success: boolean, reason: string)
 function CloudManager.CreateFaction(name, desc, callback)
-    -- 封禁检查
+    -- 灏佺妫€鏌?
     if S.banLevel >= BAN_LEVEL_SOCIAL then
-        if callback then callback(false, "社交功能已被限制") end
+        if callback then callback(false, "绀句氦鍔熻兘宸茶闄愬埗") end
         return
     end
     if CloudManager._factionId ~= 0 then
-        if callback then callback(false, "已有阵营, 请先离开") end
+        if callback then callback(false, "宸叉湁闃佃惀, 璇峰厛绂诲紑") end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not CloudAPI.IsAvailable() then
+        if callback then callback(false, "浜戠涓嶅彲鐢?) end
         return
     end
-    -- 检查虎符
+    -- 妫€鏌ヨ檸绗?
     if not rawget(_G, "playerInfo") or (playerInfo.jade or 0) < CAMP_CREATE_COST then
-        if callback then callback(false, "虎符不足(需要" .. CAMP_CREATE_COST .. ")") end
+        if callback then callback(false, "铏庣涓嶈冻(闇€瑕? .. CAMP_CREATE_COST .. ")") end
         return
     end
 
-    local uid = clientCloud.userId or 0
+    local uid = CloudAPI.GetUserId()
     local ts = os.time()
-    -- 生成唯一阵营ID: 时间戳后6位 * 10000 + uid后4位
+    -- 鐢熸垚鍞竴闃佃惀ID: 鏃堕棿鎴冲悗6浣?* 10000 + uid鍚?浣?
     local campId = (ts % 1000000) * 10000 + (uid % 10000)
 
-    -- 1. 先扣虎符 (写入自己存档)
+    -- 1. 鍏堟墸铏庣 (鍐欏叆鑷繁瀛樻。)
     playerInfo.jade = playerInfo.jade - CAMP_CREATE_COST
 
     local uidStr = tostring(uid)
@@ -1072,9 +1072,9 @@ function CloudManager.CreateFaction(name, desc, callback)
         leaderId = uid,
         createdAt = ts,
         maxMembers = MAX_CAMP_MEMBERS,
-        members = { uid },  -- 盟主自己是首个成员
+        members = { uid },  -- 鐩熶富鑷繁鏄涓垚鍛?
         memberCount = 1,
-        roles = { [uidStr] = "leader" },  -- 角色映射: uid→角色
+        roles = { [uidStr] = "leader" },  -- 瑙掕壊鏄犲皠: uid鈫掕鑹?
     }
 
     CloudManager._factionId = campId
@@ -1082,19 +1082,19 @@ function CloudManager.CreateFaction(name, desc, callback)
     CloudManager._factionRole = "leader"
     CloudManager._factionMeta = meta
 
-    -- 2. 发布到排行榜 (camp_leader_ts + camp_meta)
-    clientCloud:BatchSet()
+    -- 2. 鍙戝竷鍒版帓琛屾 (camp_leader_ts + camp_meta)
+    CloudAPI:BatchSet()
         :SetInt(KEYS.camp_leader_ts, ts)
         :Set(KEYS.camp_meta, meta)
-        :Save("创建阵营", {
+        :Save("鍒涘缓闃佃惀", {
             ok = function()
-                print("[阵营] 创建成功: " .. name .. " (ID=" .. campId .. "), 盟主, 消耗" .. CAMP_CREATE_COST .. "虎符")
+                print("[闃佃惀] 鍒涘缓鎴愬姛: " .. name .. " (ID=" .. campId .. "), 鐩熶富, 娑堣€? .. CAMP_CREATE_COST .. "铏庣")
                 CloudManager._syncSocialDomain()
                 CloudManager.PublishProfile()
-                if callback then callback(true, "创建成功") end
+                if callback then callback(true, "鍒涘缓鎴愬姛") end
             end,
             error = function(_, reason)
-                -- 回滚虎符
+                -- 鍥炴粴铏庣
                 playerInfo.jade = playerInfo.jade + CAMP_CREATE_COST
                 CloudManager._factionId = 0
                 CloudManager._factionName = ""
@@ -1105,21 +1105,21 @@ function CloudManager.CreateFaction(name, desc, callback)
         })
 end
 
--- ── 列出所有阵营 ──
+-- 鈹€鈹€ 鍒楀嚭鎵€鏈夐樀钀?鈹€鈹€
 
---- 列出阵营列表 (从 camp_leader_ts 排行榜, 按campId去重保留最新)
+--- 鍒楀嚭闃佃惀鍒楄〃 (浠?camp_leader_ts 鎺掕姒? 鎸塩ampId鍘婚噸淇濈暀鏈€鏂?
 ---@param callback fun(factions: table[])
 function CloudManager.ListFactions(callback)
-    if not rawget(_G, "clientCloud") then
+    if not CloudAPI.IsAvailable() then
         if callback then callback({}) end
         return
     end
 
-    clientCloud:GetRankList(KEYS.camp_leader_ts, 0, 100, {
+    CloudAPI:GetRankList(KEYS.camp_leader_ts, 0, 100, {
         ok = function(rankList)
-            -- 按 campId 去重: 盟主转让后可能存在新旧两条, 保留排行靠前(时间戳更大)的
-            local campMap = {}  -- campId → faction entry
-            local campOrder = {} -- 保持顺序
+            -- 鎸?campId 鍘婚噸: 鐩熶富杞鍚庡彲鑳藉瓨鍦ㄦ柊鏃т袱鏉? 淇濈暀鎺掕闈犲墠(鏃堕棿鎴虫洿澶?鐨?
+            local campMap = {}  -- campId 鈫?faction entry
+            local campOrder = {} -- 淇濇寔椤哄簭
 
             for _, item in ipairs(rankList) do
                 local meta = item.score[KEYS.camp_meta]
@@ -1133,7 +1133,7 @@ function CloudManager.ListFactions(callback)
                         campMap[cid] = {
                             _ts = ts,
                             campId = cid,
-                            name = meta.name or "未命名",
+                            name = meta.name or "鏈懡鍚?,
                             desc = meta.desc or "",
                             leaderId = meta.leaderId or _getRankItemUserId(item),
                             leaderNickname = "",
@@ -1149,24 +1149,24 @@ function CloudManager.ListFactions(callback)
                 end
             end
 
-            -- 转为有序列表
+            -- 杞负鏈夊簭鍒楄〃
             local factions = {}
             local leaderIds = {}
             for _, cid in ipairs(campOrder) do
                 local f = campMap[cid]
-                f._ts = nil  -- 清除内部字段
+                f._ts = nil  -- 娓呴櫎鍐呴儴瀛楁
                 table.insert(factions, f)
                 table.insert(leaderIds, f.leaderId)
             end
 
-            -- 批量查昵称
+            -- 鎵归噺鏌ユ樀绉?
             if #leaderIds > 0 and rawget(_G, "GetUserNickname") then
                 GetUserNickname({
                     userIds = leaderIds,
                     onSuccess = function(nicknames)
                         local map = {}
                         for _, info in ipairs(nicknames) do map[info.userId] = info.nickname or "" end
-                        for _, f in ipairs(factions) do f.leaderNickname = map[f.leaderId] or "未知" end
+                        for _, f in ipairs(factions) do f.leaderNickname = map[f.leaderId] or "鏈煡" end
                         if callback then callback(factions) end
                     end,
                     onError = function() if callback then callback(factions) end end,
@@ -1176,30 +1176,30 @@ function CloudManager.ListFactions(callback)
             end
         end,
         error = function(_, reason)
-            print("[阵营] 列出阵营失败: " .. tostring(reason))
+            print("[闃佃惀] 鍒楀嚭闃佃惀澶辫触: " .. tostring(reason))
             if callback then callback({}) end
         end,
     }, KEYS.camp_meta)
 end
 
--- ── 申请加入阵营 ──
+-- 鈹€鈹€ 鐢宠鍔犲叆闃佃惀 鈹€鈹€
 
---- 申请加入指定阵营
+--- 鐢宠鍔犲叆鎸囧畾闃佃惀
 ---@param campId number
 ---@param campName string
 ---@param callback? fun(success: boolean, reason: string)
 function CloudManager.ApplyToFaction(campId, campName, callback)
-    -- 封禁检查
+    -- 灏佺妫€鏌?
     if S.banLevel >= BAN_LEVEL_SOCIAL then
-        if callback then callback(false, "社交功能已被限制") end
+        if callback then callback(false, "绀句氦鍔熻兘宸茶闄愬埗") end
         return
     end
     if CloudManager._factionId ~= 0 then
-        if callback then callback(false, "已有阵营, 请先离开") end
+        if callback then callback(false, "宸叉湁闃佃惀, 璇峰厛绂诲紑") end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not CloudAPI.IsAvailable() then
+        if callback then callback(false, "浜戠涓嶅彲鐢?) end
         return
     end
 
@@ -1210,13 +1210,13 @@ function CloudManager.ApplyToFaction(campId, campName, callback)
     }
     CloudManager._campOutApply = apply
 
-    clientCloud:BatchSet()
+    CloudAPI:BatchSet()
         :SetInt(KEYS.camp_apply_ts, os.time())
         :Set(KEYS.camp_apply, apply)
-        :Save("申请加入阵营", {
+        :Save("鐢宠鍔犲叆闃佃惀", {
             ok = function()
-                print("[阵营] 已提交申请: " .. (campName or "") .. " (ID=" .. campId .. ")")
-                if callback then callback(true, "申请已提交") end
+                print("[闃佃惀] 宸叉彁浜ょ敵璇? " .. (campName or "") .. " (ID=" .. campId .. ")")
+                if callback then callback(true, "鐢宠宸叉彁浜?) end
             end,
             error = function(_, reason)
                 CloudManager._campOutApply = nil
@@ -1225,24 +1225,24 @@ function CloudManager.ApplyToFaction(campId, campName, callback)
         })
 end
 
--- ── 盟主审批 ──
+-- 鈹€鈹€ 鐩熶富瀹℃壒 鈹€鈹€
 
---- 盟主/副盟主查看阵营申请 (扫描 camp_apply_ts 排行榜)
+--- 鐩熶富/鍓洘涓绘煡鐪嬮樀钀ョ敵璇?(鎵弿 camp_apply_ts 鎺掕姒?
 ---@param callback fun(applications: table[])
 function CloudManager.CheckFactionApplications(callback)
-    -- 副盟主及以上可审批 (level >= 5)
+    -- 鍓洘涓诲強浠ヤ笂鍙鎵?(level >= 5)
     if _getRoleLevel(CloudManager._factionRole) < _getRoleLevel("vice_leader")
        or CloudManager._factionId == 0 then
         if callback then callback({}) end
         return
     end
-    if not rawget(_G, "clientCloud") then
+    if not CloudAPI.IsAvailable() then
         if callback then callback({}) end
         return
     end
     local myCampId = CloudManager._factionId
 
-    clientCloud:GetRankList(KEYS.camp_apply_ts, 0, 200, {
+    CloudAPI:GetRankList(KEYS.camp_apply_ts, 0, 200, {
         ok = function(rankList)
             local applications = {}
             local applicantIds = {}
@@ -1251,7 +1251,7 @@ function CloudManager.CheckFactionApplications(callback)
                 local applyData = item.score[KEYS.camp_apply]
                 if type(applyData) == "table" and applyData.campId == myCampId then
                     local applicantId = _getRankItemUserId(item)
-                    -- 排除过期 & 已在成员列表中
+                    -- 鎺掗櫎杩囨湡 & 宸插湪鎴愬憳鍒楄〃涓?
                     if applyData.time and (os.time() - applyData.time) <= REQUEST_EXPIRE_SECONDS then
                         local alreadyMember = false
                         if CloudManager._factionMeta and CloudManager._factionMeta.members then
@@ -1259,7 +1259,7 @@ function CloudManager.CheckFactionApplications(callback)
                                 if mid == applicantId then alreadyMember = true; break end
                             end
                         end
-                        -- 排除已回复拒绝/同意的
+                        -- 鎺掗櫎宸插洖澶嶆嫆缁?鍚屾剰鐨?
                         local alreadyResp = CloudManager._campOutResp[tostring(applicantId)]
                         if not alreadyMember and not alreadyResp then
                             table.insert(applications, {
@@ -1279,7 +1279,7 @@ function CloudManager.CheckFactionApplications(callback)
                     onSuccess = function(nicknames)
                         local map = {}
                         for _, info in ipairs(nicknames) do map[info.userId] = info.nickname or "" end
-                        for _, a in ipairs(applications) do a.nickname = map[a.userId] or "未知" end
+                        for _, a in ipairs(applications) do a.nickname = map[a.userId] or "鏈煡" end
                         if callback then callback(applications) end
                     end,
                     onError = function() if callback then callback(applications) end end,
@@ -1289,17 +1289,17 @@ function CloudManager.CheckFactionApplications(callback)
             end
         end,
         error = function(_, reason)
-            print("[阵营] 扫描申请失败: " .. tostring(reason))
+            print("[闃佃惀] 鎵弿鐢宠澶辫触: " .. tostring(reason))
             if callback then callback({}) end
         end,
     }, KEYS.camp_apply)
 end
 
---- 盟主/副盟主同意申请
+--- 鐩熶富/鍓洘涓诲悓鎰忕敵璇?
 ---@param applicantUserId number
 ---@param callback? fun(success: boolean)
 function CloudManager.ApproveFactionApplication(applicantUserId, callback)
-    -- 副盟主及以上可审批
+    -- 鍓洘涓诲強浠ヤ笂鍙鎵?
     if _getRoleLevel(CloudManager._factionRole) < _getRoleLevel("vice_leader")
        or not CloudManager._factionMeta then
         if callback then callback(false) end
@@ -1307,29 +1307,29 @@ function CloudManager.ApproveFactionApplication(applicantUserId, callback)
     end
 
     local meta = CloudManager._factionMeta
-    -- 人数上限
+    -- 浜烘暟涓婇檺
     if (meta.memberCount or 0) >= (meta.maxMembers or MAX_CAMP_MEMBERS) then
-        print("[阵营] 成员已满")
+        print("[闃佃惀] 鎴愬憳宸叉弧")
         if callback then callback(false) end
         return
     end
 
-    -- 追加成员
+    -- 杩藉姞鎴愬憳
     if not meta.members then meta.members = {} end
-    -- 检查重复
+    -- 妫€鏌ラ噸澶?
     for _, mid in ipairs(meta.members) do
         if mid == applicantUserId then
-            if callback then callback(true) end -- 已在列表
+            if callback then callback(true) end -- 宸插湪鍒楄〃
             return
         end
     end
     table.insert(meta.members, applicantUserId)
     meta.memberCount = #meta.members
-    -- 新成员默认角色
+    -- 鏂版垚鍛橀粯璁よ鑹?
     if not meta.roles then meta.roles = {} end
     meta.roles[tostring(applicantUserId)] = "member"
 
-    -- 记录审批回复
+    -- 璁板綍瀹℃壒鍥炲
     CloudManager._campOutResp[tostring(applicantUserId)] = {
         approved = true,
         campId = meta.id,
@@ -1337,18 +1337,18 @@ function CloudManager.ApproveFactionApplication(applicantUserId, callback)
         time = os.time(),
     }
 
-    -- 先读再合并: 更新 camp_meta + 发布审批回复
-    clientCloud:BatchSet()
+    -- 鍏堣鍐嶅悎骞? 鏇存柊 camp_meta + 鍙戝竷瀹℃壒鍥炲
+    CloudAPI:BatchSet()
         :Set(KEYS.camp_meta, meta)
         :SetInt(KEYS.camp_resp_ts, os.time())
         :Set(KEYS.camp_resp, CloudManager._campOutResp)
-        :Save("同意入营", {
+        :Save("鍚屾剰鍏ヨ惀", {
             ok = function()
-                print("[阵营] 已同意 " .. tostring(applicantUserId) .. " 加入, 当前" .. meta.memberCount .. "人")
+                print("[闃佃惀] 宸插悓鎰?" .. tostring(applicantUserId) .. " 鍔犲叆, 褰撳墠" .. meta.memberCount .. "浜?)
                 if callback then callback(true) end
             end,
             error = function()
-                -- 回滚
+                -- 鍥炴粴
                 for i, mid in ipairs(meta.members) do
                     if mid == applicantUserId then table.remove(meta.members, i); break end
                 end
@@ -1359,7 +1359,7 @@ function CloudManager.ApproveFactionApplication(applicantUserId, callback)
         })
 end
 
---- 盟主拒绝申请
+--- 鐩熶富鎷掔粷鐢宠
 ---@param applicantUserId number
 function CloudManager.RejectFactionApplication(applicantUserId)
     CloudManager._campOutResp[tostring(applicantUserId)] = {
@@ -1367,34 +1367,34 @@ function CloudManager.RejectFactionApplication(applicantUserId)
         campId = CloudManager._factionId,
         time = os.time(),
     }
-    if rawget(_G, "clientCloud") then
-        clientCloud:BatchSet()
+    if CloudAPI.IsAvailable() then
+        CloudAPI:BatchSet()
             :SetInt(KEYS.camp_resp_ts, os.time())
             :Set(KEYS.camp_resp, CloudManager._campOutResp)
-            :Save("拒绝入营")
+            :Save("鎷掔粷鍏ヨ惀")
     end
 end
 
--- ── 申请者检查审批结果 ──
+-- 鈹€鈹€ 鐢宠鑰呮鏌ュ鎵圭粨鏋?鈹€鈹€
 
---- 检查我的入营申请是否被批准 (自动完成入营)
+--- 妫€鏌ユ垜鐨勫叆钀ョ敵璇锋槸鍚﹁鎵瑰噯 (鑷姩瀹屾垚鍏ヨ惀)
 ---@param callback? fun(result: string) "approved" | "rejected" | "pending" | "none"
 function CloudManager.CheckMyFactionApplication(callback)
     if not CloudManager._campOutApply then
         if callback then callback("none") end
         return
     end
-    if not rawget(_G, "clientCloud") then
+    if not CloudAPI.IsAvailable() then
         if callback then callback("pending") end
         return
     end
 
-    local myUid = clientCloud.userId
+    local myUid = CloudAPI.GetUserId()
     local myUidStr = tostring(myUid)
     local targetCampId = CloudManager._campOutApply.campId
 
-    -- 扫描盟主的审批回复
-    clientCloud:GetRankList(KEYS.camp_resp_ts, 0, 100, {
+    -- 鎵弿鐩熶富鐨勫鎵瑰洖澶?
+    CloudAPI:GetRankList(KEYS.camp_resp_ts, 0, 100, {
         ok = function(rankList)
             for _, item in ipairs(rankList) do
                 local respData = item.score[KEYS.camp_resp]
@@ -1402,25 +1402,25 @@ function CloudManager.CheckMyFactionApplication(callback)
                     local resp = respData[myUidStr]
                     if resp.campId == targetCampId then
                         if resp.approved then
-                            -- 入营成功!
+                            -- 鍏ヨ惀鎴愬姛!
                             CloudManager._factionId = targetCampId
                             CloudManager._factionName = CloudManager._campOutApply.campName or ""
                             CloudManager._factionRole = "member"
                             CloudManager._campOutApply = nil
-                            -- 清理申请排行
-                            clientCloud:BatchSet()
+                            -- 娓呯悊鐢宠鎺掕
+                            CloudAPI:BatchSet()
                                 :SetInt(KEYS.camp_apply_ts, 0)
                                 :Set(KEYS.camp_apply, {})
-                                :Save("清理入营申请")
+                                :Save("娓呯悊鍏ヨ惀鐢宠")
                             CloudManager._syncSocialDomain()
                             CloudManager.PublishProfile()
-                            -- 拉取阵营meta(盟主名/人数等), 供UI显示
+                            -- 鎷夊彇闃佃惀meta(鐩熶富鍚?浜烘暟绛?, 渚沀I鏄剧ず
                             CloudManager._refreshFactionStatus()
-                            print("[阵营] 入营审批通过!")
+                            print("[闃佃惀] 鍏ヨ惀瀹℃壒閫氳繃!")
                             if callback then callback("approved") end
                         else
                             CloudManager._campOutApply = nil
-                            print("[阵营] 入营申请被拒绝")
+                            print("[闃佃惀] 鍏ヨ惀鐢宠琚嫆缁?)
                             if callback then callback("rejected") end
                         end
                         return
@@ -1435,17 +1435,17 @@ function CloudManager.CheckMyFactionApplication(callback)
     }, KEYS.camp_resp)
 end
 
--- ── 离开阵营 ──
+-- 鈹€鈹€ 绂诲紑闃佃惀 鈹€鈹€
 
---- 从成员列表中找到继任者 (按率土职位继承链: 副盟主→军师→先锋官→外交官→精英→成员)
---- 同级别内按加入顺序(members数组顺序)优先
----@param meta table 阵营元数据
----@param excludeUid number 要排除的uid(即将离开的人)
+--- 浠庢垚鍛樺垪琛ㄤ腑鎵惧埌缁т换鑰?(鎸夌巼鍦熻亴浣嶇户鎵块摼: 鍓洘涓烩啋鍐涘笀鈫掑厛閿嬪畼鈫掑浜ゅ畼鈫掔簿鑻扁啋鎴愬憳)
+--- 鍚岀骇鍒唴鎸夊姞鍏ラ『搴?members鏁扮粍椤哄簭)浼樺厛
+---@param meta table 闃佃惀鍏冩暟鎹?
+---@param excludeUid number 瑕佹帓闄ょ殑uid(鍗冲皢绂诲紑鐨勪汉)
 ---@return number|nil successorUid
 local function _findSuccessor(meta, excludeUid)
     if not meta or not meta.members then return nil end
     local roles = meta.roles or {}
-    -- 按继承链顺序逐级查找
+    -- 鎸夌户鎵块摼椤哄簭閫愮骇鏌ユ壘
     for _, roleName in ipairs(ROLE_SUCCESSION) do
         for _, mid in ipairs(meta.members) do
             if mid ~= excludeUid and (roles[tostring(mid)] or "member") == roleName then
@@ -1453,35 +1453,35 @@ local function _findSuccessor(meta, excludeUid)
             end
         end
     end
-    return nil  -- 没有其他人了
+    return nil  -- 娌℃湁鍏朵粬浜轰簡
 end
 
---- 离开当前阵营
---- 盟主退出: 有其他成员→转让盟主(副盟主优先), 无其他成员→解散
---- 非盟主退出: 直接离开, 本地清除
+--- 绂诲紑褰撳墠闃佃惀
+--- 鐩熶富閫€鍑? 鏈夊叾浠栨垚鍛樷啋杞鐩熶富(鍓洘涓讳紭鍏?, 鏃犲叾浠栨垚鍛樷啋瑙ｆ暎
+--- 闈炵洘涓婚€€鍑? 鐩存帴绂诲紑, 鏈湴娓呴櫎
 ---@param callback? fun(success: boolean, info: string)
 function CloudManager.LeaveFaction(callback)
     if CloudManager._factionId == 0 then
-        if callback then callback(true, "未加入阵营") end
+        if callback then callback(true, "鏈姞鍏ラ樀钀?) end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not CloudAPI.IsAvailable() then
+        if callback then callback(false, "浜戠涓嶅彲鐢?) end
         return
     end
 
-    local myUid = clientCloud.userId
+    local myUid = CloudAPI.GetUserId()
     local oldName = CloudManager._factionName
     local wasLeader = CloudManager._factionRole == "leader"
     local meta = CloudManager._factionMeta
 
     if wasLeader and meta then
-        -- ── 盟主离开 ──
+        -- 鈹€鈹€ 鐩熶富绂诲紑 鈹€鈹€
         local successor = _findSuccessor(meta, myUid)
 
         if successor then
-            -- 有继任者: 转让盟主, 阵营存续
-            -- 从成员列表移除自己
+            -- 鏈夌户浠昏€? 杞鐩熶富, 闃佃惀瀛樼画
+            -- 浠庢垚鍛樺垪琛ㄧЩ闄よ嚜宸?
             local newMembers = {}
             for _, mid in ipairs(meta.members) do
                 if mid ~= myUid then
@@ -1491,95 +1491,95 @@ function CloudManager.LeaveFaction(callback)
             meta.members = newMembers
             meta.memberCount = #newMembers
             meta.leaderId = successor
-            -- 更新角色: 继任者→leader, 移除旧盟主
+            -- 鏇存柊瑙掕壊: 缁т换鑰呪啋leader, 绉婚櫎鏃х洘涓?
             if not meta.roles then meta.roles = {} end
             meta.roles[tostring(myUid)] = nil
             meta.roles[tostring(successor)] = "leader"
 
-            -- 清除本地状态
+            -- 娓呴櫎鏈湴鐘舵€?
             CloudManager._factionId = 0
             CloudManager._factionName = ""
             CloudManager._factionRole = "none"
 
-            -- 发布更新后的meta (旧盟主最后一次写入, 保留排行条目供阵营继续可见)
-            clientCloud:BatchSet()
+            -- 鍙戝竷鏇存柊鍚庣殑meta (鏃х洘涓绘渶鍚庝竴娆″啓鍏? 淇濈暀鎺掕鏉＄洰渚涢樀钀ョ户缁彲瑙?
+            CloudAPI:BatchSet()
                 :Set(KEYS.camp_meta, meta)
                 :SetInt(KEYS.camp_resp_ts, 0)
                 :Set(KEYS.camp_resp, {})
-                :Save("盟主退位, 转让给" .. tostring(successor), {
+                :Save("鐩熶富閫€浣? 杞缁? .. tostring(successor), {
                     ok = function()
-                        print("[阵营] 盟主退出: " .. oldName
-                            .. ", 转让给 " .. tostring(successor)
-                            .. ", 剩余" .. meta.memberCount .. "人")
+                        print("[闃佃惀] 鐩熶富閫€鍑? " .. oldName
+                            .. ", 杞缁?" .. tostring(successor)
+                            .. ", 鍓╀綑" .. meta.memberCount .. "浜?)
                         CloudManager._factionMeta = nil
                         CloudManager._campOutResp = {}
                         CloudManager._syncSocialDomain()
                         CloudManager.PublishProfile()
-                        if callback then callback(true, "已退出, 盟主已转让") end
+                        if callback then callback(true, "宸查€€鍑? 鐩熶富宸茶浆璁?) end
                     end,
                     error = function()
-                        -- 回滚
+                        -- 鍥炴粴
                         CloudManager._factionId = meta.id
                         CloudManager._factionName = oldName
                         CloudManager._factionRole = "leader"
-                        if callback then callback(false, "退出失败") end
+                        if callback then callback(false, "閫€鍑哄け璐?) end
                     end,
                 })
         else
-            -- 无继任者: 最后一人, 解散阵营
+            -- 鏃犵户浠昏€? 鏈€鍚庝竴浜? 瑙ｆ暎闃佃惀
             CloudManager._factionId = 0
             CloudManager._factionName = ""
             CloudManager._factionRole = "none"
 
-            clientCloud:BatchSet()
+            CloudAPI:BatchSet()
                 :SetInt(KEYS.camp_leader_ts, 0)
                 :Set(KEYS.camp_meta, {})
                 :SetInt(KEYS.camp_resp_ts, 0)
                 :Set(KEYS.camp_resp, {})
-                :Save("解散阵营(最后一人)", {
+                :Save("瑙ｆ暎闃佃惀(鏈€鍚庝竴浜?", {
                     ok = function()
-                        print("[阵营] 最后一人离开, 阵营已解散: " .. oldName)
+                        print("[闃佃惀] 鏈€鍚庝竴浜虹寮€, 闃佃惀宸茶В鏁? " .. oldName)
                         CloudManager._factionMeta = nil
                         CloudManager._campOutResp = {}
                         CloudManager._syncSocialDomain()
                         CloudManager.PublishProfile()
-                        if callback then callback(true, "阵营已解散") end
+                        if callback then callback(true, "闃佃惀宸茶В鏁?) end
                     end,
                     error = function()
-                        if callback then callback(false, "解散失败") end
+                        if callback then callback(false, "瑙ｆ暎澶辫触") end
                     end,
                 })
         end
     else
-        -- ── 非盟主离开 ──
-        -- 非盟主无法直接修改camp_meta(存在盟主的排行条目下)
-        -- 只能清除本地状态; 盟主侧会通过成员活跃度检测到离开
+        -- 鈹€鈹€ 闈炵洘涓荤寮€ 鈹€鈹€
+        -- 闈炵洘涓绘棤娉曠洿鎺ヤ慨鏀筩amp_meta(瀛樺湪鐩熶富鐨勬帓琛屾潯鐩笅)
+        -- 鍙兘娓呴櫎鏈湴鐘舵€? 鐩熶富渚т細閫氳繃鎴愬憳娲昏穬搴︽娴嬪埌绂诲紑
         CloudManager._factionId = 0
         CloudManager._factionName = ""
         CloudManager._factionRole = "none"
         CloudManager._campOutApply = nil
 
-        -- 清理自己的申请排行条目
-        clientCloud:BatchSet()
+        -- 娓呯悊鑷繁鐨勭敵璇锋帓琛屾潯鐩?
+        CloudAPI:BatchSet()
             :SetInt(KEYS.camp_apply_ts, 0)
             :Set(KEYS.camp_apply, {})
-            :Save("成员退出阵营", {
+            :Save("鎴愬憳閫€鍑洪樀钀?, {
                 ok = function()
-                    print("[阵营] 已退出: " .. oldName)
+                    print("[闃佃惀] 宸查€€鍑? " .. oldName)
                     CloudManager._syncSocialDomain()
                     CloudManager.PublishProfile()
-                    if callback then callback(true, "已退出阵营") end
+                    if callback then callback(true, "宸查€€鍑洪樀钀?) end
                 end,
                 error = function()
-                    if callback then callback(false, "退出失败") end
+                    if callback then callback(false, "閫€鍑哄け璐?) end
                 end,
             })
     end
 end
 
--- ── 获取阵营成员列表 ──
+-- 鈹€鈹€ 鑾峰彇闃佃惀鎴愬憳鍒楄〃 鈹€鈹€
 
---- 获取当前阵营成员档案
+--- 鑾峰彇褰撳墠闃佃惀鎴愬憳妗ｆ
 ---@param callback fun(members: table[])
 function CloudManager.GetFactionMembers(callback)
     if CloudManager._factionId == 0 then
@@ -1587,7 +1587,7 @@ function CloudManager.GetFactionMembers(callback)
         return
     end
 
-    -- 如果是盟主, 直接用本地 meta
+    -- 濡傛灉鏄洘涓? 鐩存帴鐢ㄦ湰鍦?meta
     if CloudManager._factionRole == "leader" and CloudManager._factionMeta then
         local memberIds = CloudManager._factionMeta.members or {}
         if #memberIds == 0 then
@@ -1595,7 +1595,7 @@ function CloudManager.GetFactionMembers(callback)
             return
         end
 
-        --- 内部: 拿到全量 profiles 后, 过滤 + 校验离开 + 补查缺失成员
+        --- 鍐呴儴: 鎷垮埌鍏ㄩ噺 profiles 鍚? 杩囨护 + 鏍￠獙绂诲紑 + 琛ユ煡缂哄け鎴愬憳
         local function _processMembers(profiles)
             local memberSet = {}
             for _, mid in ipairs(memberIds) do memberSet[mid] = true end
@@ -1606,17 +1606,17 @@ function CloudManager.GetFactionMembers(callback)
                 if memberSet[p.userId] then table.insert(result, p) end
             end
 
-            -- 找出排行榜中未出现的成员, 用 SearchPlayer 补查
+            -- 鎵惧嚭鎺掕姒滀腑鏈嚭鐜扮殑鎴愬憳, 鐢?SearchPlayer 琛ユ煡
             local missing = {}
             for _, mid in ipairs(memberIds) do
                 if not profileMap[mid] then missing[#missing + 1] = mid end
             end
 
-            -- 补查完成后执行验证清理
+            -- 琛ユ煡瀹屾垚鍚庢墽琛岄獙璇佹竻鐞?
             local function _afterFetchMissing()
-                -- 验证: 只清理 factionId>0 且 != myFid 的（明确加入了其他阵营）
+                -- 楠岃瘉: 鍙竻鐞?factionId>0 涓?!= myFid 鐨勶紙鏄庣‘鍔犲叆浜嗗叾浠栭樀钀ワ級
                 local myFid = CloudManager._factionId
-                local myUid = clientCloud.userId
+                local myUid = CloudAPI.GetUserId()
                 local removed = {}
                 for _, mid in ipairs(memberIds) do
                     if mid ~= myUid then
@@ -1625,10 +1625,10 @@ function CloudManager.GetFactionMembers(callback)
                             local theirFid = mp.profile.factionId
                             if theirFid and theirFid ~= 0 and theirFid ~= myFid then
                                 removed[#removed + 1] = mid
-                                print("[阵营] 检测到成员 " .. tostring(mid) .. " 已加入其他阵营(factionId=" .. tostring(theirFid) .. ")")
+                                print("[闃佃惀] 妫€娴嬪埌鎴愬憳 " .. tostring(mid) .. " 宸插姞鍏ュ叾浠栭樀钀?factionId=" .. tostring(theirFid) .. ")")
                             end
                         end
-                        -- 注意: 找不到的成员(mp==nil)不清理, 可能是新成员还没发布profile
+                        -- 娉ㄦ剰: 鎵句笉鍒扮殑鎴愬憳(mp==nil)涓嶆竻鐞? 鍙兘鏄柊鎴愬憳杩樻病鍙戝竷profile
                     end
                 end
                 if #removed > 0 then
@@ -1646,11 +1646,11 @@ function CloudManager.GetFactionMembers(callback)
                         if not removedSet[r.userId] then cleanResult[#cleanResult + 1] = r end
                     end
                     result = cleanResult
-                    clientCloud:BatchSet()
+                    CloudAPI:BatchSet()
                         :Set(KEYS.camp_meta, meta)
-                        :Save("盟主自动清理已离开成员", {
+                        :Save("鐩熶富鑷姩娓呯悊宸茬寮€鎴愬憳", {
                             ok = function()
-                                print("[阵营] 已自动清理 " .. #removed .. " 名离开成员, 剩余" .. meta.memberCount .. "人")
+                                print("[闃佃惀] 宸茶嚜鍔ㄦ竻鐞?" .. #removed .. " 鍚嶇寮€鎴愬憳, 鍓╀綑" .. meta.memberCount .. "浜?)
                             end,
                         })
                 end
@@ -1660,7 +1660,7 @@ function CloudManager.GetFactionMembers(callback)
             if #missing == 0 then
                 _afterFetchMissing()
             else
-                -- 逐个补查缺失成员
+                -- 閫愪釜琛ユ煡缂哄け鎴愬憳
                 local pending = #missing
                 for _, mid in ipairs(missing) do
                     CloudManager.SearchPlayer(mid, function(found)
@@ -1675,15 +1675,15 @@ function CloudManager.GetFactionMembers(callback)
             end
         end
 
-        -- 先拉取 top-200 profiles, 覆盖大多数成员
+        -- 鍏堟媺鍙?top-200 profiles, 瑕嗙洊澶у鏁版垚鍛?
         CloudManager.GetPublicProfiles(0, 200, function(profiles)
             _processMembers(profiles)
         end)
         return
     end
 
-    -- 普通成员: 从盟主的 camp_meta 获取成员列表
-    clientCloud:GetRankList(KEYS.camp_leader_ts, 0, 50, {
+    -- 鏅€氭垚鍛? 浠庣洘涓荤殑 camp_meta 鑾峰彇鎴愬憳鍒楄〃
+    CloudAPI:GetRankList(KEYS.camp_leader_ts, 0, 50, {
         ok = function(rankList)
             local memberIds = {}
             for _, item in ipairs(rankList) do
@@ -1713,7 +1713,7 @@ function CloudManager.GetFactionMembers(callback)
     }, KEYS.camp_meta)
 end
 
---- 获取当前阵营信息
+--- 鑾峰彇褰撳墠闃佃惀淇℃伅
 ---@return table
 function CloudManager.GetFactionInfo()
     return {
@@ -1724,49 +1724,49 @@ function CloudManager.GetFactionInfo()
     }
 end
 
--- ── 设置成员职位 (仿率土之滨) ──
+-- 鈹€鈹€ 璁剧疆鎴愬憳鑱屼綅 (浠跨巼鍦熶箣婊? 鈹€鈹€
 
---- 设置成员职位 (需要操作者权限高于目标当前职位和目标职位)
---- 有效职位: "vice_leader"(副盟主), "strategist"(军师), "vanguard"(先锋官),
----           "diplomat"(外交官), "elite"(精英), "member"(成员)
----@param targetUserId number 目标成员uid
----@param newRole string 新职位名称
+--- 璁剧疆鎴愬憳鑱屼綅 (闇€瑕佹搷浣滆€呮潈闄愰珮浜庣洰鏍囧綋鍓嶈亴浣嶅拰鐩爣鑱屼綅)
+--- 鏈夋晥鑱屼綅: "vice_leader"(鍓洘涓?, "strategist"(鍐涘笀), "vanguard"(鍏堥攱瀹?,
+---           "diplomat"(澶栦氦瀹?, "elite"(绮捐嫳), "member"(鎴愬憳)
+---@param targetUserId number 鐩爣鎴愬憳uid
+---@param newRole string 鏂拌亴浣嶅悕绉?
 ---@param callback? fun(success: boolean, reason: string)
 function CloudManager.SetMemberRole(targetUserId, newRole, callback)
     local meta = CloudManager._factionMeta
     if not meta then
-        if callback then callback(false, "阵营数据未加载") end
+        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?) end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not CloudAPI.IsAvailable() then
+        if callback then callback(false, "浜戠涓嶅彲鐢?) end
         return
     end
 
-    local myUid = clientCloud.userId
+    local myUid = CloudAPI.GetUserId()
     local myRole = CloudManager._factionRole
     if targetUserId == myUid then
-        if callback then callback(false, "不能对自己操作") end
+        if callback then callback(false, "涓嶈兘瀵硅嚜宸辨搷浣?) end
         return
     end
 
-    -- 验证目标职位合法性
+    -- 楠岃瘉鐩爣鑱屼綅鍚堟硶鎬?
     if newRole == "leader" then
-        if callback then callback(false, "盟主只能通过转让设置") end
+        if callback then callback(false, "鐩熶富鍙兘閫氳繃杞璁剧疆") end
         return
     end
     if not FACTION_ROLES[newRole] then
-        if callback then callback(false, "无效的职位: " .. tostring(newRole)) end
+        if callback then callback(false, "鏃犳晥鐨勮亴浣? " .. tostring(newRole)) end
         return
     end
 
-    -- 检查目标是否在阵营中
+    -- 妫€鏌ョ洰鏍囨槸鍚﹀湪闃佃惀涓?
     local isMember = false
     for _, mid in ipairs(meta.members or {}) do
         if mid == targetUserId then isMember = true; break end
     end
     if not isMember then
-        if callback then callback(false, "对方不在阵营中") end
+        if callback then callback(false, "瀵规柟涓嶅湪闃佃惀涓?) end
         return
     end
 
@@ -1774,52 +1774,52 @@ function CloudManager.SetMemberRole(targetUserId, newRole, callback)
     local targetUidStr = tostring(targetUserId)
     local oldRole = meta.roles[targetUidStr] or "member"
 
-    -- 权限检查: 操作者必须比目标当前职位高, 也必须比目标新职位高
+    -- 鏉冮檺妫€鏌? 鎿嶄綔鑰呭繀椤绘瘮鐩爣褰撳墠鑱屼綅楂? 涔熷繀椤绘瘮鐩爣鏂拌亴浣嶉珮
     if not _hasAuthorityOver(myRole, oldRole) then
-        if callback then callback(false, "你的职位不够, 无法操作" .. _getRoleName(oldRole)) end
+        if callback then callback(false, "浣犵殑鑱屼綅涓嶅, 鏃犳硶鎿嶄綔" .. _getRoleName(oldRole)) end
         return
     end
     if not _hasAuthorityOver(myRole, newRole) then
-        if callback then callback(false, "你的职位不够, 无法授予" .. _getRoleName(newRole)) end
+        if callback then callback(false, "浣犵殑鑱屼綅涓嶅, 鏃犳硶鎺堜簣" .. _getRoleName(newRole)) end
         return
     end
 
-    -- 人数上限检查 (有限职位)
+    -- 浜烘暟涓婇檺妫€鏌?(鏈夐檺鑱屼綅)
     local roleDef = FACTION_ROLES[newRole]
     if roleDef.max > 0 then
         local current = _countRole(meta.roles, newRole)
-        -- 如果目标已经是这个职位, 不占额外名额
+        -- 濡傛灉鐩爣宸茬粡鏄繖涓亴浣? 涓嶅崰棰濆鍚嶉
         if oldRole ~= newRole and current >= roleDef.max then
-            if callback then callback(false, _getRoleName(newRole) .. "名额已满(上限" .. roleDef.max .. "人)") end
+            if callback then callback(false, _getRoleName(newRole) .. "鍚嶉宸叉弧(涓婇檺" .. roleDef.max .. "浜?") end
             return
         end
     end
 
     if oldRole == newRole then
-        if callback then callback(true, "已经是" .. _getRoleName(newRole)) end
+        if callback then callback(true, "宸茬粡鏄? .. _getRoleName(newRole)) end
         return
     end
 
     meta.roles[targetUidStr] = newRole
 
-    -- 发布更新
-    clientCloud:BatchSet()
+    -- 鍙戝竷鏇存柊
+    CloudAPI:BatchSet()
         :Set(KEYS.camp_meta, meta)
-        :Save("设置职位", {
+        :Save("璁剧疆鑱屼綅", {
             ok = function()
-                print("[阵营] " .. tostring(targetUserId) .. " "
-                    .. _getRoleName(oldRole) .. "→" .. _getRoleName(newRole))
-                if callback then callback(true, "已设为" .. _getRoleName(newRole)) end
+                print("[闃佃惀] " .. tostring(targetUserId) .. " "
+                    .. _getRoleName(oldRole) .. "鈫? .. _getRoleName(newRole))
+                if callback then callback(true, "宸茶涓? .. _getRoleName(newRole)) end
             end,
             error = function(_, reason)
-                -- 回滚
+                -- 鍥炴粴
                 meta.roles[targetUidStr] = oldRole
                 if callback then callback(false, tostring(reason)) end
             end,
         })
 end
 
---- 兼容旧接口: 设置/取消副盟主
+--- 鍏煎鏃ф帴鍙? 璁剧疆/鍙栨秷鍓洘涓?
 ---@param targetUserId number
 ---@param setAsVice boolean
 ---@param callback? fun(success: boolean, reason: string)
@@ -1827,37 +1827,37 @@ function CloudManager.SetViceLeader(targetUserId, setAsVice, callback)
     CloudManager.SetMemberRole(targetUserId, setAsVice and "vice_leader" or "member", callback)
 end
 
--- ── 阵营改名 (仅盟主) ──
+-- 鈹€鈹€ 闃佃惀鏀瑰悕 (浠呯洘涓? 鈹€鈹€
 
 ---@param newName string
 ---@param callback? fun(success: boolean, reason: string)
 function CloudManager.RenameFaction(newName, callback)
     if CloudManager._factionRole ~= "leader" then
-        if callback then callback(false, "只有盟主才能改名") end
+        if callback then callback(false, "鍙湁鐩熶富鎵嶈兘鏀瑰悕") end
         return
     end
     local meta = CloudManager._factionMeta
     if not meta then
-        if callback then callback(false, "阵营数据未加载") end
+        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?) end
         return
     end
     if not newName or #newName == 0 then
-        if callback then callback(false, "名称不能为空") end
+        if callback then callback(false, "鍚嶇О涓嶈兘涓虹┖") end
         return
     end
     if #newName > 24 then
-        if callback then callback(false, "名称过长(最多8个汉字)") end
+        if callback then callback(false, "鍚嶇О杩囬暱(鏈€澶?涓眽瀛?") end
         return
     end
     local oldName = meta.name
     meta.name = newName
     CloudManager._factionName = newName
 
-    clientCloud:BatchSet()
+    CloudAPI:BatchSet()
         :Set(KEYS.camp_meta, meta)
-        :Save("阵营改名", {
+        :Save("闃佃惀鏀瑰悕", {
             ok = function()
-                print("[阵营] 改名成功: " .. tostring(oldName) .. " → " .. newName)
+                print("[闃佃惀] 鏀瑰悕鎴愬姛: " .. tostring(oldName) .. " 鈫?" .. newName)
                 if callback then callback(true, nil) end
             end,
             error = function(_, reason)
@@ -1868,42 +1868,42 @@ function CloudManager.RenameFaction(newName, callback)
         })
 end
 
--- ── 踢出成员 (副盟主及以上, 只能踢低于自己职位的) ──
+-- 鈹€鈹€ 韪㈠嚭鎴愬憳 (鍓洘涓诲強浠ヤ笂, 鍙兘韪綆浜庤嚜宸辫亴浣嶇殑) 鈹€鈹€
 
---- 踢出指定成员
+--- 韪㈠嚭鎸囧畾鎴愬憳
 ---@param targetUserId number
 ---@param callback? fun(success: boolean, reason: string)
 function CloudManager.KickMember(targetUserId, callback)
     local meta = CloudManager._factionMeta
     if not meta then
-        if callback then callback(false, "阵营数据未加载") end
+        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?) end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not CloudAPI.IsAvailable() then
+        if callback then callback(false, "浜戠涓嶅彲鐢?) end
         return
     end
 
-    local myUid = clientCloud.userId
+    local myUid = CloudAPI.GetUserId()
     local myRole = CloudManager._factionRole
     if targetUserId == myUid then
-        if callback then callback(false, "不能踢自己, 请使用退出") end
+        if callback then callback(false, "涓嶈兘韪㈣嚜宸? 璇蜂娇鐢ㄩ€€鍑?) end
         return
     end
 
-    -- 操作权限: 副盟主及以上
+    -- 鎿嶄綔鏉冮檺: 鍓洘涓诲強浠ヤ笂
     if _getRoleLevel(myRole) < _getRoleLevel("vice_leader") then
-        if callback then callback(false, "副盟主及以上才能踢人") end
+        if callback then callback(false, "鍓洘涓诲強浠ヤ笂鎵嶈兘韪汉") end
         return
     end
 
-    -- 检查目标是否在阵营中
+    -- 妫€鏌ョ洰鏍囨槸鍚﹀湪闃佃惀涓?
     local targetIdx = nil
     for i, mid in ipairs(meta.members or {}) do
         if mid == targetUserId then targetIdx = i; break end
     end
     if not targetIdx then
-        if callback then callback(false, "对方不在阵营中") end
+        if callback then callback(false, "瀵规柟涓嶅湪闃佃惀涓?) end
         return
     end
 
@@ -1911,28 +1911,28 @@ function CloudManager.KickMember(targetUserId, callback)
     local targetUidStr = tostring(targetUserId)
     local targetRole = meta.roles[targetUidStr] or "member"
 
-    -- 只能踢低于自己职位的
+    -- 鍙兘韪綆浜庤嚜宸辫亴浣嶇殑
     if not _hasAuthorityOver(myRole, targetRole) then
-        if callback then callback(false, "无法踢出" .. _getRoleName(targetRole) .. ", 职位不低于你") end
+        if callback then callback(false, "鏃犳硶韪㈠嚭" .. _getRoleName(targetRole) .. ", 鑱屼綅涓嶄綆浜庝綘") end
         return
     end
 
-    -- 从成员列表移除
+    -- 浠庢垚鍛樺垪琛ㄧЩ闄?
     local removedUid = table.remove(meta.members, targetIdx)
     meta.memberCount = #meta.members
     meta.roles[targetUidStr] = nil
 
-    -- 发布更新
-    clientCloud:BatchSet()
+    -- 鍙戝竷鏇存柊
+    CloudAPI:BatchSet()
         :Set(KEYS.camp_meta, meta)
-        :Save("踢出成员", {
+        :Save("韪㈠嚭鎴愬憳", {
             ok = function()
-                print("[阵营] 踢出 " .. tostring(targetUserId) .. " (" .. _getRoleName(targetRole) .. ")"
-                    .. ", 剩余" .. meta.memberCount .. "人")
-                if callback then callback(true, "已踢出") end
+                print("[闃佃惀] 韪㈠嚭 " .. tostring(targetUserId) .. " (" .. _getRoleName(targetRole) .. ")"
+                    .. ", 鍓╀綑" .. meta.memberCount .. "浜?)
+                if callback then callback(true, "宸茶涪鍑?) end
             end,
             error = function(_, reason)
-                -- 回滚
+                -- 鍥炴粴
                 table.insert(meta.members, targetIdx, removedUid)
                 meta.memberCount = #meta.members
                 meta.roles[targetUidStr] = targetRole
@@ -1941,39 +1941,39 @@ function CloudManager.KickMember(targetUserId, callback)
         })
 end
 
--- ── 转让盟主 ──
+-- 鈹€鈹€ 杞鐩熶富 鈹€鈹€
 
---- 盟主主动转让给指定成员
+--- 鐩熶富涓诲姩杞缁欐寚瀹氭垚鍛?
 ---@param targetUserId number
 ---@param callback? fun(success: boolean, reason: string)
 function CloudManager.TransferLeadership(targetUserId, callback)
     if CloudManager._factionRole ~= "leader" then
-        if callback then callback(false, "只有盟主才能转让") end
+        if callback then callback(false, "鍙湁鐩熶富鎵嶈兘杞") end
         return
     end
     local meta = CloudManager._factionMeta
     if not meta then
-        if callback then callback(false, "阵营数据未加载") end
+        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?) end
         return
     end
-    if not rawget(_G, "clientCloud") then
-        if callback then callback(false, "云端不可用") end
+    if not CloudAPI.IsAvailable() then
+        if callback then callback(false, "浜戠涓嶅彲鐢?) end
         return
     end
 
-    local myUid = clientCloud.userId
+    local myUid = CloudAPI.GetUserId()
     if targetUserId == myUid then
-        if callback then callback(false, "不能转让给自己") end
+        if callback then callback(false, "涓嶈兘杞缁欒嚜宸?) end
         return
     end
 
-    -- 检查目标是否在阵营中
+    -- 妫€鏌ョ洰鏍囨槸鍚﹀湪闃佃惀涓?
     local isMember = false
     for _, mid in ipairs(meta.members or {}) do
         if mid == targetUserId then isMember = true; break end
     end
     if not isMember then
-        if callback then callback(false, "对方不在阵营中") end
+        if callback then callback(false, "瀵规柟涓嶅湪闃佃惀涓?) end
         return
     end
 
@@ -1981,58 +1981,58 @@ function CloudManager.TransferLeadership(targetUserId, callback)
     local myUidStr = tostring(myUid)
     local targetUidStr = tostring(targetUserId)
 
-    -- 转让: 自己降为成员, 目标升为盟主
+    -- 杞: 鑷繁闄嶄负鎴愬憳, 鐩爣鍗囦负鐩熶富
     meta.leaderId = targetUserId
     meta.roles[myUidStr] = "member"
     meta.roles[targetUidStr] = "leader"
 
     CloudManager._factionRole = "member"
 
-    clientCloud:BatchSet()
+    CloudAPI:BatchSet()
         :Set(KEYS.camp_meta, meta)
-        :Save("转让盟主", {
+        :Save("杞鐩熶富", {
             ok = function()
-                print("[阵营] 盟主已转让给 " .. tostring(targetUserId))
-                CloudManager._factionMeta = nil  -- 不再是盟主, 不持有meta
+                print("[闃佃惀] 鐩熶富宸茶浆璁╃粰 " .. tostring(targetUserId))
+                CloudManager._factionMeta = nil  -- 涓嶅啀鏄洘涓? 涓嶆寔鏈塵eta
                 CloudManager._syncSocialDomain()
-                if callback then callback(true, "盟主已转让") end
+                if callback then callback(true, "鐩熶富宸茶浆璁?) end
             end,
             error = function(_, reason)
-                -- 回滚
+                -- 鍥炴粴
                 meta.leaderId = myUid
                 meta.roles[myUidStr] = "leader"
-                meta.roles[targetUidStr] = meta.roles[targetUidStr]  -- 保持
+                meta.roles[targetUidStr] = meta.roles[targetUidStr]  -- 淇濇寔
                 CloudManager._factionRole = "leader"
                 if callback then callback(false, tostring(reason)) end
             end,
         })
 end
 
--- ── 继位检测: 新盟主上线后接管 ──
+-- 鈹€鈹€ 缁т綅妫€娴? 鏂扮洘涓讳笂绾垮悗鎺ョ 鈹€鈹€
 
---- 刷新阵营状态 (登录时自动调用)
---- 检测当前玩家是否因盟主退出而被提升为新盟主, 如果是则重新发布 camp_meta
+--- 鍒锋柊闃佃惀鐘舵€?(鐧诲綍鏃惰嚜鍔ㄨ皟鐢?
+--- 妫€娴嬪綋鍓嶇帺瀹舵槸鍚﹀洜鐩熶富閫€鍑鸿€岃鎻愬崌涓烘柊鐩熶富, 濡傛灉鏄垯閲嶆柊鍙戝竷 camp_meta
 ---@param callback? fun(transferred: boolean)
 function CloudManager._refreshFactionStatus(callback)
     if CloudManager._factionId == 0 then
         if callback then callback(false) end
         return
     end
-    if not rawget(_G, "clientCloud") then
+    if not CloudAPI.IsAvailable() then
         if callback then callback(false) end
         return
     end
 
-    local myUid = clientCloud.userId
+    local myUid = CloudAPI.GetUserId()
     local myCampId = CloudManager._factionId
 
-    -- 从排行榜获取当前阵营的 meta
-    clientCloud:GetRankList(KEYS.camp_leader_ts, 0, 100, {
+    -- 浠庢帓琛屾鑾峰彇褰撳墠闃佃惀鐨?meta
+    CloudAPI:GetRankList(KEYS.camp_leader_ts, 0, 100, {
         ok = function(rankList)
             local latestMeta = nil
             local latestTs = 0
 
-            -- 找到自己阵营的最新meta (按campId去重, 保留最新时间戳)
+            -- 鎵惧埌鑷繁闃佃惀鐨勬渶鏂癿eta (鎸塩ampId鍘婚噸, 淇濈暀鏈€鏂版椂闂存埑)
             for _, item in ipairs(rankList) do
                 local meta = item.score[KEYS.camp_meta]
                 if type(meta) == "table" and meta.id == myCampId then
@@ -2045,8 +2045,8 @@ function CloudManager._refreshFactionStatus(callback)
             end
 
             if not latestMeta then
-                -- 阵营已不存在 (可能已解散)
-                print("[阵营] 阵营已不存在, 清除本地状态")
+                -- 闃佃惀宸蹭笉瀛樺湪 (鍙兘宸茶В鏁?
+                print("[闃佃惀] 闃佃惀宸蹭笉瀛樺湪, 娓呴櫎鏈湴鐘舵€?)
                 CloudManager._factionId = 0
                 CloudManager._factionName = ""
                 CloudManager._factionRole = "none"
@@ -2056,15 +2056,15 @@ function CloudManager._refreshFactionStatus(callback)
                 return
             end
 
-            -- 检查自己是否在成员列表中
+            -- 妫€鏌ヨ嚜宸辨槸鍚﹀湪鎴愬憳鍒楄〃涓?
             local inMembers = false
             for _, mid in ipairs(latestMeta.members or {}) do
                 if mid == myUid then inMembers = true; break end
             end
 
             if not inMembers then
-                -- 我已不在阵营中 (可能被踢)
-                print("[阵营] 我已不在阵营成员中, 清除本地状态")
+                -- 鎴戝凡涓嶅湪闃佃惀涓?(鍙兘琚涪)
+                print("[闃佃惀] 鎴戝凡涓嶅湪闃佃惀鎴愬憳涓? 娓呴櫎鏈湴鐘舵€?)
                 CloudManager._factionId = 0
                 CloudManager._factionName = ""
                 CloudManager._factionRole = "none"
@@ -2074,39 +2074,39 @@ function CloudManager._refreshFactionStatus(callback)
                 return
             end
 
-            -- 同步阵营名称和meta
+            -- 鍚屾闃佃惀鍚嶇О鍜宮eta
             CloudManager._factionName = latestMeta.name or CloudManager._factionName
 
-            -- 关键: 检查 leaderId 是否是自己
+            -- 鍏抽敭: 妫€鏌?leaderId 鏄惁鏄嚜宸?
             if latestMeta.leaderId == myUid then
                 if CloudManager._factionRole ~= "leader" then
-                    -- 我被提升为新盟主! 重新发布 camp_meta 到自己的排行条目
-                    print("[阵营] 检测到盟主继位! 重新发布 camp_meta")
+                    -- 鎴戣鎻愬崌涓烘柊鐩熶富! 閲嶆柊鍙戝竷 camp_meta 鍒拌嚜宸辩殑鎺掕鏉＄洰
+                    print("[闃佃惀] 妫€娴嬪埌鐩熶富缁т綅! 閲嶆柊鍙戝竷 camp_meta")
                     CloudManager._factionRole = "leader"
                     CloudManager._factionMeta = latestMeta
 
-                    clientCloud:BatchSet()
+                    CloudAPI:BatchSet()
                         :SetInt(KEYS.camp_leader_ts, os.time())
                         :Set(KEYS.camp_meta, latestMeta)
-                        :Save("新盟主接管阵营", {
+                        :Save("鏂扮洘涓绘帴绠￠樀钀?, {
                             ok = function()
-                                print("[阵营] 新盟主接管完成: " .. (latestMeta.name or ""))
+                                print("[闃佃惀] 鏂扮洘涓绘帴绠″畬鎴? " .. (latestMeta.name or ""))
                                 CloudManager._syncSocialDomain()
                                 CloudManager.PublishProfile()
                                 if callback then callback(true) end
                             end,
                             error = function()
-                                print("[阵营] 接管发布失败, 下次登录重试")
+                                print("[闃佃惀] 鎺ョ鍙戝竷澶辫触, 涓嬫鐧诲綍閲嶈瘯")
                                 if callback then callback(false) end
                             end,
                         })
                     return
                 else
-                    -- 已经是盟主, 更新meta缓存
+                    -- 宸茬粡鏄洘涓? 鏇存柊meta缂撳瓨
                     CloudManager._factionMeta = latestMeta
                 end
             else
-                -- 非盟主: 更新角色, 保留meta供UI显示(盟主名/人数等)
+                -- 闈炵洘涓? 鏇存柊瑙掕壊, 淇濈暀meta渚沀I鏄剧ず(鐩熶富鍚?浜烘暟绛?
                 local roles = latestMeta.roles or {}
                 local myRole = roles[tostring(myUid)] or "member"
                 CloudManager._factionRole = myRole
@@ -2116,8 +2116,10 @@ function CloudManager._refreshFactionStatus(callback)
             if callback then callback(false) end
         end,
         error = function(_, reason)
-            print("[阵营] 刷新阵营状态失败: " .. tostring(reason))
+            print("[闃佃惀] 鍒锋柊闃佃惀鐘舵€佸け璐? " .. tostring(reason))
             if callback then callback(false) end
         end,
     }, KEYS.camp_meta)
 end
+
+

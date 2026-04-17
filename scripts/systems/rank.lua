@@ -1,10 +1,10 @@
--- ============================================================================
--- systems/rank.lua - 三国武灵录
+﻿-- ============================================================================
+-- systems/rank.lua - 涓夊浗姝︾伒褰?
 -- ============================================================================
 
 
---- 上报一次有效广告观看到云排行榜
---- 本地先行更新贡献榜数据（保证看完广告后立即有数据可看）
+--- 涓婃姤涓€娆℃湁鏁堝箍鍛婅鐪嬪埌浜戞帓琛屾
+--- 鏈湴鍏堣鏇存柊璐＄尞姒滄暟鎹紙淇濊瘉鐪嬪畬骞垮憡鍚庣珛鍗虫湁鏁版嵁鍙湅锛?
 local function _getRankItemUserId(item)
     if rawget(_G, "ResolveRankListUserId") then
         return ResolveRankListUserId(item)
@@ -16,7 +16,7 @@ function UpdateContribRankLocally()
     if not welfareState.contribRank then
         welfareState.contribRank = {}
     end
-    local myName = playerInfo.name or "我"
+    local myName = playerInfo.name or "鎴?
     local myCount = welfareState.localAdCount or 1
     local found = false
     for _, entry in ipairs(welfareState.contribRank) do
@@ -34,41 +34,41 @@ function UpdateContribRankLocally()
 end
 
 
----- 上报战力到云排行榜（使用 SetInt 设置绝对值）
+---- 涓婃姤鎴樺姏鍒颁簯鎺掕姒滐紙浣跨敤 SetInt 璁剧疆缁濆鍊硷級
 function ReportPowerScore()
     local power = CalcPlayerTotalPower()
     if power <= 0 then return end
 
-    -- 统计技能数和武灵数，附带上报
+    -- 缁熻鎶€鑳芥暟鍜屾鐏垫暟锛岄檮甯︿笂鎶?
     local skillCount = 0
     for i, sk in pairs(SKILL_DEFS) do
         if sk.unlocked then skillCount = skillCount + 1 end
     end
     local heroCount = #GetAllOwnedHeroes()
 
-    if rawget(_G, "clientCloud") then
-        clientCloud:SetInt(PROJECT_PREFIX .. "combat_power", power, {
+    if CloudAPI.IsAvailable() then
+        CloudAPI:SetInt(PROJECT_PREFIX .. "combat_power", power, {
             ok = function()
-                print("[战力] 上报成功: " .. tostring(power))
-                -- 附带上报技能数和武灵数
-                clientCloud:SetInt(PROJECT_PREFIX .. "skill_count", skillCount, {})
-                clientCloud:SetInt(PROJECT_PREFIX .. "hero_count", heroCount, {})
-                -- 上报成功后刷新战力排行榜
+                print("[鎴樺姏] 涓婃姤鎴愬姛: " .. tostring(power))
+                -- 闄勫甫涓婃姤鎶€鑳芥暟鍜屾鐏垫暟
+                CloudAPI:SetInt(PROJECT_PREFIX .. "skill_count", skillCount, {})
+                CloudAPI:SetInt(PROJECT_PREFIX .. "hero_count", heroCount, {})
+                -- 涓婃姤鎴愬姛鍚庡埛鏂版垬鍔涙帓琛屾
                 welfareState.powerLoaded = false
                 welfareState.powerLoading = false
                 LoadPowerRank()
             end,
             error = function(err)
-                print("[战力] 上报失败: " .. tostring(err))
+                print("[鎴樺姏] 涓婃姤澶辫触: " .. tostring(err))
             end,
         })
     else
-        print("[战力] clientCloud 不可用，仅本地模拟")
-        -- 开发模式下本地模拟
+        print("[鎴樺姏] CloudAPI 涓嶅彲鐢紝浠呮湰鍦版ā鎷?)
+        -- 寮€鍙戞ā寮忎笅鏈湴妯℃嫙
         if not welfareState.powerRank then
             welfareState.powerRank = {}
         end
-        local myName = playerInfo.name or "我"
+        local myName = playerInfo.name or "鎴?
         local found = false
         for _, entry in ipairs(welfareState.powerRank) do
             if entry.name == myName then
@@ -86,14 +86,14 @@ function ReportPowerScore()
 end
 
 
----- 加载战力排行榜数据
+---- 鍔犺浇鎴樺姏鎺掕姒滄暟鎹?
 function LoadPowerRank()
-    if not rawget(_G, "clientCloud") then return end
+    if not CloudAPI.IsAvailable() then return end
     if welfareState.powerLoading then return end
     welfareState.powerLoading = true
-    clientCloud:GetRankList(PROJECT_PREFIX .. "combat_power", 0, 100, {
+    CloudAPI:GetRankList(PROJECT_PREFIX .. "combat_power", 0, 100, {
         ok = function(rankList)
-            -- 过滤封禁玩家并截取前50
+            -- 杩囨护灏佺鐜╁骞舵埅鍙栧墠50
             local filtered = {}
             for _, item in ipairs(rankList) do
                 local uid = _getRankItemUserId(item)
@@ -166,22 +166,22 @@ end
 
 
 -- ============================================================================
--- 境界排行榜 (上报 & 加载)
+-- 澧冪晫鎺掕姒?(涓婃姤 & 鍔犺浇)
 -- ============================================================================
 function ReportRealmScore()
     local idx = playerInfo.rankIdx or 1
     if idx <= 0 then return end
 
-    if rawget(_G, "clientCloud") then
-        clientCloud:SetInt(PROJECT_PREFIX .. "realm_level", idx, {
+    if CloudAPI.IsAvailable() then
+        CloudAPI:SetInt(PROJECT_PREFIX .. "realm_level", idx, {
             ok = function()
-                print("[境界] 上报成功: " .. tostring(idx) .. " (" .. GetRankDisplayName(idx) .. ")")
+                print("[澧冪晫] 涓婃姤鎴愬姛: " .. tostring(idx) .. " (" .. GetRankDisplayName(idx) .. ")")
                 welfareState.realmLoaded = false
                 welfareState.realmLoading = false
                 LoadRealmRank()
             end,
             error = function(err)
-                print("[境界] 上报失败: " .. tostring(err))
+                print("[澧冪晫] 涓婃姤澶辫触: " .. tostring(err))
             end,
         })
     end
@@ -189,12 +189,12 @@ end
 
 
 function LoadRealmRank()
-    if not rawget(_G, "clientCloud") then return end
+    if not CloudAPI.IsAvailable() then return end
     if welfareState.realmLoading then return end
     welfareState.realmLoading = true
-    clientCloud:GetRankList(PROJECT_PREFIX .. "realm_level", 0, 100, {
+    CloudAPI:GetRankList(PROJECT_PREFIX .. "realm_level", 0, 100, {
         ok = function(rankList)
-            -- 过滤封禁玩家并截取前50
+            -- 杩囨护灏佺鐜╁骞舵埅鍙栧墠50
             local filtered = {}
             for _, item in ipairs(rankList) do
                 local uid = _getRankItemUserId(item)
@@ -267,20 +267,20 @@ end
 
 
 -- ============================================================================
--- 桩逼王排行榜 (打桩伤害排行 - 上报 & 加载)
+-- 妗╅€肩帇鎺掕姒?(鎵撴々浼ゅ鎺掕 - 涓婃姤 & 鍔犺浇)
 -- ============================================================================
 function ReportDummyScore(damage)
     if damage <= 0 then return end
     local intDmg = math.floor(damage)
-    if rawget(_G, "clientCloud") then
-        clientCloud:SetInt(PROJECT_PREFIX .. "dummy_damage", intDmg, {
+    if CloudAPI.IsAvailable() then
+        CloudAPI:SetInt(PROJECT_PREFIX .. "dummy_damage", intDmg, {
             ok = function()
-                print("[桩逼王] 上报成功: " .. tostring(intDmg))
+                print("[妗╅€肩帇] 涓婃姤鎴愬姛: " .. tostring(intDmg))
                 welfareState.dummyLoaded = false
                 welfareState.dummyLoading = false
             end,
             error = function(err)
-                print("[桩逼王] 上报失败: " .. tostring(err))
+                print("[妗╅€肩帇] 涓婃姤澶辫触: " .. tostring(err))
             end,
         })
     end
@@ -288,12 +288,12 @@ end
 
 
 function LoadDummyRank()
-    if not rawget(_G, "clientCloud") then return end
+    if not CloudAPI.IsAvailable() then return end
     if welfareState.dummyLoading then return end
     welfareState.dummyLoading = true
-    clientCloud:GetRankList(PROJECT_PREFIX .. "dummy_damage", 0, 100, {
+    CloudAPI:GetRankList(PROJECT_PREFIX .. "dummy_damage", 0, 100, {
         ok = function(rankList)
-            -- 过滤封禁玩家并截取前50
+            -- 杩囨护灏佺鐜╁骞舵埅鍙栧墠50
             local filtered = {}
             for _, item in ipairs(rankList) do
                 local uid = _getRankItemUserId(item)
@@ -368,7 +368,7 @@ function LoadFactionLevelRank()
 end
 
 
---- 加载阵营排行榜到主排行榜Tab（写入 welfareState）
+--- 鍔犺浇闃佃惀鎺掕姒滃埌涓绘帓琛屾Tab锛堝啓鍏?welfareState锛?
 function LoadFactionLevelRankForTab()
     if welfareState.factionRankLoading then return end
     welfareState.factionRankLoading = true
@@ -377,22 +377,22 @@ end
 
 
 -- ============================================================================
--- 排位赛 - 云端排行榜
+-- 鎺掍綅璧?- 浜戠鎺掕姒?
 -- ============================================================================
 -- ============================================================================
--- 爬塔 - 云端排行榜
+-- 鐖 - 浜戠鎺掕姒?
 -- ============================================================================
 function ReportTowerFloor()
     local floor = towerState.highestFloor
-    if rawget(_G, "clientCloud") then
-        clientCloud:SetInt(PROJECT_PREFIX .. "tower_floor", floor, {
+    if CloudAPI.IsAvailable() then
+        CloudAPI:SetInt(PROJECT_PREFIX .. "tower_floor", floor, {
             ok = function()
-                print("[爬塔] 上报成功: " .. tostring(floor))
+                print("[鐖] 涓婃姤鎴愬姛: " .. tostring(floor))
                 towerState.rankLoaded = false
                 towerState.rankLoading = false
             end,
             error = function(err)
-                print("[爬塔] 上报失败: " .. tostring(err))
+                print("[鐖] 涓婃姤澶辫触: " .. tostring(err))
             end,
         })
     end
@@ -400,16 +400,16 @@ end
 
 
 function LoadTowerLeaderboard()
-    if not rawget(_G, "clientCloud") then
+    if not CloudAPI.IsAvailable() then
         towerState.rankLoaded = true
         towerState.rankLoading = false
         return
     end
     if towerState.rankLoading then return end
     towerState.rankLoading = true
-    clientCloud:GetRankList(PROJECT_PREFIX .. "tower_floor", 0, 100, {
+    CloudAPI:GetRankList(PROJECT_PREFIX .. "tower_floor", 0, 100, {
         ok = function(rankList)
-            -- 过滤封禁玩家并截取前50
+            -- 杩囨护灏佺鐜╁骞舵埅鍙栧墠50
             local filtered = {}
             for _, item in ipairs(rankList) do
                 local uid = _getRankItemUserId(item)
@@ -472,35 +472,57 @@ end
 function ReportRankedScore()
     local score = rankedState.score
     if IsServerAuthoritativeRankedMode and IsServerAuthoritativeRankedMode() then
-        print("[鎺掍綅] Skipping clientCloud ranked upload in server-authoritative mode")
+        print("[閹烘帊缍匽 Skipping CloudAPI ranked upload in server-authoritative mode")
         return
     end
-    if rawget(_G, "clientCloud") then
-        clientCloud:SetInt(PROJECT_PREFIX .. "ranked_score", score, {
+    if CloudAPI.IsAvailable() then
+        CloudAPI:SetInt(PROJECT_PREFIX .. "ranked_score", score, {
             ok = function()
-                print("[排位] 上报成功: " .. tostring(score))
+                print("[鎺掍綅] 涓婃姤鎴愬姛: " .. tostring(score))
                 rankedState.rankLoaded = false
                 rankedState.rankLoading = false
             end,
             error = function(err)
-                print("[排位] 上报失败: " .. tostring(err))
+                print("[鎺掍綅] 涓婃姤澶辫触: " .. tostring(err))
             end,
         })
     end
 end
 
 
---- 服务端权威 Elo 结算回调
---- 当服务端返回排位结果时，用权威数据覆盖本地 rankedState
+function OnRankedMatched(matchType, elo, payload)
+    payload = payload or {}
+    local opponent = payload.opponent or {}
+    rankedState.score = elo or rankedState.score
+    rankedState.opponentName = opponent.name or "Unknown"
+    rankedState.opponentPower = opponent.totalPower or 0
+    rankedState.opponentCards = opponent.cards or {}
+    rankedState.matchReady = true
+    print("[排位] matched type=" .. tostring(matchType)
+        .. " opponent=" .. tostring(rankedState.opponentName)
+        .. " power=" .. tostring(rankedState.opponentPower))
+end
+
+function OnRankedUpdate(payload)
+    payload = payload or {}
+    if payload.status == "awaiting_opponent_result" then
+        if gameState then
+            gameState.awaitingRankedResult = true
+        end
+    end
+end
+
+--- 鏈嶅姟绔潈濞?Elo 缁撶畻鍥炶皟
+--- 褰撴湇鍔＄杩斿洖鎺掍綅缁撴灉鏃讹紝鐢ㄦ潈濞佹暟鎹鐩栨湰鍦?rankedState
 ---@param result table {isWin, serverDelta, newElo, wins, losses}
 function OnRankedResult(result)
     if not result then return end
     local awaitingResult = gameState and gameState.awaitingRankedResult == true
-    print("[排位] 服务端权威结算: Elo=" .. tostring(result.newElo)
+    print("[鎺掍綅] 鏈嶅姟绔潈濞佺粨绠? Elo=" .. tostring(result.newElo)
         .. " delta=" .. tostring(result.serverDelta)
         .. " wins=" .. tostring(result.wins)
         .. " losses=" .. tostring(result.losses))
-    -- 用服务端权威值覆盖本地
+    -- 鐢ㄦ湇鍔＄鏉冨▉鍊艰鐩栨湰鍦?
     rankedState.score = result.newElo or rankedState.score
     rankedState.wins = result.wins or rankedState.wins
     rankedState.losses = result.losses or rankedState.losses
@@ -518,14 +540,14 @@ function OnRankedResult(result)
     if rankedState.score > rankedState.highestScore then
         rankedState.highestScore = rankedState.score
     end
-    -- 更新展示用的 delta（覆盖本地计算值）
+    -- 鏇存柊灞曠ず鐢ㄧ殑 delta锛堣鐩栨湰鍦拌绠楀€硷級
     if result.serverDelta then
         gameState.rankedDelta = result.serverDelta
     end
     if gameState then
         gameState.awaitingRankedResult = false
     end
-    -- 刷新排行榜
+    -- 鍒锋柊鎺掕姒?
     rankedState.rankLoaded = false
     rankedState.rankLoading = false
     SaveGameProgress()
@@ -537,8 +559,8 @@ function LoadRankedLeaderboard()
         local myUid = 0
         if rawget(_G, "netState") and netState.userId then
             myUid = netState.userId
-        elseif rawget(_G, "clientCloud") then
-            myUid = clientCloud.userId or 0
+        elseif CloudAPI.IsAvailable() then
+            myUid = CloudAPI.GetUserId()
         end
         rankedState.rankList = {
             {
@@ -551,16 +573,16 @@ function LoadRankedLeaderboard()
         rankedState.rankLoading = false
         return
     end
-    if not rawget(_G, "clientCloud") then
+    if not CloudAPI.IsAvailable() then
         rankedState.rankLoaded = true
         rankedState.rankLoading = false
         return
     end
     if rankedState.rankLoading then return end
     rankedState.rankLoading = true
-    clientCloud:GetRankList(PROJECT_PREFIX .. "ranked_score", 0, 100, {
+    CloudAPI:GetRankList(PROJECT_PREFIX .. "ranked_score", 0, 100, {
         ok = function(rankList)
-            -- 过滤封禁玩家并截取前50
+            -- 杩囨护灏佺鐜╁骞舵埅鍙栧墠50
             local filtered = {}
             for _, item in ipairs(rankList) do
                 local uid = _getRankItemUserId(item)
@@ -618,3 +640,5 @@ function LoadRankedLeaderboard()
         end,
     })
 end
+
+

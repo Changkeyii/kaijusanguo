@@ -13,6 +13,8 @@ Protocol.EVENTS = {
     CLIENT_READY       = "ClientReady",         -- C→S: 客户端就绪
     WELCOME            = "Welcome",             -- S→C: 欢迎 + 初始数据
     ERROR              = "ServerError",          -- S→C: 错误通知
+    CLOUD_REQUEST      = "CloudRequest",        -- C→S: 通用云数据请求
+    CLOUD_RESPONSE     = "CloudResponse",       -- S→C: 通用云数据响应
 
     -- 排位模式（房间制 1v1）
     RANKED_JOIN        = "RankedJoin",          -- C→S: 加入排位匹配

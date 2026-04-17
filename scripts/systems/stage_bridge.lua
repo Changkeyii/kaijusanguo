@@ -1,9 +1,9 @@
--- ============================================================================
--- systems/stage_bridge.lua - 从已删除的 stage.lua / gacha.lua 中提取的共用函数
--- 这些函数被战斗系统、排位系统、兵符系统等广泛引用，必须保留
+﻿-- ============================================================================
+-- systems/stage_bridge.lua - 浠庡凡鍒犻櫎鐨?stage.lua / gacha.lua 涓彁鍙栫殑鍏辩敤鍑芥暟
+-- 杩欎簺鍑芥暟琚垬鏂楃郴缁熴€佹帓浣嶇郴缁熴€佸叺绗︾郴缁熺瓑骞挎硾寮曠敤锛屽繀椤讳繚鐣?
 -- ============================================================================
 
---- 应用战斗布局: 重设石台位置 + 切换背景
+--- 搴旂敤鎴樻枟甯冨眬: 閲嶈鐭冲彴浣嶇疆 + 鍒囨崲鑳屾櫙
 function ApplyBattleLayout(layoutIdx)
     layoutIdx = layoutIdx or 1
     local layout = BATTLE_LAYOUTS[layoutIdx] or BATTLE_LAYOUTS[1]
@@ -23,7 +23,7 @@ function ApplyBattleLayout(layoutIdx)
 end
 
 
---- 导出布局配置到文件 (JSON 格式)
+--- 瀵煎嚭甯冨眬閰嶇疆鍒版枃浠?(JSON 鏍煎紡)
 function ExportBattleLayouts()
     local data = {}
     for li, layout in ipairs(BATTLE_LAYOUTS) do
@@ -48,15 +48,15 @@ function ExportBattleLayouts()
     if file:IsOpen() then
         file:WriteString(jsonStr)
         file:Close()
-        print("[布局编辑器] 已导出到 battle_layouts.json")
+        print("[甯冨眬缂栬緫鍣╙ 宸插鍑哄埌 battle_layouts.json")
     else
-        print("[布局编辑器] 导出失败: 无法写入文件")
+        print("[甯冨眬缂栬緫鍣╙ 瀵煎嚭澶辫触: 鏃犳硶鍐欏叆鏂囦欢")
     end
-    print("[布局数据] " .. jsonStr)
+    print("[甯冨眬鏁版嵁] " .. jsonStr)
 end
 
 
---- 撤销上一步石台拖拽
+--- 鎾ら攢涓婁竴姝ョ煶鍙版嫋鎷?
 function UndoSlotEdit()
     if #slotUndoStack == 0 then return false end
     local snap = slotUndoStack[#slotUndoStack]
@@ -77,7 +77,7 @@ end
 
 
 -- ============================================================================
--- 排位辅助函数
+-- 鎺掍綅杈呭姪鍑芥暟
 -- ============================================================================
 
 function GetRankedTier(score)
@@ -105,90 +105,106 @@ function CalcRankedScoreChange(isWin, currentStreak)
 end
 
 
---- 生成排位AI对手
-function GenerateRankedOpponent()
-    local playerPower = CalcPlayerTotalPower()
-    local nonHeroPower = CalcRankPowerScore() + CalcEquipPowerScore() + CalcSkillPowerScore()
-    local playerHeroPower = math.max(1, playerPower - nonHeroPower)
-    local targetMin = playerHeroPower * 0.95
-    local targetMax = playerHeroPower * 1.05
-
-    local cardCount = math.random(3, 5)
-    local usedIdx = {}
-    local picked = {}
-    for i = 1, cardCount do
-        local idx
-        repeat idx = math.random(1, #HERO_CARDS) until not usedIdx[idx]
-        usedIdx[idx] = true
-        local card = DeepCopy(HERO_CARDS[idx])
-        card.cardIdx = idx
-        card.level = 1
-        card.constellation = 0
-        table.insert(picked, card)
+--- 鐢熸垚鎺掍綅AI瀵规墜
+local function buildRankedCardFromHero(cardIdx, heroInfo)
+    local baseCard = HERO_CARDS[cardIdx]
+    if not baseCard or not heroInfo then
+        return nil, 0
     end
 
-    local function calcLinePower(cards)
-        local total = 0
-        for _, c in ipairs(cards) do
-            local lm = 1 + ((c.level or 1) - 1) * GameConfig.LEVEL_GROWTH_RATE
-            local cStats = ApplyConstellationStats(c)
-            total = total + (cStats.atk * 2 + cStats.def + cStats.hp * 0.1) * lm
-        end
-        return math.floor(total)
-    end
+    local tempCard = DeepCopy(baseCard)
+    tempCard.cardIdx = cardIdx
+    tempCard.level = heroInfo.level or 1
+    tempCard.constellation = heroInfo.constellation or 0
 
-    for _ = 1, 200 do
-        local cur = calcLinePower(picked)
-        if cur >= targetMin and cur <= targetMax then break end
-        if cur >= targetMax then break end
-        local ci = math.random(1, #picked)
-        local c = picked[ci]
-        if c.level < 10 and (c.constellation >= GameConfig.MAX_CONSTELLATION or math.random() < 0.7) then
-            c.level = c.level + 1
-        elseif c.constellation < GameConfig.MAX_CONSTELLATION then
-            c.constellation = c.constellation + 1
-        elseif c.level < 10 then
-            c.level = c.level + 1
-        end
-    end
+    local stats = ApplyConstellationStats(tempCard)
+    local levelMul = 1 + ((tempCard.level or 1) - 1) * GameConfig.LEVEL_GROWTH_RATE
+    local sealBonus = GetSealTotalBonus(cardIdx)
 
-    for _ = 1, 50 do
-        local cur = calcLinePower(picked)
-        if cur <= targetMax then break end
-        local ci = math.random(1, #picked)
-        local c = picked[ci]
-        if c.level > 1 then
-            c.level = c.level - 1
-        elseif c.constellation > 0 then c.constellation = c.constellation - 1 end
-    end
-
-    for _, c in ipairs(picked) do
-        local lm = 1 + ((c.level or 1) - 1) * GameConfig.LEVEL_GROWTH_RATE
-        local cStats = ApplyConstellationStats(c)
-        c.atk = math.floor(cStats.atk * lm)
-        c.def = math.floor(cStats.def * lm)
-        c.hp  = math.floor(cStats.hp  * lm)
-        c.level = 1
-        c.constellation = 0
-    end
-
-    local surnames = {"烽火","铁骑","虎牢","武灵","破军","赤壁","青龙","白虎","玄武","朱雀","龙吟","凤鸣","天策","麒麟"}
-    local titles   = {"猎手","先锋","守将","行者","游侠","壮士","校尉","军师","术士","勇士","义士","斥候","大将","护卫"}
-    local opName = surnames[math.random(1,#surnames)] .. titles[math.random(1,#titles)]
+    local finalAtk = math.floor(stats.atk * levelMul * (1 + (sealBonus.atkPct or 0) / 100))
+    local finalDef = math.floor(stats.def * levelMul * (1 + (sealBonus.defPct or 0) / 100))
+    local finalHp = math.floor(stats.hp * levelMul * (1 + (sealBonus.hpPct or 0) / 100))
+    local power = math.floor(finalAtk * 2 + finalDef + finalHp * 0.1)
 
     return {
-        cards = picked,
-        totalPower = calcLinePower(picked),
-        name = opName,
+        cardIdx = cardIdx,
+        name = baseCard.name,
+        quality = baseCard.quality,
+        faction = baseCard.faction,
+        atk = finalAtk,
+        def = finalDef,
+        hp = finalHp,
+        level = 1,
+        constellation = 0,
+    }, power
+end
+
+function BuildRankedPlayerSnapshot()
+    local chosen = {}
+    local chosenSet = {}
+    local formation = (rawget(_G, 'gameSettings') and gameSettings.formation) or {}
+    local totalPower = 0
+
+    local function pushCard(cardIdx)
+        if chosenSet[cardIdx] then
+            return
+        end
+        local heroInfo = playerHeroes and playerHeroes[cardIdx]
+        if not heroInfo or not heroInfo.owned then
+            return
+        end
+        local card, power = buildRankedCardFromHero(cardIdx, heroInfo)
+        if not card then
+            return
+        end
+        chosen[#chosen + 1] = { card = card, power = power }
+        chosenSet[cardIdx] = true
+    end
+
+    for _, cardIdx in ipairs(formation) do
+        pushCard(cardIdx)
+        if #chosen >= 5 then
+            break
+        end
+    end
+
+    if #chosen < 5 then
+        local candidates = {}
+        for cardIdx, heroInfo in pairs(playerHeroes or {}) do
+            if heroInfo.owned and not chosenSet[cardIdx] then
+                local _, power = buildRankedCardFromHero(cardIdx, heroInfo)
+                candidates[#candidates + 1] = { cardIdx = cardIdx, power = power }
+            end
+        end
+        table.sort(candidates, function(a, b) return a.power > b.power end)
+        for _, candidate in ipairs(candidates) do
+            pushCard(candidate.cardIdx)
+            if #chosen >= 5 then
+                break
+            end
+        end
+    end
+
+    local cards = {}
+    table.sort(chosen, function(a, b) return a.power > b.power end)
+    for _, entry in ipairs(chosen) do
+        cards[#cards + 1] = entry.card
+        totalPower = totalPower + entry.power
+    end
+
+    return {
+        name = (playerInfo and playerInfo.name) or 'Player',
+        totalPower = totalPower,
+        cards = cards,
     }
 end
 
 
 -- ============================================================================
--- 满命武灵检测 (兵符系统依赖)
+-- 婊″懡姝︾伒妫€娴?(鍏电绯荤粺渚濊禆)
 -- ============================================================================
 
---- 检查是否有至少1个满命武灵
+--- 妫€鏌ユ槸鍚︽湁鑷冲皯1涓弧鍛芥鐏?
 function HasMaxConstellationHero()
     for idx, hero in pairs(playerHeroes) do
         if hero and (hero.constellation or 0) >= GameConfig.MAX_CONSTELLATION then
@@ -199,7 +215,7 @@ function HasMaxConstellationHero()
 end
 
 
---- 获取所有满命武灵列表
+--- 鑾峰彇鎵€鏈夋弧鍛芥鐏靛垪琛?
 function GetMaxConstellationHeroes()
     local list = {}
     if not HERO_CARDS then return list end
@@ -217,27 +233,27 @@ end
 
 
 -- ============================================================================
--- 武技残片掉落权重（原在运行时初始化，此处提供默认值）
+-- 姝︽妧娈嬬墖鎺夎惤鏉冮噸锛堝師鍦ㄨ繍琛屾椂鍒濆鍖栵紝姝ゅ鎻愪緵榛樿鍊硷級
 -- ============================================================================
 if not rawget(_G, "SKILL_FRAG_WEIGHTS") then
     SKILL_FRAG_WEIGHTS = {
-        [1] = 100,  -- 凡品
-        [2] = 60,   -- 良品
-        [3] = 35,   -- 优品
-        [4] = 18,   -- 将品
-        [5] = 8,    -- 侯品
-        [6] = 3,    -- 王品
-        [7] = 1,    -- 帝品
+        [1] = 100,  -- 鍑″搧
+        [2] = 60,   -- 鑹搧
+        [3] = 35,   -- 浼樺搧
+        [4] = 18,   -- 灏嗗搧
+        [5] = 8,    -- 渚搧
+        [6] = 3,    -- 鐜嬪搧
+        [7] = 1,    -- 甯濆搧
     }
 end
 
 -- ============================================================================
--- 战斗武技残片掉落
+-- 鎴樻枟姝︽妧娈嬬墖鎺夎惤
 -- ============================================================================
 
---- 战斗胜利掉落武技残片
---- @param maxTier number 关卡最高掉落阶级(1-6)
---- @return table[] fragDrops 掉落列表
+--- 鎴樻枟鑳滃埄鎺夎惤姝︽妧娈嬬墖
+--- @param maxTier number 鍏冲崱鏈€楂樻帀钀介樁绾?1-6)
+--- @return table[] fragDrops 鎺夎惤鍒楄〃
 function GenerateBattleSkillFragDrop(maxTier)
     local fragDrops = {}
     local dropCount = 1
@@ -275,3 +291,4 @@ function GenerateBattleSkillFragDrop(maxTier)
     end
     return fragDrops
 end
+

@@ -11,6 +11,7 @@ local Shared = require("network.Shared")
 local Protocol = require("network.Protocol")
 local DataManager = require("server.DataManager")
 local RankedMatchmaker = require("server.RankedMatchmaker")
+local CloudService = require("server.CloudService")
 
 require "LuaScripts/Utilities/Sample"
 
@@ -65,6 +66,7 @@ function Server.Start()
 
     -- 订阅自定义远程事件
     SubscribeToEvent(EVENTS.CLIENT_READY, "HandleClientReady")
+    SubscribeToEvent(EVENTS.CLOUD_REQUEST, "HandleCloudRequest")
 
     -- 排位事件
     SubscribeToEvent(EVENTS.RANKED_JOIN, "HandleRankedJoin")
@@ -184,7 +186,20 @@ function HandleRankedJoin(eventType, eventData)
     local connKey = tostring(connection)
     local userId = connectionUserIds_[connKey]
     if not userId then return end
-    RankedMatchmaker.HandleJoin(userId, connection)
+
+    local params = {}
+    local paramsVar = eventData["Params"]
+    if paramsVar then
+        local paramsStr = paramsVar:GetString()
+        if paramsStr and paramsStr ~= "" then
+            local ok, decoded = pcall(cjson.decode, paramsStr)
+            if ok and type(decoded) == "table" then
+                params = decoded
+            end
+        end
+    end
+
+    RankedMatchmaker.HandleJoin(userId, connection, params)
 end
 
 function HandleRankedCancel(eventType, eventData)
@@ -213,6 +228,27 @@ function HandleRankedAction(eventType, eventData)
     end
 
     RankedMatchmaker.HandleAction(userId, connection, params)
+end
+
+function HandleCloudRequest(eventType, eventData)
+    local connection = eventData["Connection"]:GetPtr("Connection")
+    local connKey = tostring(connection)
+    local userId = connectionUserIds_[connKey]
+    if not userId then return end
+
+    local requestId = eventData["RequestId"]:GetInt()
+    local action = eventData["Action"]:GetString()
+    local paramsStr = eventData["Params"]:GetString()
+
+    local params = {}
+    if paramsStr and paramsStr ~= "" then
+        local ok, decoded = pcall(cjson.decode, paramsStr)
+        if ok and type(decoded) == "table" then
+            params = decoded
+        end
+    end
+
+    CloudService.HandleRequest(userId, connection, requestId, action, params)
 end
 
 -- ============================================================================

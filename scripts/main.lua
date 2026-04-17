@@ -35,6 +35,7 @@ end
 -- cjson: 引擎内置全局变量, 在使用处就近声明 (避免200 upvalue限制)
 GameConfig = require "game_config"
 require "EquipUI"
+CloudAPI = require "cloud_api"
 CloudManager = require "cloud_manager"
 TradeManager = require "trade_manager"
 
@@ -379,6 +380,8 @@ end
 function Start()
     SampleStart()
 
+    CloudAPI.Init()
+
     vg = nvgCreate(1)
     if not vg then
         print("ERROR: Failed to create NanoVG context")
@@ -552,11 +555,11 @@ function Start()
         end,
     })
 
-    -- 设置管理员 UID 列表 (开发者的游戏内 clientCloud.userId)
+    -- 设置管理员 UID 列表 (开发者的游戏内云 UID)
     -- 注意: 首次运行时在控制台查看打印的 UID, 然后填入此列表
     CloudManager.ADMIN_UIDS = { 162525390 }
-    if rawget(_G, "clientCloud") then
-        local myUid = clientCloud.userId
+    if CloudAPI.IsAvailable() then
+        local myUid = CloudAPI.GetUserId()
         print("============================================")
         print("[系统] 当前玩家 UID: " .. tostring(myUid))
         print("============================================")

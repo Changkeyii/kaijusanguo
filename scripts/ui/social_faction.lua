@@ -1,7 +1,7 @@
--- ui/social_faction.lua - 三国武灵录 (从 social.lua 拆分)
+﻿-- ui/social_faction.lua - 涓夊浗姝︾伒褰?(浠?social.lua 鎷嗗垎)
 function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
     local sv = factionUI.subView
-    -- 子视图返回按钮
+    -- 瀛愯鍥捐繑鍥炴寜閽?
     local sbW, sbH = 80, 32
     local sbX, sbY = pad, bodyTop + 4
     nvgBeginPath(vg); nvgRoundedRect(vg, sbX, sbY, sbW, sbH, 6)
@@ -9,38 +9,38 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
     nvgStrokeColor(vg, nvgRGBA(100, 100, 140, 160)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
     nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     nvgFillColor(vg, nvgRGBA(200, 200, 220, 240))
-    nvgText(vg, sbX + sbW / 2, sbY + sbH / 2, "< 返回", nil)
+    nvgText(vg, sbX + sbW / 2, sbY + sbH / 2, "< 杩斿洖", nil)
     menuBtnRects.factionSubBack = { x = sbX, y = sbY, w = sbW, h = sbH }
 
     local panelTop = sbY + sbH + 12
     local panelW = W - pad * 2
 
     if sv == "upgrade" then
-        -- ======== 阵营升级 ========
+        -- ======== 闃佃惀鍗囩骇 ========
         nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(255, 200, 80, 255))
-        nvgText(vg, cx, panelTop, "阵营升级", nil)
+        nvgText(vg, cx, panelTop, "闃佃惀鍗囩骇", nil)
         panelTop = panelTop + 36
 
         local lvInfo = CloudManager.GetFactionLevelInfo()
 
-        -- 等级卡片
+        -- 绛夌骇鍗＄墖
         local cardH = 180
         nvgBeginPath(vg); nvgRoundedRect(vg, pad, panelTop, panelW, cardH, 10)
         nvgFillColor(vg, nvgRGBA(20, 20, 30, 210)); nvgFill(vg)
         nvgStrokeColor(vg, nvgRGBA(80, 140, 220, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
-        -- 大等级数字
+        -- 澶х瓑绾ф暟瀛?
         nvgFontSize(vg, 48); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(100, 200, 255, 255))
         nvgText(vg, cx, panelTop + 40, "Lv." .. lvInfo.level, nil)
 
-        -- 等级名称
-        local lvNames = { "新立", "初建", "崛起", "壮大", "兴盛", "鼎盛", "强盛", "霸业", "至尊", "无双" }
+        -- 绛夌骇鍚嶇О
+        local lvNames = { "鏂扮珛", "鍒濆缓", "宕涜捣", "澹ぇ", "鍏寸洓", "榧庣洓", "寮虹洓", "闇镐笟", "鑷冲皧", "鏃犲弻" }
         nvgFontSize(vg, 16); nvgFillColor(vg, nvgRGBA(255, 220, 140, 220))
-        nvgText(vg, cx, panelTop + 70, lvNames[lvInfo.level] or "未知", nil)
+        nvgText(vg, cx, panelTop + 70, lvNames[lvInfo.level] or "鏈煡", nil)
 
-        -- 经验进度条
+        -- 缁忛獙杩涘害鏉?
         local barX = pad + 20
         local barW = panelW - 40
         local barY = panelTop + 95
@@ -56,39 +56,39 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
         end
         nvgFontSize(vg, 12); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(255, 255, 255, 230))
-        local expStr = lvInfo.level >= lvInfo.maxLevel and "经验 MAX" or ("经验 " .. lvInfo.exp .. " / " .. lvInfo.nextLevelExp)
+        local expStr = lvInfo.level >= lvInfo.maxLevel and "缁忛獙 MAX" or ("缁忛獙 " .. lvInfo.exp .. " / " .. lvInfo.nextLevelExp)
         nvgText(vg, barX + barW / 2, barY + barH / 2, expStr, nil)
 
-        -- 等级加成说明
+        -- 绛夌骇鍔犳垚璇存槑
         nvgFontSize(vg, 15); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
         nvgFillColor(vg, nvgRGBA(180, 220, 255, 200))
         local roleBonus = lvInfo.roleBonusPercent or 0
         if roleBonus > 0 then
-            nvgText(vg, cx, panelTop + 124, "当前加成: 全员 +" .. lvInfo.buffPercent .. "% | 职位额外 +" .. string.format("%.1f", roleBonus) .. "%", nil)
+            nvgText(vg, cx, panelTop + 124, "褰撳墠鍔犳垚: 鍏ㄥ憳 +" .. lvInfo.buffPercent .. "% | 鑱屼綅棰濆 +" .. string.format("%.1f", roleBonus) .. "%", nil)
         else
-            nvgText(vg, cx, panelTop + 124, "当前加成: 全员战力 +" .. lvInfo.buffPercent .. "%", nil)
+            nvgText(vg, cx, panelTop + 124, "褰撳墠鍔犳垚: 鍏ㄥ憳鎴樺姏 +" .. lvInfo.buffPercent .. "%", nil)
         end
 
-        -- 下级预览
+        -- 涓嬬骇棰勮
         if lvInfo.level < lvInfo.maxLevel then
             nvgFontSize(vg, 13); nvgFillColor(vg, nvgRGBA(160, 160, 170, 180))
-            nvgText(vg, cx, panelTop + 148, "下一级 Lv." .. (lvInfo.level + 1) .. ": 全员战力 +" .. ((lvInfo.level + 1) * 2) .. "%", nil)
+            nvgText(vg, cx, panelTop + 148, "涓嬩竴绾?Lv." .. (lvInfo.level + 1) .. ": 鍏ㄥ憳鎴樺姏 +" .. ((lvInfo.level + 1) * 2) .. "%", nil)
         else
             nvgFontSize(vg, 13); nvgFillColor(vg, nvgRGBA(255, 200, 80, 200))
-            nvgText(vg, cx, panelTop + 148, "已达最高等级!", nil)
+            nvgText(vg, cx, panelTop + 148, "宸茶揪鏈€楂樼瓑绾?", nil)
         end
 
-        -- 升级方式提示
+        -- 鍗囩骇鏂瑰紡鎻愮ず
         nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
         nvgFillColor(vg, nvgRGBA(200, 190, 170, 180))
-        nvgText(vg, cx, panelTop + cardH + 16, "通过「阵营捐献」积累经验来升级", nil)
+        nvgText(vg, cx, panelTop + cardH + 16, "閫氳繃銆岄樀钀ユ崘鐚€嶇Н绱粡楠屾潵鍗囩骇", nil)
 
-        -- 资金统计
+        -- 璧勯噾缁熻
         nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
         nvgFillColor(vg, nvgRGBA(255, 220, 140, 220))
-        nvgText(vg, cx, panelTop + cardH + 44, "阵营资金: " .. CloudManager.GetFactionFunds() .. " 虎符", nil)
+        nvgText(vg, cx, panelTop + cardH + 44, "闃佃惀璧勯噾: " .. CloudManager.GetFactionFunds() .. " 铏庣", nil)
 
-        -- 阵营排行榜按钮
+        -- 闃佃惀鎺掕姒滄寜閽?
         local rankBtnW, rankBtnH = 160, 38
         local rankBtnX = cx - rankBtnW / 2
         local rankBtnY = panelTop + cardH + 72
@@ -97,14 +97,14 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
         nvgStrokeColor(vg, nvgRGBA(140, 120, 220, 180)); nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
         nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(200, 180, 255, 240))
-        nvgText(vg, cx, rankBtnY + rankBtnH / 2, "阵营等级排行榜", nil)
+        nvgText(vg, cx, rankBtnY + rankBtnH / 2, "闃佃惀绛夌骇鎺掕姒?, nil)
         menuBtnRects.factionRankBtn = { x = rankBtnX, y = rankBtnY, w = rankBtnW, h = rankBtnH }
 
     elseif sv == "donate" then
-        -- ======== 阵营捐献 ========
+        -- ======== 闃佃惀鎹愮尞 ========
         nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(255, 200, 80, 255))
-        nvgText(vg, cx, panelTop, "阵营捐献", nil)
+        nvgText(vg, cx, panelTop, "闃佃惀鎹愮尞", nil)
         panelTop = panelTop + 36
 
         local cardH = 260
@@ -117,31 +117,31 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
         local myContrib = CloudManager.GetMyContribution()
         local myJade = playerInfo.jade or 0
 
-        -- 个人信息
+        -- 涓汉淇℃伅
         nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
         local iy = panelTop + 16
         nvgFillColor(vg, nvgRGBA(160, 150, 130, 200))
-        nvgText(vg, pad + 16, iy, "我的虎符:", nil)
+        nvgText(vg, pad + 16, iy, "鎴戠殑铏庣:", nil)
         nvgFillColor(vg, nvgRGBA(255, 240, 200, 240))
         nvgText(vg, pad + 120, iy, tostring(myJade), nil)
 
         iy = iy + 28
         nvgFillColor(vg, nvgRGBA(160, 150, 130, 200))
-        nvgText(vg, pad + 16, iy, "累计贡献:", nil)
+        nvgText(vg, pad + 16, iy, "绱璐＄尞:", nil)
         nvgFillColor(vg, nvgRGBA(255, 220, 140, 240))
         nvgText(vg, pad + 120, iy, tostring(myContrib), nil)
 
         iy = iy + 28
         nvgFillColor(vg, nvgRGBA(160, 150, 130, 200))
-        nvgText(vg, pad + 16, iy, "今日已捐:", nil)
+        nvgText(vg, pad + 16, iy, "浠婃棩宸叉崘:", nil)
         nvgFillColor(vg, nvgRGBA(200, 200, 210, 240))
-        nvgText(vg, pad + 120, iy, tostring(todayDone) .. " 虎符", nil)
+        nvgText(vg, pad + 120, iy, tostring(todayDone) .. " 铏庣", nil)
 
-        -- 捐献额度选择
+        -- 鎹愮尞棰濆害閫夋嫨
         iy = iy + 40
         nvgFontSize(vg, 15); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(200, 190, 170, 200))
-        nvgText(vg, cx, iy, "选择捐献数量", nil)
+        nvgText(vg, cx, iy, "閫夋嫨鎹愮尞鏁伴噺", nil)
         iy = iy + 24
 
         local amounts = { 100, 300, 500, 1000 }
@@ -164,7 +164,7 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
             menuBtnRects["factionDonateAmt_" .. ai] = { x = ax, y = iy, w = aBtnW, h = aBtnH, amount = amt }
         end
 
-        -- 捐献按钮
+        -- 鎹愮尞鎸夐挳
         iy = iy + aBtnH + 20
         local dBtnW, dBtnH = 180, 44
         local dBtnX = cx - dBtnW / 2
@@ -174,17 +174,17 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
         nvgStrokeColor(vg, canDonate and nvgRGBA(140, 220, 80, 180) or nvgRGBA(80, 80, 80, 120)); nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
         nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, canDonate and nvgRGBA(255, 255, 230, 255) or nvgRGBA(120, 120, 120, 200))
-        local donateLabel = factionUI.donating and "捐献中..." or ("捐献 " .. factionUI.donateAmount .. " 虎符")
+        local donateLabel = factionUI.donating and "鎹愮尞涓?.." or ("鎹愮尞 " .. factionUI.donateAmount .. " 铏庣")
         nvgText(vg, cx, iy + dBtnH / 2, donateLabel, nil)
         if canDonate then
             menuBtnRects.factionDonate = { x = dBtnX, y = iy, w = dBtnW, h = dBtnH }
         end
 
     elseif sv == "announce" then
-        -- ======== 阵营公告 ========
+        -- ======== 闃佃惀鍏憡 ========
         nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(255, 200, 80, 255))
-        nvgText(vg, cx, panelTop, "阵营公告", nil)
+        nvgText(vg, cx, panelTop, "闃佃惀鍏憡", nil)
         panelTop = panelTop + 36
 
         local cardH = 220
@@ -196,25 +196,25 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
         local myLevel = CloudManager.GetRoleLevel(info.role)
         local canEdit = myLevel >= CloudManager.GetRoleLevel("vice_leader")
 
-        -- 当前公告显示
+        -- 褰撳墠鍏憡鏄剧ず
         nvgFontSize(vg, 15); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
         nvgFillColor(vg, nvgRGBA(160, 150, 130, 200))
-        nvgText(vg, pad + 16, panelTop + 16, "当前公告:", nil)
+        nvgText(vg, pad + 16, panelTop + 16, "褰撳墠鍏憡:", nil)
 
         nvgFontSize(vg, 16)
         nvgFillColor(vg, nvgRGBA(255, 240, 210, 230))
-        local dispAnn = (#currentAnn > 0) and currentAnn or "(暂无公告)"
-        -- 自动折行显示公告
+        local dispAnn = (#currentAnn > 0) and currentAnn or "(鏆傛棤鍏憡)"
+        -- 鑷姩鎶樿鏄剧ず鍏憡
         nvgTextBox(vg, pad + 16, panelTop + 42, panelW - 32, dispAnn, nil)
 
         if canEdit then
-            -- 编辑区
+            -- 缂栬緫鍖?
             local editY = panelTop + 110
             nvgFillColor(vg, nvgRGBA(160, 150, 130, 200))
             nvgFontSize(vg, 14)
-            nvgText(vg, pad + 16, editY, "编辑新公告 (200字内):", nil)
+            nvgText(vg, pad + 16, editY, "缂栬緫鏂板叕鍛?(200瀛楀唴):", nil)
 
-            -- 输入框
+            -- 杈撳叆妗?
             local inputY = editY + 22
             local inputH = 36
             nvgBeginPath(vg); nvgRoundedRect(vg, pad + 12, inputY, panelW - 24, inputH, 6)
@@ -228,11 +228,11 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
                 nvgText(vg, pad + 18, inputY + inputH / 2, factionUI.announceInput, nil)
             else
                 nvgFillColor(vg, nvgRGBA(120, 115, 100, 150))
-                nvgText(vg, pad + 18, inputY + inputH / 2, "点击输入公告内容...", nil)
+                nvgText(vg, pad + 18, inputY + inputH / 2, "鐐瑰嚮杈撳叆鍏憡鍐呭...", nil)
             end
             menuBtnRects.factionAnnounceInput = { x = pad + 12, y = inputY, w = panelW - 24, h = inputH }
 
-            -- 保存按钮
+            -- 淇濆瓨鎸夐挳
             local saveBtnW, saveBtnH = 140, 40
             local saveBtnX = cx - saveBtnW / 2
             local saveBtnY = inputY + inputH + 14
@@ -241,22 +241,22 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
             nvgStrokeColor(vg, nvgRGBA(100, 160, 220, 180)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
             nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 255, 240, 255))
-            nvgText(vg, saveBtnX + saveBtnW / 2, saveBtnY + saveBtnH / 2, "保存公告", nil)
+            nvgText(vg, saveBtnX + saveBtnW / 2, saveBtnY + saveBtnH / 2, "淇濆瓨鍏憡", nil)
             menuBtnRects.factionAnnounceSave = { x = saveBtnX, y = saveBtnY, w = saveBtnW, h = saveBtnH }
         else
             nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
             nvgFillColor(vg, nvgRGBA(160, 150, 140, 180))
-            nvgText(vg, cx, panelTop + 130, "副盟主及以上可编辑公告", nil)
+            nvgText(vg, cx, panelTop + 130, "鍓洘涓诲強浠ヤ笂鍙紪杈戝叕鍛?, nil)
         end
 
     elseif sv == "contrib" then
-        -- ======== 成员贡献排行 ========
+        -- ======== 鎴愬憳璐＄尞鎺掕 ========
         nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(255, 200, 80, 255))
-        nvgText(vg, cx, panelTop, "成员贡献排行", nil)
+        nvgText(vg, cx, panelTop, "鎴愬憳璐＄尞鎺掕", nil)
         panelTop = panelTop + 36
 
-        -- 加载贡献数据
+        -- 鍔犺浇璐＄尞鏁版嵁
         if not factionUI.contribLoaded and not factionUI.contribLoading then
             factionUI.contribLoading = true
             local rawList = CloudManager.GetContributionRank()
@@ -269,12 +269,12 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
                         local nameMap = {}
                         for _, ni in ipairs(nicknames) do nameMap[ni.userId] = ni.nickname end
                         for _, e in ipairs(rawList) do
-                            e.name = nameMap[e.uid] or ("玩家" .. tostring(e.uid))
+                            e.name = nameMap[e.uid] or ("鐜╁" .. tostring(e.uid))
                         end
                         factionUI.contribList = rawList; factionUI.contribLoaded = true; factionUI.contribLoading = false
                     end,
                     onError = function()
-                        for _, e in ipairs(rawList) do e.name = "玩家" .. tostring(e.uid) end
+                        for _, e in ipairs(rawList) do e.name = "鐜╁" .. tostring(e.uid) end
                         factionUI.contribList = rawList; factionUI.contribLoaded = true; factionUI.contribLoading = false
                     end,
                 })
@@ -305,18 +305,18 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
         if factionUI.contribLoading then
             nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(180, 180, 190, 200))
-            nvgText(vg, cx, baseY2 + listH2 / 2, "加载中...", nil)
+            nvgText(vg, cx, baseY2 + listH2 / 2, "鍔犺浇涓?..", nil)
         elseif cCount == 0 then
             nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(180, 180, 190, 200))
-            nvgText(vg, cx, baseY2 + listH2 / 2, "暂无贡献数据", nil)
+            nvgText(vg, cx, baseY2 + listH2 / 2, "鏆傛棤璐＄尞鏁版嵁", nil)
         else
-            local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+            local myUid = CloudAPI.GetUserId()
             local medals = {"[1]", "[2]", "[3]"}
             for i, e in ipairs(cList) do
                 local ry = baseY2 + 10 + (i - 1) * rowH2
                 local isMe = (e.uid == myUid)
-                -- 行背景
+                -- 琛岃儗鏅?
                 if i <= 3 then
                     nvgBeginPath(vg); nvgRoundedRect(vg, pad + 6, ry + 2, panelW - 12, rowH2 - 4, 6)
                     nvgFillColor(vg, nvgRGBA(255, 215, 80, 15 + (4 - i) * 8)); nvgFill(vg)
@@ -327,7 +327,7 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
                     nvgBeginPath(vg); nvgRoundedRect(vg, pad + 6, ry + 2, panelW - 12, rowH2 - 4, 4)
                     nvgFillColor(vg, nvgRGBA(255, 240, 200, 5)); nvgFill(vg)
                 end
-                -- 排名
+                -- 鎺掑悕
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 if i <= 3 then
                     nvgFontSize(vg, 24)
@@ -338,21 +338,21 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
                     nvgFillColor(vg, nvgRGBA(180, 170, 150, 200))
                     nvgText(vg, pad + 28, ry + rowH2 / 2, "#" .. i, nil)
                 end
-                -- 名字
+                -- 鍚嶅瓧
                 nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                 if isMe then
                     nvgFillColor(vg, nvgRGBA(120, 200, 255, 240))
                 elseif i <= 3 then
                     nvgFillColor(vg, nvgRGBA(255, 235, 175, 230))
                 else nvgFillColor(vg, nvgRGBA(210, 200, 180, 220)) end
-                nvgText(vg, pad + 54, ry + rowH2 / 2, (e.name or "?") .. (isMe and " (我)" or ""), nil)
-                -- 贡献值
+                nvgText(vg, pad + 54, ry + rowH2 / 2, (e.name or "?") .. (isMe and " (鎴?" or ""), nil)
+                -- 璐＄尞鍊?
                 nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
                 if i <= 3 then
                     nvgFillColor(vg, nvgRGBA(255, 200, 80, 240))
                 else nvgFillColor(vg, nvgRGBA(220, 180, 120, 210)) end
                 nvgText(vg, pad + panelW - 16, ry + rowH2 / 2, FormatPower(e.amount or 0), nil)
-                -- 分隔线
+                -- 鍒嗛殧绾?
                 if i < cCount then
                     nvgBeginPath(vg); nvgMoveTo(vg, pad + 16, ry + rowH2); nvgLineTo(vg, pad + panelW - 16, ry + rowH2)
                     nvgStrokeColor(vg, nvgRGBA(100, 80, 40, 30)); nvgStrokeWidth(vg, 0.5); nvgStroke(vg)
@@ -365,7 +365,7 @@ end
 
 
 -- ===========================
--- 阵营界面 (完整实现)
+-- 闃佃惀鐣岄潰 (瀹屾暣瀹炵幇)
 -- ===========================
 function DrawFactionScreen()
     local W, H = DESIGN_W, DESIGN_H
@@ -374,7 +374,7 @@ function DrawFactionScreen()
     DrawSocialBg(W, H)
     nvgFontFaceId(vg, GetMainFont())
 
-    -- 每帧清除所有阵营 tab 内的按钮 rect，防止切换 tab 时旧按钮残留导致点击穿透
+    -- 姣忓抚娓呴櫎鎵€鏈夐樀钀?tab 鍐呯殑鎸夐挳 rect锛岄槻姝㈠垏鎹?tab 鏃舵棫鎸夐挳娈嬬暀瀵艰嚧鐐瑰嚮绌块€?
     local factionRectPrefixes = {
         "factionRename", "factionLeave", "factionFeat_",
         "factionKick_", "factionSetRole_", "factionRoleOption_", "factionRolePopupBg",
@@ -398,19 +398,19 @@ function DrawFactionScreen()
     end
     for _, k in ipairs(keysToRemove) do menuBtnRects[k] = nil end
 
-    -- 返回按钮
+    -- 杩斿洖鎸夐挳
     local backW, backH = 100, 44
     local backX, backY = 10, 10
     nvgBeginPath(vg); nvgRoundedRect(vg, backX, backY, backW, backH, 6)
     nvgFillColor(vg, nvgRGBA(30, 35, 50, 220)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(90, 45, 55, 160)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
     nvgFontSize(vg, 29); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(backX + backW / 2, backY + backH / 2, "< 返回")
+    DrawWhiteInkText(backX + backW / 2, backY + backH / 2, "< 杩斿洖")
     menuBtnRects.factionBack = { x = backX, y = backY, w = backW, h = backH }
 
-    -- 标题
+    -- 鏍囬
     nvgFontSize(vg, 30); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(cx, 32, "阵营")
+    DrawWhiteInkText(cx, 32, "闃佃惀")
 
     local info = CloudManager.GetFactionInfo()
     local hasFaction = info and info.id and info.id > 0
@@ -418,13 +418,13 @@ function DrawFactionScreen()
     local pad = 14
 
     if hasFaction then
-        -- ======== 已加入阵营 ========
-        -- Tab 栏: 信息 | 成员
-        local tabs = { { id = "info", label = "信息" }, { id = "members", label = "成员" }, { id = "chat", label = "聊天" } }
-        -- 有管理权限时增加申请标签
+        -- ======== 宸插姞鍏ラ樀钀?========
+        -- Tab 鏍? 淇℃伅 | 鎴愬憳
+        local tabs = { { id = "info", label = "淇℃伅" }, { id = "members", label = "鎴愬憳" }, { id = "chat", label = "鑱婂ぉ" } }
+        -- 鏈夌鐞嗘潈闄愭椂澧炲姞鐢宠鏍囩
         local myLevel = CloudManager.GetRoleLevel(info.role)
         if myLevel >= 5 then
-            table.insert(tabs, { id = "apply", label = "申请" })
+            table.insert(tabs, { id = "apply", label = "鐢宠" })
         end
         local tabW = (W - pad * 2) / #tabs
         local tabH = 38
@@ -444,12 +444,12 @@ function DrawFactionScreen()
         local bodyTop = tabY + tabH + 10
 
         if factionUI.tab == "info" then
-            -- 盟主首次打开信息页时，后台验证成员是否已离开（自动清理camp_meta）
+            -- 鐩熶富棣栨鎵撳紑淇℃伅椤垫椂锛屽悗鍙伴獙璇佹垚鍛樻槸鍚﹀凡绂诲紑锛堣嚜鍔ㄦ竻鐞哻amp_meta锛?
             if info.role == "leader" and not factionUI.memberValidated then
                 factionUI.memberValidated = true
-                CloudManager.GetFactionMembers(function(_) end)  -- 触发内部清理逻辑
+                CloudManager.GetFactionMembers(function(_) end)  -- 瑙﹀彂鍐呴儴娓呯悊閫昏緫
             end
-            -- 异步查询盟主昵称 (仅查一次)
+            -- 寮傛鏌ヨ鐩熶富鏄电О (浠呮煡涓€娆?
             if info.meta and info.meta.leaderId and not factionUI.leaderNickLoaded then
                 factionUI.leaderNickLoaded = true
                 factionUI.leaderNickname = nil
@@ -458,7 +458,7 @@ function DrawFactionScreen()
                         userIds = { info.meta.leaderId },
                         onSuccess = function(nicknames)
                             if nicknames and #nicknames > 0 then
-                                factionUI.leaderNickname = nicknames[1].nickname or "未知"
+                                factionUI.leaderNickname = nicknames[1].nickname or "鏈煡"
                             end
                         end,
                         onError = function() end,
@@ -466,14 +466,14 @@ function DrawFactionScreen()
                 end
             end
 
-            -- 阵营名称
+            -- 闃佃惀鍚嶇О
             nvgFontSize(vg, 28); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 200, 80, 255))
-            nvgText(vg, cx, bodyTop + 20, info.name or "未知阵营", nil)
-            -- 盟主改名按钮
+            nvgText(vg, cx, bodyTop + 20, info.name or "鏈煡闃佃惀", nil)
+            -- 鐩熶富鏀瑰悕鎸夐挳
             if info.role == "leader" then
                 local rnBtnW, rnBtnH = 48, 24
-                local nameTextW = nvgTextBounds(vg, 0, 0, info.name or "未知阵营", nil)
+                local nameTextW = nvgTextBounds(vg, 0, 0, info.name or "鏈煡闃佃惀", nil)
                 local rnBtnX = cx + nameTextW / 2 + 8
                 local rnBtnY = bodyTop + 20 - rnBtnH / 2
                 nvgBeginPath(vg); nvgRoundedRect(vg, rnBtnX, rnBtnY, rnBtnW, rnBtnH, 4)
@@ -481,15 +481,15 @@ function DrawFactionScreen()
                 nvgStrokeColor(vg, nvgRGBA(200, 160, 60, 160)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
                 nvgFontSize(vg, 13); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(255, 220, 130, 230))
-                nvgText(vg, rnBtnX + rnBtnW / 2, rnBtnY + rnBtnH / 2, "改名", nil)
+                nvgText(vg, rnBtnX + rnBtnW / 2, rnBtnY + rnBtnH / 2, "鏀瑰悕", nil)
                 menuBtnRects.factionRename = { x = rnBtnX, y = rnBtnY, w = rnBtnW, h = rnBtnH }
             end
 
-            -- ======== 子视图: 升级/捐献/公告 ========
+            -- ======== 瀛愯鍥? 鍗囩骇/鎹愮尞/鍏憡 ========
             if factionUI.subView then
                 DrawFactionSubView(W, H, bodyTop, pad, cx, info)
             else
-            -- 阵营信息卡片
+            -- 闃佃惀淇℃伅鍗＄墖
             local lvInfo = CloudManager.GetFactionLevelInfo()
             local cardY = bodyTop + 50
             local cardH = 230
@@ -498,21 +498,21 @@ function DrawFactionScreen()
             nvgStrokeColor(vg, nvgRGBA(80, 60, 40, 150)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
             nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
-            local leaderDisplay = factionUI.leaderNickname or "加载中..."
+            local leaderDisplay = factionUI.leaderNickname or "鍔犺浇涓?.."
             local roleBonus2 = lvInfo.roleBonusPercent or 0
-            local buffDisplay = "战力+" .. lvInfo.buffPercent .. "%"
+            local buffDisplay = "鎴樺姏+" .. lvInfo.buffPercent .. "%"
             if roleBonus2 > 0 then
-                buffDisplay = buffDisplay .. " +职位" .. string.format("%.1f", roleBonus2) .. "%"
+                buffDisplay = buffDisplay .. " +鑱屼綅" .. string.format("%.1f", roleBonus2) .. "%"
             end
             local infoLines = {
-                { "阵营等级", "Lv." .. lvInfo.level .. " (" .. buffDisplay .. ")" },
-                { "我的职位", CloudManager.GetRoleName(info.role) or "成员" },
-                { "成员数", info.meta and tostring(info.meta.memberCount or 0) .. "/" .. tostring(info.meta.maxMembers or 20) or "?" },
-                { "阵营资金", tostring(CloudManager.GetFactionFunds()) .. " 虎符" },
-                { "盟主", leaderDisplay },
+                { "闃佃惀绛夌骇", "Lv." .. lvInfo.level .. " (" .. buffDisplay .. ")" },
+                { "鎴戠殑鑱屼綅", CloudManager.GetRoleName(info.role) or "鎴愬憳" },
+                { "鎴愬憳鏁?, info.meta and tostring(info.meta.memberCount or 0) .. "/" .. tostring(info.meta.maxMembers or 20) or "?" },
+                { "闃佃惀璧勯噾", tostring(CloudManager.GetFactionFunds()) .. " 铏庣" },
+                { "鐩熶富", leaderDisplay },
             }
             if info.meta and info.meta.desc and #info.meta.desc > 0 then
-                table.insert(infoLines, { "简介", info.meta.desc })
+                table.insert(infoLines, { "绠€浠?, info.meta.desc })
             end
             for j, line in ipairs(infoLines) do
                 local ly = cardY + 14 + (j - 1) * 30
@@ -522,7 +522,7 @@ function DrawFactionScreen()
                 nvgText(vg, pad + 110, ly, line[2], nil)
             end
 
-            -- 经验条 (紧贴信息行下方)
+            -- 缁忛獙鏉?(绱ц创淇℃伅琛屼笅鏂?
             local expBarY = cardY + 14 + #infoLines * 30 + 4
             local expBarX = pad + 16
             local expBarW = W - pad * 2 - 32
@@ -530,33 +530,33 @@ function DrawFactionScreen()
             local expRange = lvInfo.nextLevelExp - lvInfo.curLevelExp
             local expProgress = expRange > 0 and math.min(1.0, (lvInfo.exp - lvInfo.curLevelExp) / expRange) or 1.0
             if lvInfo.level >= lvInfo.maxLevel then expProgress = 1.0 end
-            -- 背景
+            -- 鑳屾櫙
             nvgBeginPath(vg); nvgRoundedRect(vg, expBarX, expBarY, expBarW, expBarH, 4)
             nvgFillColor(vg, nvgRGBA(15, 15, 25, 200)); nvgFill(vg)
-            -- 填充
+            -- 濉厖
             if expProgress > 0 then
                 nvgBeginPath(vg); nvgRoundedRect(vg, expBarX, expBarY, expBarW * expProgress, expBarH, 4)
                 nvgFillColor(vg, nvgRGBA(80, 180, 255, 200)); nvgFill(vg)
             end
-            -- 经验文字
+            -- 缁忛獙鏂囧瓧
             nvgFontSize(vg, 11); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 255, 255, 220))
             local expText = lvInfo.level >= lvInfo.maxLevel and "MAX" or (lvInfo.exp .. "/" .. lvInfo.nextLevelExp)
             nvgText(vg, expBarX + expBarW / 2, expBarY + expBarH / 2, expText, nil)
 
-            -- 公告显示
+            -- 鍏憡鏄剧ず
             local annText = CloudManager.GetFactionAnnouncement()
             local annY = cardY + cardH + 8
             if annText and #annText > 0 then
                 nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
                 nvgFillColor(vg, nvgRGBA(255, 200, 80, 180))
-                nvgText(vg, pad + 6, annY, "公告:", nil)
+                nvgText(vg, pad + 6, annY, "鍏憡:", nil)
                 nvgFillColor(vg, nvgRGBA(230, 225, 210, 200))
                 nvgText(vg, pad + 52, annY, annText, nil)
                 annY = annY + 22
             end
 
-            -- 退出阵营按钮
+            -- 閫€鍑洪樀钀ユ寜閽?
             local leaveW, leaveH = 160, 42
             local leaveX = cx - leaveW / 2
             local leaveY = annY + 10
@@ -565,29 +565,29 @@ function DrawFactionScreen()
             nvgStrokeColor(vg, nvgRGBA(200, 60, 60, 150)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
             nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 200, 200, 255))
-            nvgText(vg, cx, leaveY + leaveH / 2, info.role == "leader" and "解散阵营" or "退出阵营", nil)
+            nvgText(vg, cx, leaveY + leaveH / 2, info.role == "leader" and "瑙ｆ暎闃佃惀" or "閫€鍑洪樀钀?, nil)
             menuBtnRects.factionLeave = { x = leaveX, y = leaveY, w = leaveW, h = leaveH }
 
-            -- ======== 阵营功能入口网格 ========
+            -- ======== 闃佃惀鍔熻兘鍏ュ彛缃戞牸 ========
             local featureTop = leaveY + leaveH + 18
             nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(200, 180, 140, 200))
-            nvgText(vg, pad + 4, featureTop, "阵营功能", nil)
+            nvgText(vg, pad + 4, featureTop, "闃佃惀鍔熻兘", nil)
             featureTop = featureTop + 26
 
             local hasSignedIn = CloudManager.HasSignedInToday()
             local features = {
-                { id = "manage",   icon = "👑", label = "成员管理", ready = true },
-                { id = "chat",     icon = "💬", label = "阵营聊天", ready = true },
-                { id = "upgrade",  icon = "⬆", label = "阵营升级", ready = true },
-                { id = "donate",   icon = "💰", label = "阵营捐献", ready = true },
-                { id = "signIn",   icon = "📅", label = hasSignedIn and "已签到" or "每日签到", ready = true, done = hasSignedIn },
-                { id = "announce", icon = "📢", label = "阵营公告", ready = true },
-                { id = "rank",     icon = "🏆", label = "阵营排行", ready = true },
-                { id = "contrib",  icon = "📊", label = "成员贡献", ready = true },
-                { id = "shop",     icon = "🏪", label = "阵营商店" },
-                { id = "war",      icon = "⚔", label = "阵营战争" },
-                { id = "task",     icon = "📋", label = "阵营任务" },
+                { id = "manage",   icon = "馃憫", label = "鎴愬憳绠＄悊", ready = true },
+                { id = "chat",     icon = "馃挰", label = "闃佃惀鑱婂ぉ", ready = true },
+                { id = "upgrade",  icon = "猬?, label = "闃佃惀鍗囩骇", ready = true },
+                { id = "donate",   icon = "馃挵", label = "闃佃惀鎹愮尞", ready = true },
+                { id = "signIn",   icon = "馃搮", label = hasSignedIn and "宸茬鍒? or "姣忔棩绛惧埌", ready = true, done = hasSignedIn },
+                { id = "announce", icon = "馃摙", label = "闃佃惀鍏憡", ready = true },
+                { id = "rank",     icon = "馃弳", label = "闃佃惀鎺掕", ready = true },
+                { id = "contrib",  icon = "馃搳", label = "鎴愬憳璐＄尞", ready = true },
+                { id = "shop",     icon = "馃彧", label = "闃佃惀鍟嗗簵" },
+                { id = "war",      icon = "鈿?, label = "闃佃惀鎴樹簤" },
+                { id = "task",     icon = "馃搵", label = "闃佃惀浠诲姟" },
             }
             local cols = 4
             local fGap = 8
@@ -598,7 +598,7 @@ function DrawFactionScreen()
                 local row = math.floor((fi - 1) / cols)
                 local fx = pad + col * (fBtnW + fGap)
                 local fy = featureTop + row * (fBtnH + fGap)
-                -- 背景
+                -- 鑳屾櫙
                 nvgBeginPath(vg); nvgRoundedRect(vg, fx, fy, fBtnW, fBtnH, 8)
                 if feat.done then
                     nvgFillColor(vg, nvgRGBA(35, 50, 35, 220)); nvgFill(vg)
@@ -610,7 +610,7 @@ function DrawFactionScreen()
                     nvgFillColor(vg, nvgRGBA(30, 30, 40, 200)); nvgFill(vg)
                     nvgStrokeColor(vg, nvgRGBA(70, 60, 50, 130)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
                 end
-                -- 图标
+                -- 鍥炬爣
                 nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 if feat.done then
                     nvgFillColor(vg, nvgRGBA(120, 200, 120, 180))
@@ -618,7 +618,7 @@ function DrawFactionScreen()
                     nvgFillColor(vg, nvgRGBA(120, 200, 255, 240))
                 else nvgFillColor(vg, nvgRGBA(255, 220, 120, 220)) end
                 nvgText(vg, fx + fBtnW / 2, fy + fBtnH / 2 - 10, feat.icon, nil)
-                -- 文字
+                -- 鏂囧瓧
                 nvgFontSize(vg, 13)
                 if feat.done then
                     nvgFillColor(vg, nvgRGBA(150, 200, 150, 200))
@@ -626,25 +626,25 @@ function DrawFactionScreen()
                     nvgFillColor(vg, nvgRGBA(220, 230, 240, 240))
                 else nvgFillColor(vg, nvgRGBA(180, 175, 160, 200)) end
                 nvgText(vg, fx + fBtnW / 2, fy + fBtnH / 2 + 16, feat.label, nil)
-                -- "待开发"角标（仅未就绪的功能）
+                -- "寰呭紑鍙?瑙掓爣锛堜粎鏈氨缁殑鍔熻兘锛?
                 if not feat.ready then
                     nvgFontSize(vg, 10); nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
                     nvgFillColor(vg, nvgRGBA(255, 120, 60, 180))
-                    nvgText(vg, fx + fBtnW - 4, fy + 3, "待开发", nil)
+                    nvgText(vg, fx + fBtnW - 4, fy + 3, "寰呭紑鍙?, nil)
                 end
-                -- 注册点击区
+                -- 娉ㄥ唽鐐瑰嚮鍖?
                 menuBtnRects["factionFeat_" .. feat.id] = { x = fx, y = fy, w = fBtnW, h = fBtnH }
             end
             end -- subView else
 
-            -- ======== 阵营排行榜弹出面板（覆盖在 info tab 之上） ========
+            -- ======== 闃佃惀鎺掕姒滃脊鍑洪潰鏉匡紙瑕嗙洊鍦?info tab 涔嬩笂锛?========
             if factionUI.showRank then
-                -- 加载数据
+                -- 鍔犺浇鏁版嵁
                 if not factionUI.rankLoaded and not factionUI.rankLoading then
                     LoadFactionLevelRank()
                 end
 
-                -- 暗幕
+                -- 鏆楀箷
                 nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
                 nvgFillColor(vg, nvgRGBA(0, 0, 0, 160)); nvgFill(vg)
                 menuBtnRects.factionRankOverlay = { x = 0, y = 0, w = W, h = H }
@@ -654,16 +654,16 @@ function DrawFactionScreen()
                 local rpX = 25
                 local rpY = (H - rpH) / 2
 
-                -- 面板背景
+                -- 闈㈡澘鑳屾櫙
                 nvgBeginPath(vg); nvgRoundedRect(vg, rpX, rpY, rpW, rpH, 12)
                 nvgFillColor(vg, nvgRGBA(20, 18, 35, 245)); nvgFill(vg)
                 nvgStrokeColor(vg, nvgRGBA(140, 120, 220, 160)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
 
-                -- 标题
+                -- 鏍囬
                 nvgFontSize(vg, 26); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-                DrawWhiteInkText(cx, rpY + 30, "阵营等级排行榜")
+                DrawWhiteInkText(cx, rpY + 30, "闃佃惀绛夌骇鎺掕姒?)
 
-                -- 排行列表
+                -- 鎺掕鍒楄〃
                 local listTop = rpY + 58
                 local listH = rpH - 110
                 local rowH = 38
@@ -671,22 +671,22 @@ function DrawFactionScreen()
                 if factionUI.rankLoading then
                     nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(180, 180, 190, 200))
-                    nvgText(vg, cx, rpY + rpH / 2, "加载中...", nil)
+                    nvgText(vg, cx, rpY + rpH / 2, "鍔犺浇涓?..", nil)
                 elseif #factionUI.rankList == 0 then
                     nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(180, 180, 190, 200))
-                    nvgText(vg, cx, rpY + rpH / 2, "暂无排行数据", nil)
+                    nvgText(vg, cx, rpY + rpH / 2, "鏆傛棤鎺掕鏁版嵁", nil)
                 else
-                    local lvNames = { "新立", "初建", "崛起", "壮大", "兴盛", "鼎盛", "强盛", "霸业", "至尊", "无双" }
+                    local lvNames = { "鏂扮珛", "鍒濆缓", "宕涜捣", "澹ぇ", "鍏寸洓", "榧庣洓", "寮虹洓", "闇镐笟", "鑷冲皧", "鏃犲弻" }
                     local myCampId = CloudManager._factionId or 0
-                    -- 表头
+                    -- 琛ㄥご
                     nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(140, 130, 160, 180))
-                    nvgText(vg, rpX + 12, listTop, "排名", nil)
-                    nvgText(vg, rpX + 52, listTop, "阵营名", nil)
+                    nvgText(vg, rpX + 12, listTop, "鎺掑悕", nil)
+                    nvgText(vg, rpX + 52, listTop, "闃佃惀鍚?, nil)
                     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-                    nvgText(vg, rpX + rpW - 120, listTop, "等级", nil)
-                    nvgText(vg, rpX + rpW - 45, listTop, "加成", nil)
+                    nvgText(vg, rpX + rpW - 120, listTop, "绛夌骇", nil)
+                    nvgText(vg, rpX + rpW - 45, listTop, "鍔犳垚", nil)
                     listTop = listTop + 22
 
                     local maxShow = math.min(#factionUI.rankList, math.floor(listH / rowH))
@@ -695,7 +695,7 @@ function DrawFactionScreen()
                         local ry = listTop + (i - 1) * rowH
                         local isMe = (r.campId == myCampId)
 
-                        -- 行背景
+                        -- 琛岃儗鏅?
                         if isMe then
                             nvgBeginPath(vg); nvgRoundedRect(vg, rpX + 6, ry, rpW - 12, rowH - 2, 4)
                             nvgFillColor(vg, nvgRGBA(80, 100, 50, 120)); nvgFill(vg)
@@ -704,7 +704,7 @@ function DrawFactionScreen()
                             nvgFillColor(vg, nvgRGBA(30, 28, 45, 100)); nvgFill(vg)
                         end
 
-                        -- 排名
+                        -- 鎺掑悕
                         nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                         local rankColor
                         if i == 1 then
@@ -717,7 +717,7 @@ function DrawFactionScreen()
                         nvgFillColor(vg, rankColor)
                         nvgText(vg, rpX + 28, ry + rowH / 2, tostring(i), nil)
 
-                        -- 阵营名
+                        -- 闃佃惀鍚?
                         nvgFontSize(vg, 15); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                         nvgFillColor(vg, isMe and nvgRGBA(200, 255, 160, 255) or nvgRGBA(240, 235, 220, 240))
                         local dispName = r.name or "???"
@@ -732,19 +732,19 @@ function DrawFactionScreen()
                         end
                         nvgText(vg, rpX + 52, ry + rowH / 2, dispName, nil)
 
-                        -- 等级
+                        -- 绛夌骇
                         local lvName = lvNames[r.level] or "?"
                         nvgFontSize(vg, 15); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                         nvgFillColor(vg, nvgRGBA(100, 200, 255, 240))
                         nvgText(vg, rpX + rpW - 120, ry + rowH / 2, "Lv." .. r.level .. " " .. lvName, nil)
 
-                        -- 加成
+                        -- 鍔犳垚
                         nvgFillColor(vg, nvgRGBA(255, 220, 140, 220))
                         nvgText(vg, rpX + rpW - 45, ry + rowH / 2, "+" .. (r.level * 2) .. "%", nil)
                     end
                 end
 
-                -- 关闭按钮
+                -- 鍏抽棴鎸夐挳
                 local closeBtnW, closeBtnH = 100, 36
                 local closeBtnX = cx - closeBtnW / 2
                 local closeBtnY = rpY + rpH - 48
@@ -753,17 +753,17 @@ function DrawFactionScreen()
                 nvgStrokeColor(vg, nvgRGBA(140, 120, 200, 160)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
                 nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(220, 210, 240, 240))
-                nvgText(vg, cx, closeBtnY + closeBtnH / 2, "关闭", nil)
+                nvgText(vg, cx, closeBtnY + closeBtnH / 2, "鍏抽棴", nil)
                 menuBtnRects.factionRankClose = { x = closeBtnX, y = closeBtnY, w = closeBtnW, h = closeBtnH }
             end
 
         elseif factionUI.tab == "members" then
-            -- 成员列表
+            -- 鎴愬憳鍒楄〃
             if not factionUI.loaded and not factionUI.loading then
                 factionUI.loading = true
                 CloudManager.GetFactionMembers(function(members)
                     factionUI.members = members or {}
-                    -- 按职位等级降序, 同职位按战力降序排序
+                    -- 鎸夎亴浣嶇瓑绾ч檷搴? 鍚岃亴浣嶆寜鎴樺姏闄嶅簭鎺掑簭
                     table.sort(factionUI.members, function(a, b)
                         local ra = CloudManager.GetMemberRole(a.userId)
                         local rb = CloudManager.GetMemberRole(b.userId)
@@ -774,8 +774,8 @@ function DrawFactionScreen()
                     end)
                     factionUI.loaded = true
                     factionUI.loading = false
-                    -- 缓存当前玩家的平台昵称 (用于聊天显示)
-                    local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+                    -- 缂撳瓨褰撳墠鐜╁鐨勫钩鍙版樀绉?(鐢ㄤ簬鑱婂ぉ鏄剧ず)
+                    local myUid = CloudAPI.GetUserId()
                     for _, mem in ipairs(factionUI.members) do
                         if mem.userId == myUid and mem.nickname then
                             factionUI.myNickname = mem.nickname
@@ -787,11 +787,11 @@ function DrawFactionScreen()
             if factionUI.loading then
                 nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(180, 180, 180, 200))
-                nvgText(vg, cx, bodyTop + 60, "加载中...", nil)
+                nvgText(vg, cx, bodyTop + 60, "鍔犺浇涓?..", nil)
             else
                 local cardH = 60
                 local cardGap = 6
-                local myUid = rawget(_G, "clientCloud") and clientCloud.userId or 0
+                local myUid = CloudAPI.GetUserId()
                 local myRole = CloudManager.GetFactionInfo().role or "none"
                 local canSetRole = (myRole == "leader" or myRole == "vice_leader")
                 local scrollOff = factionUI.scroll.offset or 0
@@ -803,19 +803,19 @@ function DrawFactionScreen()
                     nvgBeginPath(vg); nvgRoundedRect(vg, pad, cy, W - pad * 2, cardH, 8)
                     nvgFillColor(vg, nvgRGBA(25, 25, 35, 200)); nvgFill(vg)
                     nvgStrokeColor(vg, nvgRGBA(70, 60, 50, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-                    -- 名字
+                    -- 鍚嶅瓧
                     nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(255, 240, 200, 240))
-                    nvgText(vg, pad + 14, cy + cardH / 2 - 8, mem.nickname or ("玩家" .. tostring(mem.userId or "")), nil)
-                    -- 职位
+                    nvgText(vg, pad + 14, cy + cardH / 2 - 8, mem.nickname or ("鐜╁" .. tostring(mem.userId or "")), nil)
+                    -- 鑱屼綅
                     local role, roleName = CloudManager.GetMemberRole(mem.userId)
                     nvgFontSize(vg, 15); nvgFillColor(vg, nvgRGBA(255, 180, 80, 200))
-                    nvgText(vg, pad + 14, cy + cardH / 2 + 14, roleName or "成员", nil)
-                    -- 战力 + 设职按钮
+                    nvgText(vg, pad + 14, cy + cardH / 2 + 14, roleName or "鎴愬憳", nil)
+                    -- 鎴樺姏 + 璁捐亴鎸夐挳
                     local rightX = W - pad - 14
                     if canSetRole and mem.userId ~= myUid and role ~= "leader" then
                         local cursorX = rightX
-                        -- 踢出按钮 (盟主/副盟主对下级可见)
+                        -- 韪㈠嚭鎸夐挳 (鐩熶富/鍓洘涓诲涓嬬骇鍙)
                         local kickBtnW, kickBtnH = 48, 28
                         local kickBtnX = cursorX - kickBtnW
                         local kickBtnY = cy + (cardH - kickBtnH) / 2
@@ -824,10 +824,10 @@ function DrawFactionScreen()
                         nvgStrokeColor(vg, nvgRGBA(200, 80, 80, 180)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
                         nvgFontSize(vg, 13); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                         nvgFillColor(vg, nvgRGBA(255, 180, 180, 240))
-                        nvgText(vg, kickBtnX + kickBtnW / 2, kickBtnY + kickBtnH / 2, "踢出", nil)
+                        nvgText(vg, kickBtnX + kickBtnW / 2, kickBtnY + kickBtnH / 2, "韪㈠嚭", nil)
                         menuBtnRects["factionKick_" .. mi] = { x = kickBtnX, y = kickBtnY, w = kickBtnW, h = kickBtnH, userId = mem.userId, nickname = mem.nickname }
                         cursorX = kickBtnX - 6
-                        -- 设置职位按钮
+                        -- 璁剧疆鑱屼綅鎸夐挳
                         local setBtnW, setBtnH = 52, 28
                         local setBtnX = cursorX - setBtnW
                         local setBtnY = cy + (cardH - setBtnH) / 2
@@ -836,46 +836,46 @@ function DrawFactionScreen()
                         nvgStrokeColor(vg, nvgRGBA(160, 140, 200, 180)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
                         nvgFontSize(vg, 13); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                         nvgFillColor(vg, nvgRGBA(220, 210, 255, 240))
-                        nvgText(vg, setBtnX + setBtnW / 2, setBtnY + setBtnH / 2, "职位", nil)
+                        nvgText(vg, setBtnX + setBtnW / 2, setBtnY + setBtnH / 2, "鑱屼綅", nil)
                         menuBtnRects["factionSetRole_" .. mi] = { x = setBtnX, y = setBtnY, w = setBtnW, h = setBtnH, userId = mem.userId, currentRole = role, nickname = mem.nickname }
-                        -- 战力放在按钮左边
+                        -- 鎴樺姏鏀惧湪鎸夐挳宸﹁竟
                         nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
                         nvgFontSize(vg, 14); nvgFillColor(vg, nvgRGBA(160, 160, 160, 180))
-                        nvgText(vg, setBtnX - 8, cy + cardH / 2, "战力 " .. tostring(mem.combatPower or 0), nil)
+                        nvgText(vg, setBtnX - 8, cy + cardH / 2, "鎴樺姏 " .. tostring(mem.combatPower or 0), nil)
                     else
                         nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
                         nvgFontSize(vg, 16); nvgFillColor(vg, nvgRGBA(160, 160, 160, 180))
-                        nvgText(vg, rightX, cy + cardH / 2, "战力 " .. tostring(mem.combatPower or 0), nil)
+                        nvgText(vg, rightX, cy + cardH / 2, "鎴樺姏 " .. tostring(mem.combatPower or 0), nil)
                     end
                 end
                 if #factionUI.members == 0 then
                     nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(150, 150, 150, 180))
-                    nvgText(vg, cx, bodyTop + 60, "暂无成员数据", nil)
+                    nvgText(vg, cx, bodyTop + 60, "鏆傛棤鎴愬憳鏁版嵁", nil)
                 end
                 nvgRestore(vg)
 
-                -- 职位选择弹窗
+                -- 鑱屼綅閫夋嫨寮圭獥
                 if factionUI.rolePopup then
                     local rp = factionUI.rolePopup
                     local roleList = { "vice_leader", "strategist", "vanguard", "diplomat", "elite", "member" }
-                    local roleNames = { vice_leader="副盟主", strategist="军师", vanguard="先锋官", diplomat="外交官", elite="精英", member="成员" }
+                    local roleNames = { vice_leader="鍓洘涓?, strategist="鍐涘笀", vanguard="鍏堥攱瀹?, diplomat="澶栦氦瀹?, elite="绮捐嫳", member="鎴愬憳" }
                     local popW, popItemH = 140, 36
                     local popH = #roleList * popItemH + 40
                     local popX = (W - popW) / 2
                     local popY = (H - popH) / 2
-                    -- 遮罩
+                    -- 閬僵
                     nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
                     nvgFillColor(vg, nvgRGBA(0, 0, 0, 150)); nvgFill(vg)
-                    -- 弹窗背景
+                    -- 寮圭獥鑳屾櫙
                     nvgBeginPath(vg); nvgRoundedRect(vg, popX, popY, popW, popH, 10)
                     nvgFillColor(vg, nvgRGBA(30, 28, 40, 245)); nvgFill(vg)
                     nvgStrokeColor(vg, nvgRGBA(120, 100, 180, 180)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
-                    -- 标题
+                    -- 鏍囬
                     nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(255, 220, 160, 240))
-                    nvgText(vg, popX + popW / 2, popY + 18, "设置职位", nil)
-                    -- 选项
+                    nvgText(vg, popX + popW / 2, popY + 18, "璁剧疆鑱屼綅", nil)
+                    -- 閫夐」
                     for ri, rk in ipairs(roleList) do
                         local iy = popY + 36 + (ri - 1) * popItemH
                         local isCurrent = (rk == rp.currentRole)
@@ -890,13 +890,13 @@ function DrawFactionScreen()
                         nvgText(vg, popX + popW / 2, iy + (popItemH - 4) / 2, roleNames[rk] or rk, nil)
                         menuBtnRects["factionRoleOption_" .. ri] = { x = popX + 8, y = iy, w = popW - 16, h = popItemH - 4, roleKey = rk }
                     end
-                    -- 关闭区域 (点弹窗外关闭)
+                    -- 鍏抽棴鍖哄煙 (鐐瑰脊绐楀鍏抽棴)
                     menuBtnRects.factionRolePopupBg = { x = 0, y = 0, w = W, h = H, isOverlay = true }
                 end
             end
 
         elseif factionUI.tab == "apply" then
-            -- 入队申请 (副盟主以上可见)
+            -- 鍏ラ槦鐢宠 (鍓洘涓讳互涓婂彲瑙?
             if not factionUI.applyLoaded and not factionUI.applyLoading then
                 factionUI.applyLoading = true
                 CloudManager.CheckFactionApplications(function(apps)
@@ -908,7 +908,7 @@ function DrawFactionScreen()
             if factionUI.applyLoading then
                 nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(180, 180, 180, 200))
-                nvgText(vg, cx, bodyTop + 60, "加载申请...", nil)
+                nvgText(vg, cx, bodyTop + 60, "鍔犺浇鐢宠...", nil)
             else
                 local cardH = 56
                 local cardGap = 6
@@ -918,8 +918,8 @@ function DrawFactionScreen()
                     nvgFillColor(vg, nvgRGBA(25, 25, 35, 200)); nvgFill(vg)
                     nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(255, 240, 200, 240))
-                    nvgText(vg, pad + 14, cy + cardH / 2, app.nickname or ("玩家" .. tostring(app.userId)), nil)
-                    -- 同意按钮
+                    nvgText(vg, pad + 14, cy + cardH / 2, app.nickname or ("鐜╁" .. tostring(app.userId)), nil)
+                    -- 鍚屾剰鎸夐挳
                     local btnW, btnH = 56, 32
                     local acceptX = W - pad - btnW * 2 - 10
                     local rejectX = W - pad - btnW
@@ -927,40 +927,40 @@ function DrawFactionScreen()
                     nvgFillColor(vg, nvgRGBA(40, 100, 40, 220)); nvgFill(vg)
                     nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(200, 255, 200, 255))
-                    nvgText(vg, acceptX + btnW / 2, cy + cardH / 2, "同意", nil)
+                    nvgText(vg, acceptX + btnW / 2, cy + cardH / 2, "鍚屾剰", nil)
                     menuBtnRects["factionAccept_" .. ai] = { x = acceptX, y = cy + (cardH - btnH) / 2, w = btnW, h = btnH, userId = app.userId }
-                    -- 拒绝按钮
+                    -- 鎷掔粷鎸夐挳
                     nvgBeginPath(vg); nvgRoundedRect(vg, rejectX, cy + (cardH - btnH) / 2, btnW, btnH, 6)
                     nvgFillColor(vg, nvgRGBA(100, 30, 30, 220)); nvgFill(vg)
                     nvgFillColor(vg, nvgRGBA(255, 200, 200, 255))
-                    nvgText(vg, rejectX + btnW / 2, cy + cardH / 2, "拒绝", nil)
+                    nvgText(vg, rejectX + btnW / 2, cy + cardH / 2, "鎷掔粷", nil)
                     menuBtnRects["factionReject_" .. ai] = { x = rejectX, y = cy + (cardH - btnH) / 2, w = btnW, h = btnH, userId = app.userId }
                 end
                 if #factionUI.applications == 0 then
                     nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(150, 150, 150, 180))
-                    nvgText(vg, cx, bodyTop + 60, "暂无入队申请", nil)
+                    nvgText(vg, cx, bodyTop + 60, "鏆傛棤鍏ラ槦鐢宠", nil)
                 end
             end
 
         elseif factionUI.tab == "chat" then
-            -- ======== 阵营聊天 (云端同步) ========
+            -- ======== 闃佃惀鑱婂ぉ (浜戠鍚屾) ========
             local chatAreaH = H - bodyTop - 70
-            -- 消息区域背景
+            -- 娑堟伅鍖哄煙鑳屾櫙
             nvgBeginPath(vg); nvgRoundedRect(vg, pad, bodyTop, W - pad * 2, chatAreaH, 8)
             nvgFillColor(vg, nvgRGBA(15, 15, 20, 200)); nvgFill(vg)
             nvgStrokeColor(vg, nvgRGBA(60, 55, 50, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
-            -- 首次进入聊天tab立即拉取一次
+            -- 棣栨杩涘叆鑱婂ぉtab绔嬪嵆鎷夊彇涓€娆?
             if not factionUI.chatPolled then
                 factionUI.chatPolled = true
                 CloudManager.PollFactionChat()
             end
 
-            -- 消息列表 (从CloudManager读取)
+            -- 娑堟伅鍒楄〃 (浠嶤loudManager璇诲彇)
             nvgSave(vg)
             nvgScissor(vg, pad, bodyTop, W - pad * 2, chatAreaH)
-            local fcAvS = 28  -- 阵营聊天头像尺寸
+            local fcAvS = 28  -- 闃佃惀鑱婂ぉ澶村儚灏哄
             local msgH = fcAvS + 12
             local msgs = CloudManager.GetFactionChatMessages()
             local visibleCount = math.floor(chatAreaH / msgH)
@@ -970,7 +970,7 @@ function DrawFactionScreen()
             for i = startIdx, #msgs do
                 local msg = msgs[i]
                 local my = bodyTop + (i - startIdx) * msgH + 4
-                -- 头像 (可点击)
+                -- 澶村儚 (鍙偣鍑?
                 local fcAvX = pad + 8
                 local fcAvY = my
                 local fcAvIdx = msg.av or 1
@@ -999,17 +999,17 @@ function DrawFactionScreen()
                         uid = msg.uid, name = msg.name or "???", av = fcAvIdx,
                     }
                 end
-                -- 名字 + 时间
+                -- 鍚嶅瓧 + 鏃堕棿
                 local fcTxtX = fcAvX + fcAvS + 8
                 nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 13)
                 nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
                 nvgFillColor(vg, nvgRGBA(120, 200, 255, 220))
                 nvgText(vg, fcTxtX, my, msg.name or "???", nil)
-                -- 时间
+                -- 鏃堕棿
                 nvgFontSize(vg, 11); nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
                 nvgFillColor(vg, nvgRGBA(120, 120, 120, 150))
                 nvgText(vg, W - pad - 10, my, msg.time or "", nil)
-                -- 内容
+                -- 鍐呭
                 nvgFontSize(vg, 15); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
                 nvgFillColor(vg, nvgRGBA(230, 225, 215, 240))
                 nvgText(vg, fcTxtX, my + 16, msg.text or "", nil)
@@ -1017,11 +1017,11 @@ function DrawFactionScreen()
             if #msgs == 0 then
                 nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(130, 130, 130, 160))
-                nvgText(vg, cx, bodyTop + chatAreaH / 2, "暂无消息，说点什么吧", nil)
+                nvgText(vg, cx, bodyTop + chatAreaH / 2, "鏆傛棤娑堟伅锛岃鐐逛粈涔堝惂", nil)
             end
             nvgRestore(vg)
 
-            -- 阵营聊天玩家信息弹窗（点击头像弹出）
+            -- 闃佃惀鑱婂ぉ鐜╁淇℃伅寮圭獥锛堢偣鍑诲ご鍍忓脊鍑猴級
             if factionUI.chatNamePopup then
                 local pp = factionUI.chatNamePopup
                 local ppW, ppH = 160, 60
@@ -1029,11 +1029,11 @@ function DrawFactionScreen()
                 local ppY = pp.y - 4
                 if ppY + ppH > bodyTop + chatAreaH then ppY = pp.y - ppH - 4 end
                 if ppY < bodyTop then ppY = bodyTop + 4 end
-                -- 弹窗背景
+                -- 寮圭獥鑳屾櫙
                 nvgBeginPath(vg); nvgRoundedRect(vg, ppX, ppY, ppW, ppH, 8)
                 nvgFillColor(vg, nvgRGBA(40, 35, 55, 245)); nvgFill(vg)
                 nvgStrokeColor(vg, nvgRGBA(100, 160, 240, 200)); nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
-                -- 弹窗内头像
+                -- 寮圭獥鍐呭ご鍍?
                 local ppAvS2 = 32
                 local ppAvX2 = ppX + 8
                 local ppAvY2 = ppY + (ppH - ppAvS2) / 2
@@ -1054,33 +1054,33 @@ function DrawFactionScreen()
                     nvgBeginPath(vg); nvgRoundedRect(vg, ppAvX2, ppAvY2, ppAvS2, ppAvS2, 3)
                     nvgFillPaint(vg, pat5); nvgFill(vg)
                 end
-                -- 名字
+                -- 鍚嶅瓧
                 local ppTxtX2 = ppAvX2 + ppAvS2 + 8
                 nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 15)
                 nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(120, 200, 255, 240))
                 nvgText(vg, ppTxtX2, ppY + ppH / 2 - 8, pp.name or "???", nil)
-                -- 添加好友按钮
+                -- 娣诲姞濂藉弸鎸夐挳
                 local addBtnW2, addBtnH2 = 70, 22
                 local addBtnX2 = ppTxtX2
                 local addBtnY2 = ppY + ppH / 2 + 6
                 local isFriend2 = CloudManager.IsFriend(pp.uid)
-                local isMe2 = (rawget(_G, "clientCloud") and pp.uid == clientCloud.userId)
+                local isMe2 = (CloudAPI.IsAvailable() and pp.uid == CloudAPI.GetUserId())
                 if isMe2 then
                     nvgFontSize(vg, 12); nvgFillColor(vg, nvgRGBA(120, 120, 120, 180))
                     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-                    nvgText(vg, addBtnX2, addBtnY2 + addBtnH2 / 2, "（自己）", nil)
+                    nvgText(vg, addBtnX2, addBtnY2 + addBtnH2 / 2, "锛堣嚜宸憋級", nil)
                 elseif isFriend2 then
                     nvgFontSize(vg, 12); nvgFillColor(vg, nvgRGBA(100, 200, 140, 200))
                     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-                    nvgText(vg, addBtnX2, addBtnY2 + addBtnH2 / 2, "已是好友", nil)
+                    nvgText(vg, addBtnX2, addBtnY2 + addBtnH2 / 2, "宸叉槸濂藉弸", nil)
                 else
                     nvgBeginPath(vg); nvgRoundedRect(vg, addBtnX2, addBtnY2, addBtnW2, addBtnH2, 4)
                     nvgFillColor(vg, nvgRGBA(40, 100, 60, 220)); nvgFill(vg)
                     nvgStrokeColor(vg, nvgRGBA(100, 220, 140, 180)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
                     nvgFontSize(vg, 13); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(100, 240, 140, 255))
-                    nvgText(vg, addBtnX2 + addBtnW2 / 2, addBtnY2 + addBtnH2 / 2, "+ 加好友", nil)
+                    nvgText(vg, addBtnX2 + addBtnW2 / 2, addBtnY2 + addBtnH2 / 2, "+ 鍔犲ソ鍙?, nil)
                     menuBtnRects.factionChatAddFriend = { x = addBtnX2, y = addBtnY2, w = addBtnW2, h = addBtnH2, uid = pp.uid, name = pp.name }
                 end
                 menuBtnRects.factionChatPopupArea = { x = ppX, y = ppY, w = ppW, h = ppH }
@@ -1092,11 +1092,11 @@ function DrawFactionScreen()
                 menuBtnRects.factionChatPopupArea = nil
             end
 
-            -- 输入栏
+            -- 杈撳叆鏍?
             local inputY = bodyTop + chatAreaH + 6
             local sendW = 60
             local inputW2 = W - pad * 2 - sendW - 6
-            -- 输入框
+            -- 杈撳叆妗?
             nvgBeginPath(vg); nvgRoundedRect(vg, pad, inputY, inputW2, 40, 6)
             nvgFillColor(vg, nvgRGBA(20, 20, 28, 220)); nvgFill(vg)
             local chatActive = (factionUI.inputTarget == "chat")
@@ -1108,24 +1108,24 @@ function DrawFactionScreen()
                 nvgText(vg, pad + 10, inputY + 20, factionUI.chatInput, nil)
             else
                 nvgFillColor(vg, nvgRGBA(110, 110, 110, 150))
-                nvgText(vg, pad + 10, inputY + 20, "输入消息...", nil)
+                nvgText(vg, pad + 10, inputY + 20, "杈撳叆娑堟伅...", nil)
             end
             menuBtnRects.factionChatInput = { x = pad, y = inputY, w = inputW2, h = 40 }
-            -- 发送按钮
+            -- 鍙戦€佹寜閽?
             local sendX = pad + inputW2 + 6
             nvgBeginPath(vg); nvgRoundedRect(vg, sendX, inputY, sendW, 40, 6)
             nvgFillColor(vg, nvgRGBA(50, 90, 140, 220)); nvgFill(vg)
             nvgStrokeColor(vg, nvgRGBA(100, 160, 240, 160)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
             nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(200, 230, 255, 255))
-            nvgText(vg, sendX + sendW / 2, inputY + 20, "发送", nil)
+            nvgText(vg, sendX + sendW / 2, inputY + 20, "鍙戦€?, nil)
             menuBtnRects.factionChatSend = { x = sendX, y = inputY, w = sendW, h = 40 }
         end
 
     else
-        -- ======== 未加入阵营 ========
-        -- Tab栏: 阵营列表 | 创建阵营
-        local tabs = { { id = "list", label = "阵营列表" }, { id = "create", label = "创建阵营" } }
+        -- ======== 鏈姞鍏ラ樀钀?========
+        -- Tab鏍? 闃佃惀鍒楄〃 | 鍒涘缓闃佃惀
+        local tabs = { { id = "list", label = "闃佃惀鍒楄〃" }, { id = "create", label = "鍒涘缓闃佃惀" } }
         local tabW = (W - pad * 2) / #tabs
         local tabH = 38
         local tabY = contentTop
@@ -1142,11 +1142,11 @@ function DrawFactionScreen()
         end
         local bodyTop = tabY + tabH + 10
 
-        -- 检查申请状态
+        -- 妫€鏌ョ敵璇风姸鎬?
         if factionUI.applyStatus == "pending" then
             nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
             nvgFillColor(vg, nvgRGBA(255, 200, 80, 200))
-            nvgText(vg, cx, bodyTop, "已提交申请，等待审批中...", nil)
+            nvgText(vg, cx, bodyTop, "宸叉彁浜ょ敵璇凤紝绛夊緟瀹℃壒涓?..", nil)
             local refreshW, refreshH = 120, 36
             local refreshX = cx - refreshW / 2
             local refreshY = bodyTop + 28
@@ -1154,13 +1154,13 @@ function DrawFactionScreen()
             nvgFillColor(vg, nvgRGBA(50, 50, 70, 200)); nvgFill(vg)
             nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(200, 200, 220, 255))
-            nvgText(vg, cx, refreshY + refreshH / 2, "刷新状态", nil)
+            nvgText(vg, cx, refreshY + refreshH / 2, "鍒锋柊鐘舵€?, nil)
             menuBtnRects.factionRefreshApply = { x = refreshX, y = refreshY, w = refreshW, h = refreshH }
             bodyTop = refreshY + refreshH + 12
         end
 
         if factionUI.tab == "list" then
-            -- 阵营列表
+            -- 闃佃惀鍒楄〃
             if not factionUI.loaded and not factionUI.loading then
                 factionUI.loading = true
                 CloudManager.ListFactions(function(factions)
@@ -1172,7 +1172,7 @@ function DrawFactionScreen()
             if factionUI.loading then
                 nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(180, 180, 180, 200))
-                nvgText(vg, cx, bodyTop + 80, "加载阵营列表...", nil)
+                nvgText(vg, cx, bodyTop + 80, "鍔犺浇闃佃惀鍒楄〃...", nil)
             else
                 local cardH = 80
                 local cardGap = 8
@@ -1183,15 +1183,15 @@ function DrawFactionScreen()
                     nvgBeginPath(vg); nvgRoundedRect(vg, pad, cy, W - pad * 2, cardH, 10)
                     nvgFillColor(vg, nvgRGBA(25, 20, 15, 210)); nvgFill(vg)
                     nvgStrokeColor(vg, nvgRGBA(100, 75, 40, 130)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-                    -- 阵营名
+                    -- 闃佃惀鍚?
                     nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
                     nvgFillColor(vg, nvgRGBA(255, 220, 120, 240))
                     nvgText(vg, pad + 14, cy + 10, fac.name or "?", nil)
-                    -- 盟主 & 人数
+                    -- 鐩熶富 & 浜烘暟
                     nvgFontSize(vg, 14); nvgFillColor(vg, nvgRGBA(170, 160, 140, 200))
-                    nvgText(vg, pad + 14, cy + 36, "盟主: " .. (fac.leaderNickname or "?"), nil)
-                    nvgText(vg, pad + 14, cy + 56, "成员: " .. tostring(fac.memberCount or 0) .. "/20", nil)
-                    -- 申请按钮 (检查是否已申请)
+                    nvgText(vg, pad + 14, cy + 36, "鐩熶富: " .. (fac.leaderNickname or "?"), nil)
+                    nvgText(vg, pad + 14, cy + 56, "鎴愬憳: " .. tostring(fac.memberCount or 0) .. "/20", nil)
+                    -- 鐢宠鎸夐挳 (妫€鏌ユ槸鍚﹀凡鐢宠)
                     local applyBtnW, applyBtnH = 70, 32
                     local applyBtnX = W - pad - applyBtnW - 10
                     local applyBtnY = cy + (cardH - applyBtnH) / 2
@@ -1203,12 +1203,12 @@ function DrawFactionScreen()
                         nvgStrokeColor(vg, nvgRGBA(80, 80, 70, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
                         nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                         nvgFillColor(vg, nvgRGBA(160, 160, 140, 180))
-                        nvgText(vg, applyBtnX + applyBtnW / 2, applyBtnY + applyBtnH / 2, "已申请", nil)
+                        nvgText(vg, applyBtnX + applyBtnW / 2, applyBtnY + applyBtnH / 2, "宸茬敵璇?, nil)
                     else
                         nvgFillColor(vg, nvgRGBA(60, 90, 40, 220)); nvgFill(vg)
                         nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                         nvgFillColor(vg, nvgRGBA(220, 255, 200, 255))
-                        nvgText(vg, applyBtnX + applyBtnW / 2, applyBtnY + applyBtnH / 2, "申请", nil)
+                        nvgText(vg, applyBtnX + applyBtnW / 2, applyBtnY + applyBtnH / 2, "鐢宠", nil)
                         menuBtnRects["factionApply_" .. fi] = { x = applyBtnX, y = applyBtnY, w = applyBtnW, h = applyBtnH, campId = fac.campId, campName = fac.name }
                     end
                 end
@@ -1216,16 +1216,16 @@ function DrawFactionScreen()
                 if #factionUI.factions == 0 then
                     nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(150, 150, 150, 180))
-                    nvgText(vg, cx, bodyTop + 80, "暂无阵营，来创建第一个吧！", nil)
+                    nvgText(vg, cx, bodyTop + 80, "鏆傛棤闃佃惀锛屾潵鍒涘缓绗竴涓惂锛?, nil)
                 end
             end
 
         elseif factionUI.tab == "create" then
-            -- 创建阵营
+            -- 鍒涘缓闃佃惀
             local formY = bodyTop + 10
             nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(200, 190, 170, 220))
-            nvgText(vg, pad + 8, formY, "阵营名称:", nil)
+            nvgText(vg, pad + 8, formY, "闃佃惀鍚嶇О:", nil)
 
             local inputW = W - pad * 2
             local inputH = 40
@@ -1241,12 +1241,12 @@ function DrawFactionScreen()
                 nvgText(vg, pad + 10, nameInputY + inputH / 2, factionUI.createName, nil)
             else
                 nvgFillColor(vg, nvgRGBA(120, 120, 120, 150))
-                nvgText(vg, pad + 10, nameInputY + inputH / 2, "请输入阵营名称(2-8字)", nil)
+                nvgText(vg, pad + 10, nameInputY + inputH / 2, "璇疯緭鍏ラ樀钀ュ悕绉?2-8瀛?", nil)
             end
             menuBtnRects.factionNameInput = { x = pad, y = nameInputY, w = inputW, h = inputH }
 
             nvgFillColor(vg, nvgRGBA(200, 190, 170, 220))
-            nvgText(vg, pad + 8, nameInputY + inputH + 16, "阵营简介(可选):", nil)
+            nvgText(vg, pad + 8, nameInputY + inputH + 16, "闃佃惀绠€浠?鍙€?:", nil)
             local descInputY = nameInputY + inputH + 40
             nvgBeginPath(vg); nvgRoundedRect(vg, pad, descInputY, inputW, inputH, 6)
             nvgFillColor(vg, nvgRGBA(15, 15, 20, 220)); nvgFill(vg)
@@ -1258,16 +1258,16 @@ function DrawFactionScreen()
                 nvgText(vg, pad + 10, descInputY + inputH / 2, factionUI.createDesc, nil)
             else
                 nvgFillColor(vg, nvgRGBA(120, 120, 120, 150))
-                nvgText(vg, pad + 10, descInputY + inputH / 2, "一句话介绍你的阵营", nil)
+                nvgText(vg, pad + 10, descInputY + inputH / 2, "涓€鍙ヨ瘽浠嬬粛浣犵殑闃佃惀", nil)
             end
             menuBtnRects.factionDescInput = { x = pad, y = descInputY, w = inputW, h = inputH }
 
-            -- 费用提示
+            -- 璐圭敤鎻愮ず
             nvgFontSize(vg, 15); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
             nvgFillColor(vg, nvgRGBA(255, 180, 80, 180))
-            nvgText(vg, cx, descInputY + inputH + 14, "创建消耗 5000 虎符", nil)
+            nvgText(vg, cx, descInputY + inputH + 14, "鍒涘缓娑堣€?5000 铏庣", nil)
 
-            -- 创建按钮
+            -- 鍒涘缓鎸夐挳
             local createW, createH = 180, 46
             local createX = cx - createW / 2
             local createY = descInputY + inputH + 44
@@ -1277,12 +1277,12 @@ function DrawFactionScreen()
             nvgStrokeColor(vg, canCreate and nvgRGBA(255, 180, 60, 180) or nvgRGBA(80, 80, 80, 100)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
             nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, canCreate and nvgRGBA(255, 230, 150, 255) or nvgRGBA(120, 120, 120, 150))
-            nvgText(vg, cx, createY + createH / 2, "创建阵营", nil)
+            nvgText(vg, cx, createY + createH / 2, "鍒涘缓闃佃惀", nil)
             menuBtnRects.factionCreate = { x = createX, y = createY, w = createW, h = createH }
         end
     end
 
-    -- 改名弹窗
+    -- 鏀瑰悕寮圭獥
     if factionUI.renamePopup then
         nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
         nvgFillColor(vg, nvgRGBA(0, 0, 0, 160)); nvgFill(vg)
@@ -1293,10 +1293,10 @@ function DrawFactionScreen()
         nvgStrokeColor(vg, nvgRGBA(200, 150, 60, 160)); nvgStrokeWidth(vg, 2); nvgStroke(vg)
         nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(255, 220, 160, 240))
-        nvgText(vg, cx, rpY + 26, "修改阵营名称", nil)
+        nvgText(vg, cx, rpY + 26, "淇敼闃佃惀鍚嶇О", nil)
         nvgFontSize(vg, 13); nvgFillColor(vg, nvgRGBA(255, 200, 100, 180))
-        nvgText(vg, cx, rpY + 46, "费用: 1000 虎符", nil)
-        -- 输入框
+        nvgText(vg, cx, rpY + 46, "璐圭敤: 1000 铏庣", nil)
+        -- 杈撳叆妗?
         local riX, riY, riW, riH = rpX + 20, rpY + 60, rpW - 40, 36
         nvgBeginPath(vg); nvgRoundedRect(vg, riX, riY, riW, riH, 6)
         nvgFillColor(vg, nvgRGBA(10, 10, 15, 200)); nvgFill(vg)
@@ -1308,26 +1308,26 @@ function DrawFactionScreen()
             nvgText(vg, riX + 10, riY + riH / 2, renameText, nil)
         else
             nvgFillColor(vg, nvgRGBA(120, 110, 90, 150))
-            nvgText(vg, riX + 10, riY + riH / 2, "输入新名称(最多8字)", nil)
+            nvgText(vg, riX + 10, riY + riH / 2, "杈撳叆鏂板悕绉?鏈€澶?瀛?", nil)
         end
         menuBtnRects.factionRenameInput = { x = riX, y = riY, w = riW, h = riH }
-        -- 确认/取消按钮
+        -- 纭/鍙栨秷鎸夐挳
         local rbW, rbH = 100, 36
         local rbY = rpY + rpH - 50
         nvgBeginPath(vg); nvgRoundedRect(vg, cx - rbW - 10, rbY, rbW, rbH, 6)
         nvgFillColor(vg, nvgRGBA(60, 100, 40, 220)); nvgFill(vg)
         nvgFillColor(vg, nvgRGBA(220, 255, 200, 255)); nvgFontSize(vg, 18)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-        nvgText(vg, cx - rbW / 2 - 10, rbY + rbH / 2, "确认", nil)
+        nvgText(vg, cx - rbW / 2 - 10, rbY + rbH / 2, "纭", nil)
         menuBtnRects.factionRenameYes = { x = cx - rbW - 10, y = rbY, w = rbW, h = rbH }
         nvgBeginPath(vg); nvgRoundedRect(vg, cx + 10, rbY, rbW, rbH, 6)
         nvgFillColor(vg, nvgRGBA(80, 30, 30, 220)); nvgFill(vg)
         nvgFillColor(vg, nvgRGBA(255, 200, 200, 255))
-        nvgText(vg, cx + 10 + rbW / 2, rbY + rbH / 2, "取消", nil)
+        nvgText(vg, cx + 10 + rbW / 2, rbY + rbH / 2, "鍙栨秷", nil)
         menuBtnRects.factionRenameNo = { x = cx + 10, y = rbY, w = rbW, h = rbH }
     end
 
-    -- 确认弹窗
+    -- 纭寮圭獥
     if factionUI.confirmPopup then
         local pop = factionUI.confirmPopup
         nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
@@ -1339,26 +1339,27 @@ function DrawFactionScreen()
         nvgStrokeColor(vg, nvgRGBA(200, 150, 60, 160)); nvgStrokeWidth(vg, 2); nvgStroke(vg)
         nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(255, 240, 200, 240))
-        nvgText(vg, cx, popY + 50, pop.msg or "确认操作?", nil)
+        nvgText(vg, cx, popY + 50, pop.msg or "纭鎿嶄綔?", nil)
         local btnW2, btnH2 = 100, 38
         local yBtn = popY + popH - 50
         nvgBeginPath(vg); nvgRoundedRect(vg, cx - btnW2 - 10, yBtn, btnW2, btnH2, 6)
         nvgFillColor(vg, nvgRGBA(60, 100, 40, 220)); nvgFill(vg)
         nvgFillColor(vg, nvgRGBA(220, 255, 200, 255)); nvgFontSize(vg, 18)
-        nvgText(vg, cx - btnW2 / 2 - 10, yBtn + btnH2 / 2, "确认", nil)
+        nvgText(vg, cx - btnW2 / 2 - 10, yBtn + btnH2 / 2, "纭", nil)
         menuBtnRects.factionPopupYes = { x = cx - btnW2 - 10, y = yBtn, w = btnW2, h = btnH2 }
         nvgBeginPath(vg); nvgRoundedRect(vg, cx + 10, yBtn, btnW2, btnH2, 6)
         nvgFillColor(vg, nvgRGBA(80, 30, 30, 220)); nvgFill(vg)
         nvgFillColor(vg, nvgRGBA(255, 200, 200, 255))
-        nvgText(vg, cx + 10 + btnW2 / 2, yBtn + btnH2 / 2, "取消", nil)
+        nvgText(vg, cx + 10 + btnW2 / 2, yBtn + btnH2 / 2, "鍙栨秷", nil)
         menuBtnRects.factionPopupNo = { x = cx + 10, y = yBtn, w = btnW2, h = btnH2 }
     end
 end
 
 
 -- ===========================
--- 好友界面 (完整实现)
+-- 濂藉弸鐣岄潰 (瀹屾暣瀹炵幇)
 -- ===========================
 -- ============================================================================
--- 交易行界面
+-- 浜ゆ槗琛岀晫闈?
 -- ============================================================================
+
