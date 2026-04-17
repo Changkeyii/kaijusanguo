@@ -222,7 +222,7 @@ function InitModuleBattle()
     IMG.flagWu = nvgCreateImage(vg, "image/faction_flag_wu_20260416015845.png", 0)
     IMG.flagQun = nvgCreateImage(vg, "image/faction_flag_qun_20260416015756.png", 0)
     IMG.btnPause = nvgCreateImage(vg, "image/btn_pause_20260416015754.png", 0)
-    IMG.wmBgClean = nvgCreateImage(vg, "image/world_map_bg_clean_20260416015728.png", 0)
+    IMG.wmBgClean = nvgCreateImage(vg, "image/edited_world_map_bg_clean_4k_20260417145520.png", 0)
 
     -- 兵符经验道具图片
     for idx, item in ipairs(SEAL_EXP_ITEMS) do
