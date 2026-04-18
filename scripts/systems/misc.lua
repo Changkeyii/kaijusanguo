@@ -1,5 +1,5 @@
 -- ============================================================================
--- systems/misc.lua - 涓夊浗姝︾伒褰?
+-- systems/misc.lua - 涓夊浗姝︾伒褰?"
 -- ============================================================================
 
 function FilterBannedWords(text)
@@ -13,7 +13,7 @@ function FilterBannedWords(text)
 end
 
 
---- 鑾峰彇褰撳墠鍛ㄦ爣璇?(骞翠唤+绗嚑鍛?
+--- 鑾峰彇褰撳墠鍛ㄦ爣璇?(骞翠唤+绗嚑鍛?"
 function GetWeekKey()
     return os.date("%Y") .. "_W" .. os.date("%W")
 end
@@ -28,7 +28,7 @@ end
 -- ===========================
 -- 闃佃惀瀛愯鍥? 鍗囩骇/鎹愮尞/鍏憡
 -- ===========================
--- 鍔犺浇闃佃惀绛夌骇鎺掕姒?
+-- 鍔犺浇闃佃惀绛夌骇鎺掕姒?"
 --- 浠?camp_leader_ts 鎺掕姒滃姞杞介樀钀ユ帓琛岋紙鎸夌瓑绾ч檷搴忥級
 ---@param target string "factionUI" 鎴?"welfareState"
 function LoadFactionRankFrom(target)
@@ -47,13 +47,13 @@ function LoadFactionRankFrom(target)
         for _, f in ipairs(factions) do
             table.insert(result, {
                 campId = f.campId,
-                name = f.name or "鏈懡鍚?,
+                name = f.name or "鏈懡鍚?",
                 level = f.level or 1,
                 exp = f.exp or 0,
                 memberCount = f.memberCount or 0,
             })
         end
-        -- 鎸夌瓑绾ч檷搴忋€佺粡楠岄檷搴忔帓搴?
+        -- 鎸夌瓑绾ч檷搴忋€佺粡楠岄檷搴忔帓搴?"
         table.sort(result, function(a, b)
             if a.level ~= b.level then return a.level > b.level end
             return a.exp > b.exp

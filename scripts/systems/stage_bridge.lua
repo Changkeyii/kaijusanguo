@@ -1,6 +1,6 @@
 -- ============================================================================
 -- systems/stage_bridge.lua - 浠庡凡鍒犻櫎鐨?stage.lua / gacha.lua 涓彁鍙栫殑鍏辩敤鍑芥暟
--- 杩欎簺鍑芥暟琚垬鏂楃郴缁熴€佹帓浣嶇郴缁熴€佸叺绗︾郴缁熺瓑骞挎硾寮曠敤锛屽繀椤讳繚鐣?
+-- 杩欎簺鍑芥暟琚垬鏂楃郴缁熴€佹帓浣嶇郴缁熴€佸叺绗︾郴缁熺瓑骞挎硾寮曠敤锛屽繀椤讳繚鐣?"
 -- ============================================================================
 
 --- 搴旂敤鎴樻枟甯冨眬: 閲嶈鐭冲彴浣嶇疆 + 鍒囨崲鑳屾櫙
@@ -56,7 +56,7 @@ function ExportBattleLayouts()
 end
 
 
---- 鎾ら攢涓婁竴姝ョ煶鍙版嫋鎷?
+--- 鎾ら攢涓婁竴姝ョ煶鍙版嫋鎷?"
 function UndoSlotEdit()
     if #slotUndoStack == 0 then return false end
     local snap = slotUndoStack[#slotUndoStack]
@@ -204,7 +204,7 @@ end
 -- 婊″懡姝︾伒妫€娴?(鍏电绯荤粺渚濊禆)
 -- ============================================================================
 
---- 妫€鏌ユ槸鍚︽湁鑷冲皯1涓弧鍛芥鐏?
+--- 妫€鏌ユ槸鍚︽湁鑷冲皯1涓弧鍛芥鐏?"
 function HasMaxConstellationHero()
     for idx, hero in pairs(playerHeroes) do
         if hero and (hero.constellation or 0) >= GameConfig.MAX_CONSTELLATION then
@@ -215,7 +215,7 @@ function HasMaxConstellationHero()
 end
 
 
---- 鑾峰彇鎵€鏈夋弧鍛芥鐏靛垪琛?
+--- 鑾峰彇鎵€鏈夋弧鍛芥鐏靛垪琛?"
 function GetMaxConstellationHeroes()
     local list = {}
     if not HERO_CARDS then return list end

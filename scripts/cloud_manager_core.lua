@@ -29,57 +29,57 @@ local KEYS = {
     combat_power  = PREFIX .. "combat_power",
     pub_profile   = PREFIX .. "pub_profile",
     realm_level   = PREFIX .. "realm_level",
-    -- 濂藉弸鍏叡鐢宠姹?(鎺掕姒滄ā鎷熷叕鍏变俊绠?
-    freq_outbox_ts = PREFIX .. "freq_outbox_ts",  -- SetInt: 鏈€鏂扮敵璇锋椂闂存埑 (鎺掕鐢?
+    -- 濂藉弸鍏叡鐢宠姹?(鎺掕姒滄ā鎷熷叕鍏变俊绠?"
+    freq_outbox_ts = PREFIX .. "freq_outbox_ts",  -- SetInt: 鏈€鏂扮敵璇锋椂闂存埑 (鎺掕鐢?"
     freq_outbox    = PREFIX .. "freq_outbox",      -- Set: 鍑虹珯鐢宠鍒楄〃 JSON
     freq_resp_ts   = PREFIX .. "freq_resp_ts",     -- SetInt: 鏈€鏂板洖澶嶆椂闂存埑
     freq_resp      = PREFIX .. "freq_resp",        -- Set: 鍥炲鍒楄〃 JSON
     -- 闃佃惀鍏叡瀛樺偍 (鎺掕姒滄ā鎷熼樀钀ユ€昏〃)
-    camp_leader_ts = PREFIX .. "camp_leader_ts",   -- SetInt: 闃佃惀鍒涘缓鏃堕棿 (鎺掕鐢? 浠呯洘涓?
-    camp_meta      = PREFIX .. "camp_meta",        -- Set: 闃佃惀鍏冩暟鎹?(浠呯洘涓荤淮鎶?
+    camp_leader_ts = PREFIX .. "camp_leader_ts",   -- SetInt: 闃佃惀鍒涘缓鏃堕棿 (鎺掕鐢? 浠呯洘涓?"
+    camp_meta      = PREFIX .. "camp_meta",        -- Set: 闃佃惀鍏冩暟鎹?(浠呯洘涓荤淮鎶?"
     camp_apply_ts  = PREFIX .. "camp_apply_ts",    -- SetInt: 鍏ヨ惀鐢宠鏃堕棿
     camp_apply     = PREFIX .. "camp_apply",       -- Set: 鍏ヨ惀鐢宠 JSON
     camp_resp_ts   = PREFIX .. "camp_resp_ts",     -- SetInt: 鐩熶富瀹℃壒鍥炲鏃堕棿
     camp_resp      = PREFIX .. "camp_resp",        -- Set: 瀹℃壒鍥炲 JSON
     -- 闃佃惀鑱婂ぉ (姣忎汉鍙戝竷鑷繁鐨勬渶杩戞秷鎭? 杞鍚堝苟)
-    camp_chat_ts   = PREFIX .. "camp_chat_ts",      -- SetInt: 鏈€鏂拌亰澶╂椂闂存埑 (鎺掕鐢?
+    camp_chat_ts   = PREFIX .. "camp_chat_ts",      -- SetInt: 鏈€鏂拌亰澶╂椂闂存埑 (鎺掕鐢?"
     camp_chat      = PREFIX .. "camp_chat",          -- Set: 鏈€杩戞秷鎭垪琛?JSON [{text,time,ts}]
-    world_chat_ts  = PREFIX .. "world_chat_ts",      -- SetInt: 涓栫晫鑱婂ぉ鏃堕棿鎴?(鎺掕鐢?
+    world_chat_ts  = PREFIX .. "world_chat_ts",      -- SetInt: 涓栫晫鑱婂ぉ鏃堕棿鎴?(鎺掕鐢?"
     world_chat     = PREFIX .. "world_chat",          -- Set: 涓栫晫鑱婂ぉ娑堟伅鍒楄〃
-    -- 灏佺绯荤粺 (寮€鍙戣€呴€氳繃鎺掕姒滃彂甯冨皝绂佸悕鍗?
+    -- 灏佺绯荤粺 (寮€鍙戣€呴€氳繃鎺掕姒滃彂甯冨皝绂佸悕鍗?"
     ban_ts        = PREFIX .. "ban_ts",            -- SetInt: 灏佺鍙戝竷鏃堕棿
     ban_data      = PREFIX .. "ban_data",           -- Set: 灏佺鍚嶅崟 JSON
     -- 瀛樻。鏍￠獙
-    save_hash     = PREFIX .. "save_hash",          -- Set: 瀛樻。鍝堝笇鏍￠獙鍊?
-    -- 鍏煎鏃у瓨妗?
+    save_hash     = PREFIX .. "save_hash",          -- Set: 瀛樻。鍝堝笇鏍￠獙鍊?"
+    -- 鍏煎鏃у瓨妗?"
     legacy_save   = PREFIX .. "savegame",
     -- 鐜╁閭欢 (鍏叡淇＄妯″紡)
-    mail_ts       = PREFIX .. "mail_ts",           -- SetInt: 鏈€鏂板彂浠舵椂闂存埑 (鎺掕鐢?
+    mail_ts       = PREFIX .. "mail_ts",           -- SetInt: 鏈€鏂板彂浠舵椂闂存埑 (鎺掕鐢?"
     mail_outbox   = PREFIX .. "mail_outbox",       -- Set: 鍙戜欢绠?JSON [{to,subject,body,rewards,time,id}]
 }
 
 local MAX_FRIENDS = 50
-local REQUEST_EXPIRE_SECONDS = 7 * 86400  -- 鐢宠7澶╄繃鏈?
+local REQUEST_EXPIRE_SECONDS = 7 * 86400  -- 鐢宠7澶╄繃鏈?"
 local MAX_OUTBOX = 20       -- 姣忎汉鏈€澶?0鏉″緟澶勭悊鍑虹珯鐢宠
 local MAX_CAMP_MEMBERS = 20 -- 闃佃惀鏈€澶т汉鏁帮紙1绾ч樀钀ヤ笂闄愶級
-local CAMP_CREATE_COST = 5000 -- 鍒涘缓闃佃惀娑堣€楄檸绗?
+local CAMP_CREATE_COST = 5000 -- 鍒涘缓闃佃惀娑堣€楄檸绗?"
 local SAVE_VERSION = 2  -- 瀛樻。鐗堟湰 (1=鏃у崟key, 2=鏂板domain)
 
 -- ============================================================================
--- 闃佃惀鑱屼綅浣撶郴 (浠跨巼鍦熶箣婊ㄥ悓鐩?
+-- 闃佃惀鑱屼綅浣撶郴 (浠跨巼鍦熶箣婊ㄥ悓鐩?"
 -- 缁ф壙閾? leader 鈫?vice_leader 鈫?strategist 鈫?vanguard 鈫?diplomat 鈫?elite 鈫?member
 -- ============================================================================
 local FACTION_ROLES = {
     leader      = { level = 6, name = "鐩熶富",   max = 1  },
-    vice_leader = { level = 5, name = "鍓洘涓?, max = 2  },
+    vice_leader = { level = 5, name = "鍓洘涓?", max = 2  },
     strategist  = { level = 4, name = "鍐涘笀",   max = 4  },
-    vanguard    = { level = 3, name = "鍏堥攱瀹?, max = 4  },
-    diplomat    = { level = 2, name = "澶栦氦瀹?, max = 2  },
+    vanguard    = { level = 3, name = "鍏堥攱瀹?", max = 4  },
+    diplomat    = { level = 2, name = "澶栦氦瀹?", max = 2  },
     elite       = { level = 1, name = "绮捐嫳",   max = -1 }, -- 涓嶉檺
     member      = { level = 0, name = "鎴愬憳",   max = -1 }, -- 涓嶉檺
 }
 
--- 鎸夌瓑绾ч檷搴忔帓鍒楃殑瑙掕壊鍒楄〃 (鐢ㄤ簬缁ф壙閾鹃亶鍘?
+-- 鎸夌瓑绾ч檷搴忔帓鍒楃殑瑙掕壊鍒楄〃 (鐢ㄤ簬缁ф壙閾鹃亶鍘?"
 local ROLE_SUCCESSION = { "vice_leader", "strategist", "vanguard", "diplomat", "elite", "member" }
 
 --- 鑾峰彇瑙掕壊绛夌骇 (鏁板瓧瓒婂ぇ鏉冮檺瓒婇珮)
@@ -88,13 +88,13 @@ local function _getRoleLevel(role)
     return def and def.level or 0
 end
 
---- 鑾峰彇瑙掕壊涓枃鍚?
+--- 鑾峰彇瑙掕壊涓枃鍚?"
 local function _getRoleName(role)
     local def = FACTION_ROLES[role or "member"]
     return def and def.name or "鎴愬憳"
 end
 
---- 妫€鏌ユ搷浣滆€呮槸鍚︽湁鏉冨鐩爣鎵ц鎿嶄綔 (鎿嶄綔鑰呯瓑绾у繀椤婚珮浜庣洰鏍?
+--- 妫€鏌ユ搷浣滆€呮槸鍚︽湁鏉冨鐩爣鎵ц鎿嶄綔 (鎿嶄綔鑰呯瓑绾у繀椤婚珮浜庣洰鏍?"
 local function _hasAuthorityOver(operatorRole, targetRole)
     return _getRoleLevel(operatorRole) > _getRoleLevel(targetRole)
 end
@@ -109,18 +109,18 @@ local function _countRole(roles, roleName)
 end
 
 -- 灏佺绯荤粺甯搁噺
-local BAN_LEVEL_NONE    = 0  -- 鏃犲皝绂?
+local BAN_LEVEL_NONE    = 0  -- 鏃犲皝绂?"
 local BAN_LEVEL_SOCIAL  = 1  -- 绀句氦灏佺(鏃犳硶濂藉弸/闃佃惀)
 local BAN_LEVEL_CORE    = 2  -- 鏍稿績灏佺(鏃犳硶鎺掕/绔炴妧/鎶藉崱)
 local BAN_LEVEL_FULL    = 3  -- 鍏ㄥ皝绂?鍙兘鐪嬩笉鑳界帺)
 
--- 棰戠巼闄愬埗甯搁噺 (绉?
+-- 棰戠巼闄愬埗甯搁噺 (绉?"
 local COOLDOWN_FRIEND_REQUEST  = 30   -- 濂藉弸鐢宠闂撮殧
 local COOLDOWN_PROFILE_PUBLISH = 300  -- 妗ｆ鍙戝竷闂撮殧(5鍒嗛挓)
 local COOLDOWN_SAVE_ALL        = 10   -- 鍏ㄩ噺淇濆瓨闂撮殧
 local COOLDOWN_REJECTED_RETRY  = 86400 -- 琚嫆缁濆悗閲嶆柊鐢宠鍐峰嵈(24灏忔椂)
 
--- 鍝堝笇鏍￠獙瀵嗛挜 (娣锋穯鐢? 闈炲姞瀵嗗畨鍏?
+-- 鍝堝笇鏍￠獙瀵嗛挜 (娣锋穯鐢? 闈炲姞瀵嗗畨鍏?"
 local HASH_SEED = 37829
 local HASH_SECRET = 0x5F3759DF
 
@@ -136,36 +136,36 @@ S.retryTimer = 0
 S.retryData = nil
 S.lastSyncTime = 0
 
-S.banLevel = BAN_LEVEL_NONE      -- 褰撳墠鐜╁鐨勫皝绂佺瓑绾?
+S.banLevel = BAN_LEVEL_NONE      -- 褰撳墠鐜╁鐨勫皝绂佺瓑绾?"
 S.banReason = ""                 -- 灏佺鍘熷洜
-S.banChecked = false             -- 鏄惁宸插畬鎴愬皝绂佹鏌?
+S.banChecked = false             -- 鏄惁宸插畬鎴愬皝绂佹鏌?"
 
 S.cooldownTimestamps = {}        -- 棰戠巼闄愬埗: 鍚勬搷浣滄渶鍚庢墽琛屾椂闂存埑
 S.rejectedByCache = {}           -- 琚嫆缁濊褰? { [targetUid] = rejectTime }
 
-S.cloudLoadPending = false       -- 浜戠鍔犺浇涓爣蹇?
-S.pendingSaveCallback = nil      -- 浜戠鍔犺浇鏈熼棿绉敀鐨勪繚瀛樿姹?
+S.cloudLoadPending = false       -- 浜戠鍔犺浇涓爣蹇?"
+S.pendingSaveCallback = nil      -- 浜戠鍔犺浇鏈熼棿绉敀鐨勪繚瀛樿姹?"
 
 -- ============================================================================
--- 鍒濆鍖?
+-- 鍒濆鍖?"
 -- ============================================================================
 
 ---@param opts? { prefix?: string, onBanned?: fun(level: number, reason: string) }
 function CloudManager.Init(opts)
     if opts and opts.prefix then
-        -- 鍏佽瑕嗙洊鍓嶇紑(娴嬭瘯鐢?
+        -- 鍏佽瑕嗙洊鍓嶇紑(娴嬭瘯鐢?"
     end
     S.initialized = true
     print("[CloudManager] 鍒濆鍖栧畬鎴? prefix=" .. PREFIX)
 
-    -- 鍚姩鏃跺厛妫€鏌ュ皝绂佺姸鎬?(灏佺妫€鏌ヤ紭鍏堜簬涓€鍒?
+    -- 鍚姩鏃跺厛妫€鏌ュ皝绂佺姸鎬?(灏佺妫€鏌ヤ紭鍏堜簬涓€鍒?"
     CloudManager.CheckBanStatus(function(level, reason)
         if level >= BAN_LEVEL_FULL then
             print("[CloudManager] 鐜╁琚叏灏佺: " .. tostring(reason))
             if opts and opts.onBanned then
                 opts.onBanned(level, reason)
             end
-            return -- 鍏ㄥ皝绂? 涓嶅姞杞戒换浣曟暟鎹?
+            return -- 鍏ㄥ皝绂? 涓嶅姞杞戒换浣曟暟鎹?"
         end
         if level >= BAN_LEVEL_SOCIAL then
             print("[CloudManager] 鐜╁琚ぞ浜ゅ皝绂? " .. tostring(reason))
@@ -252,7 +252,7 @@ function CloudManager.CollectDomainData(domain)
         }
 
     elseif domain == "welfare" then
-        -- nil 淇濇姢: 杩欎簺鍏ㄥ眬鍙橀噺鍙兘鍦ㄩ娆＄櫥褰曟椂灏氭湭鍒濆鍖?
+        -- nil 淇濇姢: 杩欎簺鍏ㄥ眬鍙橀噺鍙兘鍦ㄩ娆＄櫥褰曟椂灏氭湭鍒濆鍖?"
         local ws = rawget(_G, "welfareState") or {}
         local sw = ws.spinWheel or {}
         local cf = ws.cardFlip or {}
@@ -347,7 +347,7 @@ function CloudManager.CollectDomainData(domain)
         local wm = rawget(_G, "WorldMap")
         local wms = rawget(_G, "worldMapState")
         if wm and wms and wms.inited then
-            -- 鏀堕泦鍩庢睜杩愯鏃舵暟鎹?
+            -- 鏀堕泦鍩庢睜杩愯鏃舵暟鎹?"
             local citySave = {}
             for _, c in ipairs(WORLD_CITIES) do
                 local cd = wms.cityData[c.id]
@@ -397,9 +397,9 @@ end
 
 --- 鍏ㄩ噺淇濆瓨: 鏈湴JSON + 浜戠澶歞omain BatchSet
 ---@param callback? fun(success: boolean, msg: string)
----@param forceBypass? boolean 璺宠繃棰戠巼闄愬埗(鍐呴儴鐢?
+---@param forceBypass? boolean 璺宠繃棰戠巼闄愬埗(鍐呴儴鐢?"
 function CloudManager.SaveAll(callback, forceBypass)
-    -- 灏佺妫€鏌? 鍏ㄥ皝绂佺姝繚瀛?
+    -- 灏佺妫€鏌? 鍏ㄥ皝绂佺姝繚瀛?"
     if S.banLevel >= BAN_LEVEL_FULL then
         if callback then callback(false, "璐﹀彿宸茶灏佺, 鏃犳硶淇濆瓨") end
         return
@@ -419,7 +419,7 @@ function CloudManager.SaveAll(callback, forceBypass)
         return
     end
 
-    -- 棰戠巼闄愬埗: 闃叉楂橀淇濆瓨 (浣嗘湰鍦版枃浠朵粛鐒朵繚瀛?
+    -- 棰戠巼闄愬埗: 闃叉楂橀淇濆瓨 (浣嗘湰鍦版枃浠朵粛鐒朵繚瀛?"
     if not forceBypass and not CloudManager._checkCooldown("save_all", COOLDOWN_SAVE_ALL) then
         -- 鍗充娇琚喎鍗撮樆鏂? 浠嶇劧淇濆瓨鏈湴鏂囦欢 (闃叉宕╂簝涓㈠け鏁版嵁)
         CloudManager._sanitizeResources()
@@ -428,11 +428,11 @@ function CloudManager.SaveAll(callback, forceBypass)
             allData[name] = CloudManager.CollectDomainData(name)
         end
         CloudManager._saveLocalJSON(allData)
-        if callback then callback(false, "淇濆瓨杩囦簬棰戠箒, 浠呮湰鍦颁繚瀛?) end
+        if callback then callback(false, "淇濆瓨杩囦簬棰戠箒, 浠呮湰鍦颁繚瀛?") end
         return
     end
 
-    -- 0. 璐熷€奸槻鎶? 鍏抽敭璧勬簮涓嶅厑璁镐负璐?
+    -- 0. 璐熷€奸槻鎶? 鍏抽敭璧勬簮涓嶅厑璁镐负璐?"
     CloudManager._sanitizeResources()
 
     -- 1. 鏀堕泦鎵€鏈?domain 鏁版嵁
@@ -441,7 +441,7 @@ function CloudManager.SaveAll(callback, forceBypass)
         allData[name] = CloudManager.CollectDomainData(name)
     end
 
-    -- 2. 淇濆瓨鏈湴JSON (淇濈暀瀹屾暣鍗曟枃浠跺厹搴?
+    -- 2. 淇濆瓨鏈湴JSON (淇濈暀瀹屾暣鍗曟枃浠跺厹搴?"
     CloudManager._saveLocalJSON(allData)
 
     -- 3. 浜戠 BatchSet (澶歞omain + 鍏紑妗ｆ)
@@ -450,7 +450,7 @@ function CloudManager.SaveAll(callback, forceBypass)
         return
     end
 
-    -- 瀹夊叏妫€鏌? 闃叉绌烘暟鎹鐩栨湁鏁堝瓨妗?
+    -- 瀹夊叏妫€鏌? 闃叉绌烘暟鎹鐩栨湁鏁堝瓨妗?"
     local coreData = allData.core
     if coreData and coreData.playerInfo then
         local pi = coreData.playerInfo
@@ -473,7 +473,7 @@ function CloudManager.SaveAll(callback, forceBypass)
     local legacyData = CloudManager._buildLegacyData(allData)
     batch:Set(KEYS.legacy_save, legacyData)
 
-    -- 璁＄畻骞朵繚瀛樺瓨妗ｅ搱甯?
+    -- 璁＄畻骞朵繚瀛樺瓨妗ｅ搱甯?"
     local hash = CloudManager._computeSaveHash(allData)
     batch:Set(KEYS.save_hash, { hash = hash, time = os.time() })
 
@@ -495,7 +495,7 @@ function CloudManager.SaveAll(callback, forceBypass)
         end,
     })
 
-    -- 4. 鍙戝竷鍏紑妗ｆ (寮傛锛屼笉闃诲淇濆瓨, 鏈夐鐜囬檺鍒?
+    -- 4. 鍙戝竷鍏紑妗ｆ (寮傛锛屼笉闃诲淇濆瓨, 鏈夐鐜囬檺鍒?"
     CloudManager._publishProfile(allData)
 end
 
@@ -535,7 +535,7 @@ end
 -- 鍏ㄩ噺鍔犺浇 (鏈湴浼樺厛 + 浜戠瀵规瘮)
 -- ============================================================================
 
---- 鍏ㄩ噺鍔犺浇: 鍏堝姞杞芥湰鍦?-> 鍐嶅姣斾簯绔彇鏇存柊鐨?
+--- 鍏ㄩ噺鍔犺浇: 鍏堝姞杞芥湰鍦?-> 鍐嶅姣斾簯绔彇鏇存柊鐨?"
 ---@param callback? fun(source: string) "local" | "cloud" | "none"
 function CloudManager.LoadAll(callback)
     -- 1. 鍔犺浇鏈湴
@@ -543,7 +543,7 @@ function CloudManager.LoadAll(callback)
     local localVersion = nil
 
     if localData then
-        -- 鍒ゆ柇鏄棫鏍煎紡杩樻槸鏂版牸寮?
+        -- 鍒ゆ柇鏄棫鏍煎紡杩樻槸鏂版牸寮?"
         if localData._multiDomain then
             -- 鏂版牸寮? 鎸塪omain鎭㈠
             localVersion = "multi"
@@ -557,7 +557,7 @@ function CloudManager.LoadAll(callback)
         end
         print("[CloudManager] 鏈湴瀛樻。宸插姞杞? format=" .. localVersion)
     else
-        print("[CloudManager] 鏈湴鏃犲瓨妗?)
+        print("[CloudManager] 鏈湴鏃犲瓨妗?")
     end
 
     -- 2. 浜戠瀵规瘮
@@ -569,7 +569,7 @@ function CloudManager.LoadAll(callback)
     -- 璁剧疆浜戠鍔犺浇涓爣蹇? 闃叉 SaveAll 鍦ㄦ鏈熼棿瑕嗙洊浜戠鏁版嵁
     S.cloudLoadPending = true
     S.pendingSaveCallback = nil
-    print("[CloudManager] 寮€濮嬩簯绔姞杞? 宸查攣瀹氫簯绔啓鍏?)
+    print("[CloudManager] 寮€濮嬩簯绔姞杞? 宸查攣瀹氫簯绔啓鍏?")
 
     -- BatchGet 鎵€鏈?domain + 鏃ф牸寮弅ey + 鍝堝笇鏍￠獙
     local batchGet = CloudAPI:BatchGet()
@@ -581,14 +581,14 @@ function CloudManager.LoadAll(callback)
 
     batchGet:Fetch({
         ok = function(values, iscores)
-            -- 妫€鏌ヤ簯绔槸鍚︽湁鏂版牸寮忔暟鎹?
+            -- 妫€鏌ヤ簯绔槸鍚︽湁鏂版牸寮忔暟鎹?"
             local cloudHasMulti = values[DOMAINS.core] ~= nil
             local cloudHasLegacy = values[KEYS.legacy_save] ~= nil
 
             if not cloudHasMulti and not cloudHasLegacy then
                 -- 浜戠鏃犲瓨妗? 涓婁紶鏈湴
                 S.cloudLoadPending = false
-                print("[CloudManager] 浜戠鍔犺浇瀹屾垚(鏃犱簯绔瓨妗?, 宸茶В閿佷簯绔啓鍏?)
+                print("[CloudManager] 云端加载完成(无云端存档)，已解锁云端写入")
                 if localData then
                     print("[CloudManager] 浜戠鏃犲瓨妗? 涓婁紶鏈湴")
                     CloudManager.SaveAll()
@@ -597,7 +597,7 @@ function CloudManager.LoadAll(callback)
                 return
             end
 
-            -- 鑾峰彇浜戠鏃堕棿鎴?
+            -- 鑾峰彇浜戠鏃堕棿鎴?"
             local cloudTime = 0
             if cloudHasMulti then
                 local coreData = values[DOMAINS.core]
@@ -607,7 +607,7 @@ function CloudManager.LoadAll(callback)
                 cloudTime = (legData and legData.savedAt) or 0
             end
 
-            -- 鑾峰彇鏈湴鏃堕棿鎴?
+            -- 鑾峰彇鏈湴鏃堕棿鎴?"
             local localTime = 0
             if localData then
                 if localVersion == "multi" and localData.domains and localData.domains.core then
@@ -618,7 +618,7 @@ function CloudManager.LoadAll(callback)
             end
 
             -- 瀵规瘮鍐崇瓥
-            -- 鍏抽敭鏁版嵁璇婃柇: 鍦ㄥ喅绛栧墠璁板綍鏈湴鍜屼簯绔殑鍏电/铏庣鍊?
+            -- 鍏抽敭鏁版嵁璇婃柇: 鍦ㄥ喅绛栧墠璁板綍鏈湴鍜屼簯绔殑鍏电/铏庣鍊?"
             local localJade = rawget(_G, "playerInfo") and playerInfo.jade or -1
             local localSealCount = 0
             if rawget(_G, "sealData") then
@@ -642,7 +642,7 @@ function CloudManager.LoadAll(callback)
             elseif cloudTime > 0 and localTime > 0 then
                 useCloud = cloudTime > localTime
                 print(string.format("[CloudManager] 鏈湴time=%d vs 浜戠time=%d -> %s",
-                    localTime, cloudTime, useCloud and "鐢ㄤ簯绔? or "鐢ㄦ湰鍦?))
+                    localTime, cloudTime, useCloud and "鐢ㄤ簯绔?" or "鐢ㄦ湰鍦?"))
             end
 
             if useCloud then
@@ -652,27 +652,27 @@ function CloudManager.LoadAll(callback)
                     for name, key in pairs(DOMAINS) do
                         cloudDomains[name] = values[key]
                     end
-                    -- 鍝堝笇鏍￠獙: 楠岃瘉浜戠瀛樻。瀹屾暣鎬?
+                    -- 鍝堝笇鏍￠獙: 楠岃瘉浜戠瀛樻。瀹屾暣鎬?"
                     local storedHashData = values[KEYS.save_hash]
                     if storedHashData and storedHashData.hash then
                         local recalcHash = CloudManager._computeSaveHash(cloudDomains)
                         if recalcHash ~= storedHashData.hash then
                             print("[CloudManager] 浜戠瀛樻。鍝堝笇鏍￠獙澶辫触! stored="
                                 .. tostring(storedHashData.hash) .. " calc=" .. tostring(recalcHash))
-                            -- 瀛樻。鍙兘琚鏀? 浠嶇劧鍔犺浇浣嗘爣璁拌鍛?
+                            -- 瀛樻。鍙兘琚鏀? 浠嶇劧鍔犺浇浣嗘爣璁拌鍛?"
                             CloudManager._hashMismatch = true
                         else
                             CloudManager._hashMismatch = false
                         end
                     end
                     CloudManager._applyMultiDomain({ domains = cloudDomains })
-                    -- 璐熷€奸槻鎶?
+                    -- 璐熷€奸槻鎶?"
                     CloudManager._sanitizeResources()
-                    -- 淇濆瓨鍒版湰鍦?
+                    -- 淇濆瓨鍒版湰鍦?"
                     CloudManager._saveLocalJSON(nil)
                     print("[CloudManager] 宸插簲鐢ㄤ簯绔domain瀛樻。")
                 else
-                    -- 鏃ф牸寮?
+                    -- 鏃ф牸寮?"
                     local legData = values[KEYS.legacy_save]
                     if rawget(_G, "ApplySaveData") then
                         ApplySaveData(legData)
@@ -682,14 +682,14 @@ function CloudManager.LoadAll(callback)
                 end
                 if callback then callback("cloud") end
             else
-                -- 鏈湴鏇存柊, 鍚屾鍒颁簯绔?
+                -- 鏈湴鏇存柊, 鍚屾鍒颁簯绔?"
                 CloudManager.SaveAll()
                 if callback then callback("local") end
             end
 
             -- 瑙ｉ攣浜戠鍐欏叆
             S.cloudLoadPending = false
-            print("[CloudManager] 浜戠鍔犺浇瀹屾垚, 宸茶В閿佷簯绔啓鍏?)
+            print("[CloudManager] 浜戠鍔犺浇瀹屾垚, 宸茶В閿佷簯绔啓鍏?")
 
             -- 濡傛灉鍔犺浇鏈熼棿鏈夊欢杩熺殑淇濆瓨璇锋眰, 鐜板湪鎵ц涓€娆″畬鏁?SaveAll
             if S.pendingSaveCallback then
@@ -699,14 +699,14 @@ function CloudManager.LoadAll(callback)
                 CloudManager.SaveAll(cb, true) -- forceBypass=true 璺宠繃鍐峰嵈
             end
 
-            -- 濂藉弸/闃佃惀淇＄: 鎷夊彇鍑虹珯鏁版嵁 (鐢宠姹犳ā寮?
+            -- 濂藉弸/闃佃惀淇＄: 鎷夊彇鍑虹珯鏁版嵁 (鐢宠姹犳ā寮?"
             CloudManager._loadMyOutbox()
         end,
         error = function(code, reason)
             print("[CloudManager] 浜戠鍔犺浇澶辫触: " .. tostring(reason))
-            -- 瑙ｉ攣浜戠鍐欏叆 (鍗充娇澶辫触涔熻瑙ｉ攣, 鍚﹀垯姘歌繙鏃犳硶淇濆瓨鍒颁簯绔?
+            -- 瑙ｉ攣浜戠鍐欏叆 (鍗充娇澶辫触涔熻瑙ｉ攣, 鍚﹀垯姘歌繙鏃犳硶淇濆瓨鍒颁簯绔?"
             S.cloudLoadPending = false
-            print("[CloudManager] 浜戠鍔犺浇澶辫触, 宸茶В閿佷簯绔啓鍏?)
+            print("[CloudManager] 浜戠鍔犺浇澶辫触, 宸茶В閿佷簯绔啓鍏?")
             -- 鎵ц寤惰繜淇濆瓨
             if S.pendingSaveCallback then
                 local cb = S.pendingSaveCallback

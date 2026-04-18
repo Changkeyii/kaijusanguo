@@ -1028,9 +1028,9 @@ function DrawProfileScreen()
         local now = time:GetElapsedTime()
         if not _fontRetryTime or (now - _fontRetryTime) >= 1.0 then
             _fontRetryTime = now
-            fontId = nvgCreateFont(vg, "sans", "Fonts/MiSans-Regular.ttf")
+            fontId = nvgCreateFont(vg, "sans", "Fonts/LXGWWenKai-Regular.ttf")
             if fontId >= 0 then
-                nvgCreateFont(vg, "emoji", "Fonts/MiSans-Regular.ttf")
+                nvgCreateFont(vg, "emoji", "Fonts/LXGWWenKai-Regular.ttf")
                 if fontArt < 0 then
                     fontArt = nvgCreateFont(vg, "art", "Fonts/ZhiMangXing-Regular.ttf")
                     if fontArt >= 0 then nvgAddFallbackFontId(vg, fontArt, fontId) end

@@ -1,12 +1,12 @@
 -- ============================================================================
--- TradeManager - 浜ゆ槗琛岀郴缁?(鍗曚竴鍏叡甯傚満琛ㄦ灦鏋?
--- 鍩轰簬 CloudAPI 鎺掕姒?API 瀹炵幇璺ㄧ帺瀹惰澶囦氦鏄?
+-- TradeManager - 浜ゆ槗琛岀郴缁?(鍗曚竴鍏叡甯傚満琛ㄦ灦鏋?"
+-- 鍩轰簬 CloudAPI 鎺掕姒?API 瀹炵幇璺ㄧ帺瀹惰澶囦氦鏄?"
 --
 -- 鏋舵瀯璇存槑:
---   浣跨敤鍚屼竴涓?rank list (trade_ts / trade_data) 浣滀负"鍏叡甯傚満琛?
+--   浣跨敤鍚屼竴涓?rank list (trade_ts / trade_data) 浣滀负"鍏叡甯傚満琛?"
 --   姣忎釜玩家鐨?slot 鍖呭惈: listings(涓婃灦) + purchases(璐拱璁板綍)
---   涔板璐拱鍚?鈫?鍐欏叆鑷繁 slot 鐨?purchases 鈫?鍗栧鎵弿鍏叡琛ㄥ嵆鍙彂鐜?
---   鍗栧棰嗗彇鍚?鈫?鍒犻櫎 listing + 娓呯悊鍏叡琛?
+--   涔板璐拱鍚?鈫?鍐欏叆鑷繁 slot 鐨?purchases 鈫?鍗栧鎵弿鍏叡琛ㄥ嵆鍙彂鐜?"
+--   鍗栧棰嗗彇鍚?鈫?鍒犻櫎 listing + 娓呯悊鍏叡琛?"
 -- ============================================================================
 ---@diagnostic disable: undefined-global
 
@@ -16,16 +16,16 @@ local GameConfig = require("game_config")
 local TRADE = GameConfig.TRADE
 
 -- ============================================================================
--- 浜戠 Key 瀹氫箟 (鍗曚竴鍏叡甯傚満琛?
+-- 浜戠 Key 瀹氫箟 (鍗曚竴鍏叡甯傚満琛?"
 -- ============================================================================
 local PREFIX = "p_49dd_"
 local KEYS = {
-    trade_ts   = PREFIX .. "trade_ts",    -- SetInt: 鏇存柊鏃堕棿鎴?鎺掑簭鐢?
+    trade_ts   = PREFIX .. "trade_ts",    -- SetInt: 鏇存柊鏃堕棿鎴?鎺掑簭鐢?"
     trade_data = PREFIX .. "trade_data",  -- Set: { listings, purchases, pendingJade, soldCount }
 }
 
 -- ============================================================================
--- 鏈湴鐘舵€?
+-- 鏈湴鐘舵€?"
 -- ============================================================================
 local state = {
     inited = false,
@@ -33,11 +33,11 @@ local state = {
     myData = {
         listings = {},      -- 鍦ㄥ敭瑁呭: { [listingKey] = { equip, price, listTime, sellerName } }
         purchases = {},     -- 鎴戠殑璐拱璁板綍(閫氱煡鍗栧): { [listingKey] = { sellerId, price, buyTime, buyerName } }
-        pendingJade = 0,    -- 寰呴鍙栬檸绗?
+        pendingJade = 0,    -- 寰呴鍙栬檸绗?"
         soldCount = 0,      -- 绱鍞嚭
     },
-    -- 鍏煎鏃х増: myPurchases 鎸囧悜 myData.purchases (UI 杩囨护鐢?
-    myPurchases = nil,      -- 浼氬湪 Init 涓缃负 myData.purchases 鐨勫紩鐢?
+    -- 鍏煎鏃х増: myPurchases 鎸囧悜 myData.purchases (UI 杩囨护鐢?"
+    myPurchases = nil,      -- 浼氬湪 Init 涓缃负 myData.purchases 鐨勫紩鐢?"
     -- 鏁版嵁鏄惁闇€瑕侀噸鏂颁笂浼?(涓婁紶澶辫触/鍚姩鏃跺緟鍚屾)
     dataNeedUpload = false,
     -- 甯傚満缂撳瓨
@@ -53,13 +53,13 @@ local state = {
 TradeManager.state = state
 
 -- ============================================================================
--- 鍒濆鍖?
+-- 鍒濆鍖?"
 -- ============================================================================
 function TradeManager.Init()
     if state.inited then return end
     state.inited = true
 
-    -- 浠庢湰鍦板瓨妗ｆ仮澶嶄氦鏄撴暟鎹?
+    -- 浠庢湰鍦板瓨妗ｆ仮澶嶄氦鏄撴暟鎹?"
     if playerInfo and playerInfo.tradeData then
         state.myData = playerInfo.tradeData
         if not state.myData.listings then state.myData.listings = {} end
@@ -75,8 +75,8 @@ function TradeManager.Init()
                 state.myData.purchases[lk] = purchase
             end
         end
-        playerInfo.tradePurchases = nil  -- 娓呴櫎鏃у瓧娈?
-        state.dataNeedUpload = true      -- 闇€瑕侀噸鏂颁笂浼犲悎骞跺悗鐨勬暟鎹?
+        playerInfo.tradePurchases = nil  -- 娓呴櫎鏃у瓧娈?"
+        state.dataNeedUpload = true      -- 闇€瑕侀噸鏂颁笂浼犲悎骞跺悗鐨勬暟鎹?"
     end
 
     if playerInfo and playerInfo.tradeProcessed then
@@ -90,23 +90,23 @@ function TradeManager.Init()
     TradeManager._cleanupOldData()
 
     print("[TradeManager] 鍒濆鍖栧畬鎴? 鍦ㄥ敭" .. TradeManager.GetListingCount() ..
-          "浠? 璐拱璁板綍" .. TradeManager._countPurchases() .. "鏉?)
+          "浠? 璐拱璁板綍" .. TradeManager._countPurchases() .. "鏉?")
 
     -- 鍚姩鏃剁珛鍗充笂浼? 纭繚鏈湴鏁版嵁鍚屾鍒颁簯绔帓琛屾
-    -- (閲嶇櫥鍚庝簯绔?slot 鍙兘涓虹┖, 蹇呴』閲嶆柊涓婁紶 listings 鎵嶈兘璁╁叾浠栫帺瀹剁湅鍒?
+    -- (閲嶇櫥鍚庝簯绔?slot 鍙兘涓虹┖, 蹇呴』閲嶆柊涓婁紶 listings 鎵嶈兘璁╁叾浠栫帺瀹剁湅鍒?"
     if TradeManager.GetListingCount() > 0 or TradeManager._hasPendingPurchases() then
         state.dataNeedUpload = true
         TradeManager._publishMyData(function(ok)
             if ok then
-                print("[TradeManager] 鍚姩鏃舵暟鎹悓姝ユ垚鍔?)
+                print("[TradeManager] 鍚姩鏃舵暟鎹悓姝ユ垚鍔?")
             else
-                print("[TradeManager] 鍚姩鏃舵暟鎹悓姝ュけ璐? 灏嗗湪Tick涓噸璇?)
+                print("[TradeManager] 鍚姩鏃舵暟鎹悓姝ュけ璐? 灏嗗湪Tick涓噸璇?")
             end
         end)
     end
 end
 
---- 淇濆瓨浜ゆ槗鏁版嵁鍒版湰鍦板瓨妗?
+--- 淇濆瓨浜ゆ槗鏁版嵁鍒版湰鍦板瓨妗?"
 local function saveLocal()
     if playerInfo then
         playerInfo.tradeData = state.myData
@@ -132,10 +132,10 @@ function TradeManager._hasPendingPurchases()
     return next(state.myData.purchases) ~= nil
 end
 
---- 娓呯悊杩囨湡鏁版嵁 (7澶╁墠鐨勮喘涔拌褰曞拰宸插鐞嗚褰?
+--- 娓呯悊杩囨湡鏁版嵁 (7澶╁墠鐨勮喘涔拌褰曞拰宸插鐞嗚褰?"
 function TradeManager._cleanupOldData()
     local now = os.time()
-    local CLEANUP_AGE = 7 * 86400  -- 7澶?
+    local CLEANUP_AGE = 7 * 86400  -- 7澶?"
     local changed = false
 
     -- 娓呯悊鏃х殑璐拱璁板綍
@@ -146,7 +146,7 @@ function TradeManager._cleanupOldData()
         end
     end
 
-    -- 娓呯悊鏃х殑宸插鐞嗗敭鍑鸿褰?
+    -- 娓呯悊鏃х殑宸插鐞嗗敭鍑鸿褰?"
     for lk, timestamp in pairs(state.processedSales) do
         if now - timestamp > CLEANUP_AGE then
             state.processedSales[lk] = nil
@@ -187,13 +187,13 @@ function TradeManager.ClearAllListings()
     state.myData.soldCount = 0
     saveLocal()
     TradeManager._publishMyData(function(ok)
-        if ok then print("[TradeManager] 浜戠涓婃灦鏁版嵁宸叉竻闄?) end
+        if ok then print("[TradeManager] 浜戠涓婃灦鏁版嵁宸叉竻闄?") end
     end)
 end
 
 --- 妫€鏌ヨ澶囨槸鍚﹀彲浜ゆ槗
 ---@param tier number
----@return boolean, string?
+---@return boolean, string?"
 function TradeManager.CanTrade(tier)
     if tier < 4 then
         return false, "品阶过低，无法交易"
@@ -215,7 +215,7 @@ function TradeManager.GetPriceRange(tier)
     return 0, 0
 end
 
---- 璁＄畻鍒版墜閲戦 (鎵ｉ櫎鎵嬬画璐?
+--- 璁＄畻鍒版墜閲戦 (鎵ｉ櫎鎵嬬画璐?"
 ---@param price number
 ---@return number
 function TradeManager.CalcNetIncome(price)
@@ -298,7 +298,7 @@ function TradeManager.ListItem(equipUid, price, callback)
             print("[TradeManager] 涓婃灦鎴愬姛: " .. listingKey .. " 浠锋牸" .. price)
             callback(true, "涓婃灦鎴愬姛")
         else
-            -- 涓婁紶澶辫触锛屾仮澶嶈澶?
+            -- 涓婁紶澶辫触锛屾仮澶嶈澶?"
             table.insert(playerEquipment.owned, removed)
             state.myData.listings[listingKey] = nil
             saveLocal()
@@ -312,7 +312,7 @@ end
 -- 涓嬫灦 / 棰嗗彇杩囨湡
 -- ============================================================================
 
---- 涓诲姩涓嬫灦 (灏嗚澶囪繕鍥炰粨搴?
+--- 涓诲姩涓嬫灦 (灏嗚澶囪繕鍥炰粨搴?"
 ---@param listingKey string
 ---@param callback? fun(ok:boolean, msg:string)
 function TradeManager.UnlistItem(listingKey, callback)
@@ -372,7 +372,7 @@ function TradeManager.ClaimJade(callback)
 end
 
 -- ============================================================================
--- 鍒锋柊甯傚満 (娴忚鍏叡甯傚満琛?
+-- 鍒锋柊甯傚満 (娴忚鍏叡甯傚満琛?"
 -- ============================================================================
 
 --- 鍒锋柊甯傚満鍒楄〃
@@ -401,7 +401,7 @@ function TradeManager.RefreshMarket(callback)
             local nowTime = os.time()
 
             -- ========================================
-            -- 鍚屾椂澶勭悊涓や欢浜?
+            -- 鍚屾椂澶勭悊涓や欢浜?"
             -- 1. 鎻愬彇浠栦汉鐨勪笂鏋跺垪琛?鈫?甯傚満娴忚
             -- 2. 鎵弿浠栦汉鐨勮喘涔拌褰?鈫?妫€鏌ユ垜鐨勭墿鍝佹槸鍚﹀凡鍞嚭
             -- ========================================
@@ -416,7 +416,7 @@ function TradeManager.RefreshMarket(callback)
                 if tradeData then
                     local isMe = (playerId == myUid)
 
-                    -- (1) 鎻愬彇鎵€鏈変汉鐨勪笂鏋跺垪琛紙鍖呭惈鑷繁鐨勶紝鏍囪 isMine锛?
+                    -- (1) 鎻愬彇鎵€鏈変汉鐨勪笂鏋跺垪琛紙鍖呭惈鑷繁鐨勶紝鏍囪 isMine锛?"
                     if tradeData.listings then
                         for lk, listing in pairs(tradeData.listings) do
                             local elapsed = nowTime - (listing.listTime or 0)
@@ -435,7 +435,7 @@ function TradeManager.RefreshMarket(callback)
                         end
                     end
 
-                    -- (2) 鎵弿浠栦汉鐨勮喘涔拌褰?鈫?鎴戠殑鐗╁搧鏄惁宸插敭鍑猴紙鍙湅浠栦汉鏁版嵁锛?
+                    -- (2) 鎵弿浠栦汉鐨勮喘涔拌褰?鈫?鎴戠殑鐗╁搧鏄惁宸插敭鍑猴紙鍙湅浠栦汉鏁版嵁锛?"
                     if not isMe and tradeData.purchases then
                         for lk, purchase in pairs(tradeData.purchases) do
                             local pSellerId = purchase.sellerId
@@ -461,7 +461,7 @@ function TradeManager.RefreshMarket(callback)
             end
 
             -- 杩囨护鎺夎嚜宸卞凡鍞嚭/宸蹭笅鏋剁殑鍟嗗搧
-            -- (浜戠鏁版嵁鍙兘灏氭湭鏇存柊, 浣嗘湰鍦?listings 宸茬Щ闄?
+            -- (浜戠鏁版嵁鍙兘灏氭湭鏇存柊, 浣嗘湰鍦?listings 宸茬Щ闄?"
             do
                 local filtered = {}
                 for _, it in ipairs(items) do
@@ -482,14 +482,14 @@ function TradeManager.RefreshMarket(callback)
             state.marketLoaded = true
             state.lastRefreshTime = os.time()
             state.lastCheckSalesTime = os.time()  -- RefreshMarket 宸插寘鍚?CheckSales
-            print("[TradeManager] 甯傚満鍒锋柊瀹屾垚, " .. #items .. "浠跺湪鍞?)
+            print("[TradeManager] 甯傚満鍒锋柊瀹屾垚, " .. #items .. "浠跺湪鍞?")
 
-            -- 濡傛灉鍙戠幇鏈夊敭鍑? 淇濆瓨骞朵笂浼?
+            -- 濡傛灉鍙戠幇鏈夊敭鍑? 淇濆瓨骞朵笂浼?"
             if salesChanged then
                 saveLocal()
                 if SaveGameProgress then SaveGameProgress() end
                 TradeManager._publishMyData()
-                print("[TradeManager] 鍙戠幇" .. soldCount .. "绗斿敭鍑? 鍏? .. jadeEarned .. "铏庣寰呴鍙?)
+                print("[TradeManager] 鍙戠幇" .. soldCount .. "绗斿敭鍑? 鍏?" .. jadeEarned .. "铏庣寰呴鍙?")
             end
 
             -- 鎵归噺瑙ｆ瀽鍗栧鏄电О
@@ -548,7 +548,7 @@ end
 -- 璐拱
 -- ============================================================================
 
---- 璐拱瑁呭 (鍚埛鏂伴獙璇?
+--- 璐拱瑁呭 (鍚埛鏂伴獙璇?"
 ---@param listingKey string
 ---@param expectedSellerId number
 ---@param expectedPrice number
@@ -568,7 +568,7 @@ function TradeManager.BuyItem(listingKey, expectedSellerId, expectedPrice, callb
         return
     end
 
-    -- 鍒锋柊楠岃瘉: 閲嶆柊鎷夊彇鍏叡甯傚満琛? 纭 listing 浠嶅瓨鍦?
+    -- 鍒锋柊楠岃瘉: 閲嶆柊鎷夊彇鍏叡甯傚満琛? 纭 listing 浠嶅瓨鍦?"
     state.marketLoading = true
     CloudAPI:GetRankList(KEYS.trade_ts, 0, 200, {
         ok = function(rankList)
@@ -652,10 +652,10 @@ function TradeManager.BuyItem(listingKey, expectedSellerId, expectedPrice, callb
 end
 
 -- ============================================================================
--- 鍗栧鏀舵 (鎵弿鍏叡甯傚満琛ㄤ腑鐨勮喘涔拌褰?
+-- 鍗栧鏀舵 (鎵弿鍏叡甯傚満琛ㄤ腑鐨勮喘涔拌褰?"
 -- ============================================================================
 
---- 鎵弿鍏叡甯傚満琛? 妫€鏌ユ垜鐨勪笂鏋剁墿鍝佹槸鍚﹀凡琚喘涔?
+--- 鎵弿鍏叡甯傚満琛? 妫€鏌ユ垜鐨勪笂鏋剁墿鍝佹槸鍚﹀凡琚喘涔?"
 ---@param callback? fun(soldCount:number, jadeEarned:number)
 function TradeManager.CheckSales(callback)
     callback = callback or function() end
@@ -732,10 +732,10 @@ function TradeManager.ResetCheckSalesCD()
 end
 
 -- ============================================================================
--- 杩囨湡妫€娴?
+-- 杩囨湡妫€娴?"
 -- ============================================================================
 
---- 鑾峰彇杩囨湡鐨勪笂鏋跺垪琛?
+--- 鑾峰彇杩囨湡鐨勪笂鏋跺垪琛?"
 ---@return table[] expiredKeys
 function TradeManager.GetExpiredListings()
     local expired = {}
@@ -748,7 +748,7 @@ function TradeManager.GetExpiredListings()
     return expired
 end
 
---- 鑾峰彇鍦ㄥ敭(鏈繃鏈?鐨勪笂鏋跺垪琛?
+--- 鑾峰彇鍦ㄥ敭(鏈繃鏈?鐨勪笂鏋跺垪琛?"
 ---@return table[] activeListings
 function TradeManager.GetActiveListings()
     local active = {}
@@ -762,7 +762,7 @@ function TradeManager.GetActiveListings()
 end
 
 -- ============================================================================
--- 瀹氭椂浠诲姟 (鍦?HandleUpdate 涓皟鐢?
+-- 瀹氭椂浠诲姟 (鍦?HandleUpdate 涓皟鐢?"
 -- ============================================================================
 
 local tickAccum = 0
@@ -772,7 +772,7 @@ function TradeManager.Tick(dt)
     if tickAccum < 30 then return end
     tickAccum = 0
 
-    -- 閲嶈瘯澶辫触鐨勬暟鎹笂浼?
+    -- 閲嶈瘯澶辫触鐨勬暟鎹笂浼?"
     if state.dataNeedUpload then
         TradeManager._publishMyData(function(ok)
             if ok then
@@ -781,7 +781,7 @@ function TradeManager.Tick(dt)
         end)
     end
 
-    -- 鑷姩妫€鏌ユ敹娆?
+    -- 鑷姩妫€鏌ユ敹娆?"
     if TradeManager.GetListingCount() > 0 then
         TradeManager.CheckSales()
     end

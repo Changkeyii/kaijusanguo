@@ -1,10 +1,10 @@
 -- ============================================================================
--- systems/tasks.lua - 涓夊浗姝︾伒褰?
+-- systems/tasks.lua - 涓夊浗姝︾伒褰?"
 -- ============================================================================
 
 
---- 妫€鏌ュ苟鎵ц姣忓懆鎺掕姒滃鍔辩粨绠?
---- 鍦ㄦ父鎴忓惎鍔?瀛樻。鍔犺浇鍚庤皟鐢ㄤ竴娆?
+--- 妫€鏌ュ苟鎵ц姣忓懆鎺掕姒滃鍔辩粨绠?"
+--- 鍦ㄦ父鎴忓惎鍔?瀛樻。鍔犺浇鍚庤皟鐢ㄤ竴娆?"
 local function _getRankItemUserId(item)
     if rawget(_G, "ResolveRankListUserId") then
         return ResolveRankListUserId(item)
@@ -29,7 +29,7 @@ function CheckWeeklyRankRewards()
     for _, cfg in ipairs(WEEKLY_RANK_REWARDS) do
         CloudAPI:GetRankList(cfg.key, 0, 20, {
             ok = function(rankList)
-                -- 鎵惧埌鑷繁鐨勬帓鍚?
+                -- 鎵惧埌鑷繁鐨勬帓鍚?"
                 local myRank = 0
                 for ri, item in ipairs(rankList) do
                     if _getRankItemUserId(item) == myUid then
@@ -43,12 +43,12 @@ function CheckWeeklyRankRewards()
                     for _, tier in ipairs(cfg.tiers) do
                         if myRank <= tier.maxRank then
                             local mailId = "weekly_" .. weekKey .. "_" .. cfg.key
-                            local rankDesc = (myRank == 1) and "绗?鍚? or ("绗? .. myRank .. "鍚?)
+                            local rankDesc = (myRank == 1) and "绗?鍚?" or ("绗?" .. myRank .. "鍚?")
                             table.insert(generatedMails, {
                                 id = mailId,
                                 title = cfg.name .. "鍛ㄦ濂栧姳",
-                                sender = "鎺掕姒滅粨绠?,
-                                content = "鎭枩姝︾伒澶т汉鍦ㄦ湰鍛? .. cfg.name .. "涓崳鑾? .. rankDesc .. "锛佺壒姝ゅ彂鏀惧鍔憋紝璇锋煡鏀躲€傛帓鍚嶈秺楂樺鍔辫秺涓板帤锛屼笅鍛ㄧ户缁姞娌癸紒",
+                                sender = "鎺掕姒滅粨绠?",
+                                content = "鎭枩姝︾伒澶т汉鍦ㄦ湰鍛?" .. cfg.name .. "涓崳鑾?" .. rankDesc .. "锛佺壒姝ゅ彂鏀惧鍔憋紝璇锋煡鏀躲€傛帓鍚嶈秺楂樺鍔辫秺涓板帤锛屼笅鍛ㄧ户缁姞娌癸紒",
                                 rewards = tier.rewards,
                             })
                             break  -- 鍙彇鏈€楂樻。濂栧姳
@@ -58,15 +58,15 @@ function CheckWeeklyRankRewards()
 
                 pendingChecks = pendingChecks - 1
                 if pendingChecks <= 0 then
-                    -- 鎵€鏈夋帓琛屾妫€鏌ュ畬鎴?
+                    -- 鎵€鏈夋帓琛屾妫€鏌ュ畬鎴?"
                     if #generatedMails > 0 then
                         for _, mail in ipairs(generatedMails) do
                             table.insert(welfareState.mailDefs, mail)
                         end
-                        print("[鍛ㄥ鍔盷 鐢熸垚 " .. #generatedMails .. " 灏佸鍔遍偖浠?)
-                        if rawget(_G, "ShowToast") then ShowToast("鏈懆鎺掕姒滃鍔卞凡鍙戞斁锛岃鏌ョ湅閭欢锛?) end
+                        print("[鍛ㄥ鍔盷 鐢熸垚 " .. #generatedMails .. " 灏佸鍔遍偖浠?")
+                        if rawget(_G, "ShowToast") then ShowToast("鏈懆鎺掕姒滃鍔卞凡鍙戞斁锛岃鏌ョ湅閭欢锛?") end
                     else
-                        print("[鍛ㄥ鍔盷 鏈懆鏈笂姒? 鏃犲鍔?)
+                        print("[鍛ㄥ鍔盷 鏈懆鏈笂姒? 鏃犲鍔?")
                     end
                     welfareState.lastWeeklySettled = weekKey
                     SaveGameProgress()
@@ -84,7 +84,7 @@ function CheckWeeklyRankRewards()
 end
 
 
--- 姣忔棩浠诲姟绾㈢偣: 鏈夊彲棰嗗彇浣嗘湭棰嗗彇鐨勪换鍔?
+-- 姣忔棩浠诲姟绾㈢偣: 鏈夊彲棰嗗彇浣嗘湭棰嗗彇鐨勪换鍔?"
 function HasDailyTaskRedDot()
     for _, task in ipairs(DAILY_TASKS) do
         if not dailyTaskState.claimed[task.id] then
@@ -108,7 +108,7 @@ function HasWeeklyTaskRedDot()
 end
 
 
--- 鎴愬氨绾㈢偣: 鏈夊彲棰嗗彇浣嗘湭棰嗗彇鐨勬垚灏?
+-- 鎴愬氨绾㈢偣: 鏈夊彲棰嗗彇浣嗘湭棰嗗彇鐨勬垚灏?"
 function HasAchievementRedDot()
     for _, ach in ipairs(ACHIEVEMENTS) do
         if not achievementClaimed[ach.id] then

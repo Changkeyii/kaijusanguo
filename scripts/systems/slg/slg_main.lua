@@ -5,7 +5,7 @@
 
 ---@diagnostic disable: undefined-global
 
--- 鍔犺浇瀛愭ā鍧楋紙椤哄簭閲嶈锛欴ata/State 鍏堜簬 Logic锛孡ogic 鍏堜簬 Input锛?
+-- 鍔犺浇瀛愭ā鍧楋紙椤哄簭閲嶈锛欴ata/State 鍏堜簬 Logic锛孡ogic 鍏堜簬 Input锛?"
 local Data   = require("systems.slg.slg_data")
 local State  = require("systems.slg.slg_state")
 local Logic  = require("systems.slg.slg_logic")
@@ -72,7 +72,7 @@ function WorldMap.DrawWorldMapScreen()
     Render.DrawWorldMapScreen(Panels.DrawPanel)
 end
 
--- 寰侀€旀ā寮忥細绾崟鏈?+ CloudAPI 瀛樻。锛屼笉渚濊禆鏈嶅姟绔?
+-- 寰侀€旀ā寮忥細绾崟鏈?+ CloudAPI 瀛樻。锛屼笉渚濊禆鏈嶅姟绔?"
 
 -- 鍚戝悗鍏煎锛歜attle_hud_core 绛夊閮ㄦ枃浠朵互瑁稿叏灞€鍑芥暟璋冪敤
 DrawWorldMapScreen = WorldMap.DrawWorldMapScreen

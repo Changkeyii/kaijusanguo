@@ -1,8 +1,6 @@
--- ============================================================================
--- ui/social.lua - 三国武灵录 (模块聚合)
--- ============================================================================
+-- ui/social.lua - social module entry
 
-require "ui.social_mail"
-require "ui.social_faction"
-require "ui.social_trade"
-require "ui.social_friends"
+require "ui.social_mail_clean"
+require "ui.social_faction_clean"
+require "ui.social_trade_clean"
+require "ui.social_friends_clean"

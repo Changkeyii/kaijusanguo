@@ -1,7 +1,6 @@
 -- ============================================================================
--- Server.lua - 排位房间服务端
--- match_info 模式：仅在排位匹配成功后创建房间，处理 1v1 对战
--- 房间生命周期：匹配成功 → 创建房间 → 战斗同步 → Elo 结算 → 房间关闭
+-- Server.lua - 常驻服务器服务端
+-- 负责统一处理客户端连接、云数据代理与排位匹配结算
 -- ============================================================================
 
 local cjson = cjson ---@diagnostic disable-line: undefined-global
@@ -74,12 +73,12 @@ function Server.Start()
     SubscribeToEvent(EVENTS.RANKED_READY, "HandleRankedReady")
     SubscribeToEvent(EVENTS.RANKED_ACTION, "HandleRankedAction")
 
-    print("[Server] 排位房间服务端启动")
+    print("[Server] 常驻服务器启动")
     print("[Server] serverCloud available: " .. tostring(serverCloud ~= nil))
 end
 
 function Server.Stop()
-    print("[Server] 排位房间服务端停止")
+    print("[Server] 常驻服务器停止")
 end
 
 -- ============================================================================

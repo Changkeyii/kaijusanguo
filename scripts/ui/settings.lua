@@ -1,10 +1,10 @@
 -- ============================================================================
--- ui/settings.lua - 涓夊浗姝︾伒褰?
+-- ui/settings.lua - 涓夊浗姝︾伒褰?"
 -- ============================================================================
 
 
 -- ============================================================================
--- 璁剧疆鐣岄潰 (璁捐鍧愭爣, 瑕嗙洊鍦ㄨ彍鍗曚笂鏂?
+-- 璁剧疆鐣岄潰 (璁捐鍧愭爣, 瑕嗙洊鍦ㄨ彍鍗曚笂鏂?"
 -- ============================================================================
 function DrawSettingsScreen()
     local W = DESIGN_W
@@ -46,7 +46,7 @@ function DrawSettingsScreen()
     do
         local uid = CloudAPI.GetUserId()
         local uidStr = uid ~= 0 and tostring(uid) or "---"
-        -- UID 鏍囩 + 鏁板€?
+        -- UID 鏍囩 + 鏁板€?"
         nvgFontSize(vg, 18)
         nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(140, 135, 120, 180))
@@ -70,7 +70,7 @@ function DrawSettingsScreen()
         nvgFontSize(vg, 14)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(220, 230, 255, 230))
-        nvgText(vg, cpBtnX + cpBtnW / 2, cpBtnY + cpBtnH / 2, copyFlash and "宸插鍒? or "澶嶅埗", nil)
+        nvgText(vg, cpBtnX + cpBtnW / 2, cpBtnY + cpBtnH / 2, copyFlash and "已复制" or "复制", nil)
         settingsPage.uidCopyBtnRect = { x = cpBtnX, y = cpBtnY, w = cpBtnW, h = cpBtnH }
         settingsPage.uidValue = uidStr
         -- 澶嶅埗鎴愬姛鎻愮ず璁℃椂琛板噺
@@ -79,7 +79,7 @@ function DrawSettingsScreen()
         end
     end
 
-    -- 鍒嗛殧绾?
+    -- 鍒嗛殧绾?"
     nvgBeginPath(vg)
     nvgMoveTo(vg, panX + 20, panY + 56)
     nvgLineTo(vg, panX + panW - 20, panY + 56)
@@ -110,7 +110,7 @@ function DrawSettingsScreen()
     nvgBeginPath(vg); nvgCircle(vg, knobX, rowY, 8)
     nvgFillColor(vg, nvgRGBA(200, 180, 190, 240)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(90, 45, 55, 200)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
-    -- 鐧惧垎姣?(鏄剧ず鍦ㄦ粦鏉″彸绔笂鏂?
+    -- 鐧惧垎姣?(鏄剧ず鍦ㄦ粦鏉″彸绔笂鏂?"
     nvgFontSize(vg, 20)
     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_BOTTOM)
     DrawWhiteInkText(rightM, rowY - 10, math.floor(gameSettings.musicVolume * 100) .. "%")
@@ -140,7 +140,7 @@ function DrawSettingsScreen()
     rowY = rowY + rowGap
     nvgFontSize(vg, 27)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(leftM, rowY, "鎸夐挳浣嶇疆涓庡ぇ灏?)
+    DrawWhiteInkText(leftM, rowY, "鎸夐挳浣嶇疆涓庡ぇ灏?")
 
     local adjBtnW = 80
     local adjBtnH = 28
@@ -161,7 +161,7 @@ function DrawSettingsScreen()
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
     DrawWhiteInkText(leftM, rowY, "榛樿鑷姩琛屽啗")
 
-    -- 寮€鍏虫寜閽?
+    -- 寮€鍏虫寜閽?"
     local toggleW = 44
     local toggleH = 22
     local toggleX = rightM - toggleW
@@ -171,7 +171,7 @@ function DrawSettingsScreen()
     nvgBeginPath(vg); nvgRoundedRect(vg, toggleX, toggleY, toggleW, toggleH, toggleH / 2)
     nvgFillColor(vg, isOn and nvgRGBA(80, 180, 100, 200) or nvgRGBA(60, 55, 70, 200)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(90, 45, 55, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-    -- 婊戝潡鍦?
+    -- 婊戝潡鍦?"
     local toggleKnobX = isOn and (toggleX + toggleW - toggleH / 2 - 2) or (toggleX + toggleH / 2 + 2)
     nvgBeginPath(vg); nvgCircle(vg, toggleKnobX, rowY, toggleH / 2 - 3)
     nvgFillColor(vg, nvgRGBA(240, 230, 210, 240)); nvgFill(vg)
@@ -218,7 +218,7 @@ function DrawSettingsScreen()
             nvgFillColor(vg, nvgRGBA(160, 145, 120, 180))
             nvgText(vg, bx + fontOptW / 2, by + fontOptH / 2, btn.label, nil)
         end
-        -- 瀛樺偍鎸夐挳鍖哄煙鐢ㄤ簬鐐瑰嚮妫€娴?
+        -- 瀛樺偍鎸夐挳鍖哄煙鐢ㄤ簬鐐瑰嚮妫€娴?"
         settingsPage["font_" .. btn.key .. "_rect"] = { x = bx, y = by, w = fontOptW, h = fontOptH }
     end
 
@@ -242,11 +242,11 @@ function DrawSettingsScreen()
     nvgFontSize(vg, 23)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     DrawWhiteInkText(bfBtnX + bfBtnW / 2, bfBtnY + bfBtnH / 2, bfName)
-    -- 宸﹀彸灏忕澶存彁绀?
+    -- 宸﹀彸灏忕澶存彁绀?"
     nvgFontSize(vg, 19)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     DrawWhiteInkText(bfBtnX - 2, bfBtnY + bfBtnH / 2, "鈼€")
-    DrawWhiteInkText(bfBtnX + bfBtnW + 2, bfBtnY + bfBtnH / 2, "鈻?)
+    DrawWhiteInkText(bfBtnX + bfBtnW + 2, bfBtnY + bfBtnH / 2, "鈻?")
     settingsPage.battlefieldBtnRect = { x = bfBtnX - 14, y = bfBtnY, w = bfBtnW + 28, h = bfBtnH }
 
     -- ======== CDK 鍏戞崲 ========
@@ -265,13 +265,13 @@ function DrawSettingsScreen()
     nvgFill(vg)
     nvgFontSize(vg, 25)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(cdkBtnX + cdkBtnW / 2, cdkBtnY + cdkBtnH / 2, "杈撳叆鍏戞崲鐮?)
+    DrawWhiteInkText(cdkBtnX + cdkBtnW / 2, cdkBtnY + cdkBtnH / 2, "输入兑换码")
     settingsPage.cdkBtnRect = { x = cdkBtnX, y = cdkBtnY, w = cdkBtnW, h = cdkBtnH }
 
     -- ======== 浠婃棩鍏嶅箍鍛婂崱 (鐪?娆″箍鍛婂厤鎴樻枟骞垮憡) ========
     rowY = rowY + rowGap
     do
-        -- 璺ㄦ棩閲嶇疆妫€鏌?
+        -- 璺ㄦ棩閲嶇疆妫€鏌?"
         local today = os.date("%Y-%m-%d")
         if gameSettings.dailyAdDate ~= today then
             gameSettings.dailyAdCount = 0
@@ -285,7 +285,7 @@ function DrawSettingsScreen()
         nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
         DrawWhiteInkText(leftM, rowY, "鍏嶅箍鍛婂崱")
 
-        -- 鍙充晶: 杩涘害鏉?+ 鐪嬪箍鍛婃寜閽?
+        -- 鍙充晶: 杩涘害鏉?+ 鐪嬪箍鍛婃寜閽?"
         local adBtnW = 72
         local adBtnGap = 8
         local barW = contentW - 90 - adBtnW - adBtnGap
@@ -294,17 +294,17 @@ function DrawSettingsScreen()
         local barY = rowY - barH / 2
 
         if isPermanent then
-            -- 姘镐箙鍏嶅箍鍛婄壒鏉?
+            -- 姘镐箙鍏嶅箍鍛婄壒鏉?"
             nvgFontSize(vg, 22)
             nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(100, 255, 150, 220))
-            nvgText(vg, rightM, rowY, "姘镐箙鍏嶅箍鍛?, nil)
+            nvgText(vg, rightM, rowY, "永久免广告", nil)
             settingsPage.adCardBtnRect = nil
         else
-            -- 杩涘害鏉¤儗鏅?
+            -- 杩涘害鏉¤儗鏅?"
             nvgBeginPath(vg); nvgRoundedRect(vg, barX, barY, barW, barH, 5)
             nvgFillColor(vg, nvgRGBA(40, 45, 60, 200)); nvgFill(vg)
-            -- 杩涘害鏉″～鍏?
+            -- 杩涘害鏉″～鍏?"
             local fillW = barW * (adCount / 3)
             nvgBeginPath(vg); nvgRoundedRect(vg, barX, barY, fillW, barH, 5)
             if isActive then
@@ -326,15 +326,15 @@ function DrawSettingsScreen()
                 nvgFill(vg)
                 nvgStrokeColor(vg, nvgRGBA(90, 80, 70, 150)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
             end
-            -- 鐘舵€佹枃瀛?
+            -- 鐘舵€佹枃瀛?"
             nvgFontSize(vg, 18)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
             if isActive then
                 nvgFillColor(vg, nvgRGBA(100, 255, 180, 220))
-                nvgText(vg, barX + barW / 2, rowY + barH / 2 + 4, "宸叉縺娲?- 鎴樻枟骞垮憡宸插厤闄?, nil)
+                nvgText(vg, barX + barW / 2, rowY + barH / 2 + 4, "宸叉縺娲?- 鎴樻枟骞垮憡宸插厤闄?", nil)
             else
                 nvgFillColor(vg, nvgRGBA(180, 170, 150, 160))
-                nvgText(vg, barX + barW / 2, rowY + barH / 2 + 4, adCount .. "/3 鐪嬪箍鍛婃縺娲?, nil)
+                nvgText(vg, barX + barW / 2, rowY + barH / 2 + 4, adCount .. "/3 看广告激活", nil)
             end
             -- 鈽?鐪嬪箍鍛婃寜閽?(鏈縺娲绘椂鏄剧ず)
             local adBtnX = barX + barW + adBtnGap
@@ -347,7 +347,7 @@ function DrawSettingsScreen()
                 nvgFontSize(vg, 16)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(40, 30, 10, 240))
-                nvgText(vg, adBtnX + adBtnW / 2, adBtnY + adBtnH / 2, "鐪嬪箍鍛?, nil)
+                nvgText(vg, adBtnX + adBtnW / 2, adBtnY + adBtnH / 2, "看广告", nil)
                 settingsPage.adCardBtnRect = { x = adBtnX, y = adBtnY, w = adBtnW, h = adBtnH }
             else
                 settingsPage.adCardBtnRect = nil
@@ -399,7 +399,7 @@ function DrawCDKPopup()
     -- 绱у噾寮圭獥闈㈡澘
     local pw, ph = 420, 200
     local px = (W - pw) / 2
-    local py = (H - ph) / 2 - 80  -- 鍋忎笂锛岀粰鍘熺敓閿洏鐣欑┖闂?
+    local py = (H - ph) / 2 - 80  -- 鍋忎笂锛岀粰鍘熺敓閿洏鐣欑┖闂?"
     nvgBeginPath(vg); nvgRoundedRect(vg, px, py, pw, ph, 12)
     nvgFillColor(vg, nvgRGBA(30, 28, 40, 240)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(90, 45, 55, 180)); nvgStrokeWidth(vg, 2); nvgStroke(vg)
@@ -407,9 +407,9 @@ function DrawCDKPopup()
     -- 鏍囬
     nvgFontSize(vg, 26)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(px + pw / 2, py + 24, "杈撳叆鍏戞崲鐮?)
+    DrawWhiteInkText(px + pw / 2, py + 24, "输入兑换码")
 
-    -- 杈撳叆妗?
+    -- 杈撳叆妗?"
     local inputX = px + 20
     local inputY = py + 50
     local inputW = pw - 40
@@ -418,7 +418,7 @@ function DrawCDKPopup()
     nvgFillColor(vg, nvgRGBA(15, 14, 22, 220)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(100, 80, 50, 160)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
     cdkState.inputBoxRect = { x = inputX, y = inputY, w = inputW, h = inputH }
-    -- 杈撳叆鏂囧瓧 / 鍗犱綅绗?
+    -- 杈撳叆鏂囧瓧 / 鍗犱綅绗?"
     nvgFontSize(vg, 22)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
     local textY = inputY + inputH / 2
@@ -433,7 +433,7 @@ function DrawCDKPopup()
         end
     else
         nvgFillColor(vg, nvgRGBA(150, 140, 130, 120))
-        nvgText(vg, inputX + 10, textY, "璇风敤閿洏杈撳叆鍏戞崲鐮?, nil)
+        nvgText(vg, inputX + 10, textY, "请用键盘输入兑换码", nil)
         -- 鍏夋爣
         if math.floor(os.clock() * 2) % 2 == 0 then
             nvgBeginPath(vg); nvgRect(vg, inputX + 10, inputY + 8, 2, inputH - 16)
@@ -460,7 +460,7 @@ function DrawCDKPopup()
     local btnGap = 8
     local btnTotalW = pw - 40
     local btnStartX = px + 20
-    -- 4涓寜閽潎鍒嗗搴?
+    -- 4涓寜閽潎鍒嗗搴?"
     local btnW = math.floor((btnTotalW - btnGap * 3) / 4)
 
     -- 绮樿创
@@ -494,7 +494,7 @@ function DrawCDKPopup()
 
     -- 鍏抽棴
     local closeX = redeemX + btnW + btnGap
-    local closeW = btnStartX + btnTotalW - closeX  -- 鏈€鍚庝竴涓寜閽悆鎺変綑閲?
+    local closeW = btnStartX + btnTotalW - closeX  -- 鏈€鍚庝竴涓寜閽悆鎺変綑閲?"
     nvgBeginPath(vg); nvgRoundedRect(vg, closeX, btnY, closeW, btnH, 6)
     nvgFillColor(vg, nvgRGBA(60, 55, 70, 220)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(90, 45, 55, 100)); nvgStrokeWidth(vg, 1); nvgStroke(vg)

@@ -1,10 +1,10 @@
 -- ============================================================================
--- systems/rank.lua - 涓夊浗姝︾伒褰?
+-- systems/rank.lua - 涓夊浗姝︾伒褰?"
 -- ============================================================================
 
 
 --- 涓婃姤涓€娆℃湁鏁堝箍鍛婅鐪嬪埌浜戞帓琛屾
---- 鏈湴鍏堣鏇存柊璐＄尞姒滄暟鎹紙淇濊瘉鐪嬪畬骞垮憡鍚庣珛鍗虫湁鏁版嵁鍙湅锛?
+--- 鏈湴鍏堣鏇存柊璐＄尞姒滄暟鎹紙淇濊瘉鐪嬪畬骞垮憡鍚庣珛鍗虫湁鏁版嵁鍙湅锛?"
 local function _getRankItemUserId(item)
     if rawget(_G, "ResolveRankListUserId") then
         return ResolveRankListUserId(item)
@@ -16,7 +16,7 @@ function UpdateContribRankLocally()
     if not welfareState.contribRank then
         welfareState.contribRank = {}
     end
-    local myName = playerInfo.name or "鎴?
+    local myName = playerInfo.name or "鎴?"
     local myCount = welfareState.localAdCount or 1
     local found = false
     for _, entry in ipairs(welfareState.contribRank) do
@@ -39,7 +39,7 @@ function ReportPowerScore()
     local power = CalcPlayerTotalPower()
     if power <= 0 then return end
 
-    -- 缁熻鎶€鑳芥暟鍜屾鐏垫暟锛岄檮甯︿笂鎶?
+    -- 缁熻鎶€鑳芥暟鍜屾鐏垫暟锛岄檮甯︿笂鎶?"
     local skillCount = 0
     for i, sk in pairs(SKILL_DEFS) do
         if sk.unlocked then skillCount = skillCount + 1 end
@@ -63,12 +63,12 @@ function ReportPowerScore()
             end,
         })
     else
-        print("[鎴樺姏] CloudAPI 涓嶅彲鐢紝浠呮湰鍦版ā鎷?)
+        print("[鎴樺姏] CloudAPI 涓嶅彲鐢紝浠呮湰鍦版ā鎷?")
         -- 寮€鍙戞ā寮忎笅鏈湴妯℃嫙
         if not welfareState.powerRank then
             welfareState.powerRank = {}
         end
-        local myName = playerInfo.name or "鎴?
+        local myName = playerInfo.name or "鎴?"
         local found = false
         for _, entry in ipairs(welfareState.powerRank) do
             if entry.name == myName then
@@ -86,7 +86,7 @@ function ReportPowerScore()
 end
 
 
----- 鍔犺浇鎴樺姏鎺掕姒滄暟鎹?
+---- 鍔犺浇鎴樺姏鎺掕姒滄暟鎹?"
 function LoadPowerRank()
     if not CloudAPI.IsAvailable() then return end
     if welfareState.powerLoading then return end
@@ -368,7 +368,7 @@ function LoadFactionLevelRank()
 end
 
 
---- 鍔犺浇闃佃惀鎺掕姒滃埌涓绘帓琛屾Tab锛堝啓鍏?welfareState锛?
+--- 鍔犺浇闃佃惀鎺掕姒滃埌涓绘帓琛屾Tab锛堝啓鍏?welfareState锛?"
 function LoadFactionLevelRankForTab()
     if welfareState.factionRankLoading then return end
     welfareState.factionRankLoading = true
@@ -377,10 +377,10 @@ end
 
 
 -- ============================================================================
--- 鎺掍綅璧?- 浜戠鎺掕姒?
+-- 鎺掍綅璧?- 浜戠鎺掕姒?"
 -- ============================================================================
 -- ============================================================================
--- 鐖 - 浜戠鎺掕姒?
+-- 鐖 - 浜戠鎺掕姒?"
 -- ============================================================================
 function ReportTowerFloor()
     local floor = towerState.highestFloor
@@ -522,7 +522,7 @@ function OnRankedResult(result)
         .. " delta=" .. tostring(result.serverDelta)
         .. " wins=" .. tostring(result.wins)
         .. " losses=" .. tostring(result.losses))
-    -- 鐢ㄦ湇鍔＄鏉冨▉鍊艰鐩栨湰鍦?
+    -- 鐢ㄦ湇鍔＄鏉冨▉鍊艰鐩栨湰鍦?"
     rankedState.score = result.newElo or rankedState.score
     rankedState.wins = result.wins or rankedState.wins
     rankedState.losses = result.losses or rankedState.losses
@@ -547,7 +547,7 @@ function OnRankedResult(result)
     if gameState then
         gameState.awaitingRankedResult = false
     end
-    -- 鍒锋柊鎺掕姒?
+    -- 鍒锋柊鎺掕姒?"
     rankedState.rankLoaded = false
     rankedState.rankLoading = false
     SaveGameProgress()

@@ -600,7 +600,7 @@ end
 ---@param y number
 ---@param w number
 ---@param h number
----@param item table {equip, price, sellerName, remainSec?, sellerId?}
+---@param item table {equip, price, sellerName, remainSec?", sellerId?"}
 ---@param idx number
 ---@param isMine boolean
 function DrawTradeCard(x, y, w, h, item, idx, isMine)

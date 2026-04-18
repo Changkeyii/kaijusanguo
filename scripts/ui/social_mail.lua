@@ -28,10 +28,10 @@ function DrawContribRankScreen()
     -- 3. 鏍囬
     nvgFontSize(vg, 39)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(cx, 32, "璐＄尞鎺掕姒?)
+    DrawWhiteInkText(cx, 32, "璐＄尞鎺掕姒?")
 
     nvgFontSize(vg, 25)
-    DrawWhiteInkText(cx, 56, "鎰熻阿姣忎竴娆℃敮鎸?)
+    DrawWhiteInkText(cx, 56, "鎰熻阿姣忎竴娆℃敮鎸?")
 
     -- 4. 鎺掕鍒楄〃鍖哄煙
     local listTop = 76
@@ -77,7 +77,7 @@ function DrawContribRankScreen()
     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
     nvgText(vg, secPad + secW - 16, hy + headerH / 2 - 2, "娆℃暟", nil)
 
-    -- 琛ㄥご鍒嗛殧绾?
+    -- 琛ㄥご鍒嗛殧绾?"
     nvgBeginPath(vg); nvgMoveTo(vg, secPad + 10, hy + headerH - 2); nvgLineTo(vg, secPad + secW - 10, hy + headerH - 2)
     nvgStrokeColor(vg, nvgRGBA(90, 45, 55, 60)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
@@ -92,13 +92,13 @@ function DrawContribRankScreen()
     else
         local medals = {"[1]", "[2]", "[3]"}
         local rankColors = {
-            nvgRGBA(255, 215, 80, 35),   -- 绗?鍚?閲?
-            nvgRGBA(210, 210, 220, 25),  -- 绗?鍚?閾?
-            nvgRGBA(200, 160, 90, 20),   -- 绗?鍚?閾?
+            nvgRGBA(255, 215, 80, 35),   -- 绗?鍚?閲?"
+            nvgRGBA(210, 210, 220, 25),  -- 绗?鍚?閾?"
+            nvgRGBA(200, 160, 90, 20),   -- 绗?鍚?閾?"
         }
         for i, entry in ipairs(contribData) do
             local ry = baseY + headerH + 8 + (i - 1) * rowH
-            -- 鍓?鍚嶆殩閲戦珮浜簳鑹?
+            -- 鍓?鍚嶆殩閲戦珮浜簳鑹?"
             if i <= 3 then
                 nvgBeginPath(vg); nvgRoundedRect(vg, secPad + 6, ry + 2, secW - 12, rowH - 4, 6)
                 nvgFillColor(vg, rankColors[i]); nvgFill(vg)
@@ -129,7 +129,7 @@ function DrawContribRankScreen()
             end
             nvgText(vg, secPad + 60, ry + rowH / 2, entry.name, nil)
 
-            -- 娆℃暟锛堟殩閲戣壊锛?
+            -- 娆℃暟锛堟殩閲戣壊锛?"
             nvgFontSize(vg, 24)
             nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
             if i <= 3 then
@@ -137,9 +137,9 @@ function DrawContribRankScreen()
             else
                 nvgFillColor(vg, nvgRGBA(220, 180, 100, 210))
             end
-            nvgText(vg, secPad + secW - 16, ry + rowH / 2, tostring(entry.count) .. " 娆?, nil)
+            nvgText(vg, secPad + secW - 16, ry + rowH / 2, tostring(entry.count) .. " 娆?", nil)
 
-            -- 琛岄棿鍒嗛殧绾?
+            -- 琛岄棿鍒嗛殧绾?"
             if i < contribCount then
                 nvgBeginPath(vg)
                 nvgMoveTo(vg, secPad + 20, ry + rowH)
@@ -165,7 +165,7 @@ end
 
 
 -- ============================================================================
--- 鎴樺姏鎺掕姒滅嫭绔嬬晫闈?
+-- 鎴樺姏鎺掕姒滅嫭绔嬬晫闈?"
 -- ============================================================================
 
 function DrawMailBoxScreen()
@@ -194,24 +194,24 @@ function DrawMailBoxScreen()
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     DrawWhiteInkText(cx, 32, "閭欢")
 
-    -- 鍙充笂瑙掓樉绀虹帺瀹禪ID (鏂逛究绠＄悊鍛樼‘璁よ韩浠?
+    -- 鍙充笂瑙掓樉绀虹帺瀹禪ID (鏂逛究绠＄悊鍛樼‘璁よ韩浠?"
     local myUid = CloudAPI.GetUserId()
     nvgFontSize(vg, 11)
     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
     nvgFillColor(vg, nvgRGBA(100, 100, 110, 140))
     nvgText(vg, W - 10, 6, "UID:" .. tostring(myUid), nil)
-    -- 绠＄悊鍛樻爣璇?
+    -- 绠＄悊鍛樻爣璇?"
     if CloudManager.IsAdmin() then
         nvgFillColor(vg, nvgRGBA(255, 200, 60, 200))
         nvgText(vg, W - 10, 20, "[绠＄悊鍛榏", nil)
     end
-    -- 鍏嶅箍鍛婄姸鎬?
+    -- 鍏嶅箍鍛婄姸鎬?"
     if playerInfo.ad_free then
         nvgFillColor(vg, nvgRGBA(100, 255, 150, 180))
         nvgText(vg, W - 10, CloudManager.IsAdmin() and 34 or 20, "[鍏嶅箍鍛奭", nil)
     end
 
-    -- 4. Tab 鏍? 绯荤粺閭欢 / 鐜╁閭欢 (闈炵鐞嗗憳鍙樉绀虹郴缁熼偖浠?
+    -- 4. Tab 鏍? 绯荤粺閭欢 / 鐜╁閭欢 (闈炵鐞嗗憳鍙樉绀虹郴缁熼偖浠?"
     local pad = 14
     local tabY = 56
     local tabH = 36
@@ -242,7 +242,7 @@ function DrawMailBoxScreen()
         nvgFillColor(vg, sel and nvgRGBA(255, 220, 100, 255) or nvgRGBA(180, 180, 180, 200))
         local lbl = tb.label
         if tb.id == "cloud" and cloudUnread > 0 then lbl = lbl .. "(" .. cloudUnread .. ")" end
-        -- 闈炵鐞嗗憳鍦ㄩ偖浠禩ab涓婃樉绀烘湭璇讳簯閭欢鏁?
+        -- 闈炵鐞嗗憳鍦ㄩ偖浠禩ab涓婃樉绀烘湭璇讳簯閭欢鏁?"
         if not isMailAdmin and tb.id == "system" and cloudUnread > 0 then lbl = lbl .. "(" .. cloudUnread .. ")" end
         nvgText(vg, tx + tabW / 2, tabY + tabH / 2, lbl, nil)
         menuBtnRects["mailTab_" .. tb.id] = { x = tx + 2, y = tabY, w = tabW - 4, h = tabH }
@@ -256,7 +256,7 @@ function DrawMailBoxScreen()
     -- =============== 绯荤粺閭欢 Tab ===============
     if ms.tab == "system" then
         local mailCardH = 220
-        local cloudCardH = 130  -- 浜戦偖浠跺崱鐗囬珮搴?
+        local cloudCardH = 130  -- 浜戦偖浠跺崱鐗囬珮搴?"
         ms.btnRects = {}
         if not isMailAdmin then ms.cloudBtnRects = {} end  -- 闈炵鐞嗗憳涔熼渶瑕佷簯閭欢棰嗗彇鎸夐挳
 
@@ -267,7 +267,7 @@ function DrawMailBoxScreen()
         local mailCount = #welfareState.mailDefs
         local inbox = not isMailAdmin and (CloudManager._mailInbox or {}) or {}
         local contentH = mailCount * (mailCardH + cardGap) - cardGap
-        -- 闈炵鐞嗗憳: 绯荤粺閭欢搴曢儴杩藉姞浜戦偖浠?
+        -- 闈炵鐞嗗憳: 绯荤粺閭欢搴曢儴杩藉姞浜戦偖浠?"
         if #inbox > 0 then
             contentH = contentH + (mailCount > 0 and cardGap or 0) + #inbox * (cloudCardH + cardGap) - cardGap
         end
@@ -344,7 +344,7 @@ function DrawMailBoxScreen()
             if isClaimed then
                 nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(100, 100, 100, 140))
-                nvgText(vg, btnX2 + btnW2 / 2, btnY2 + btnH2 / 2, "宸查鍙?, nil)
+                nvgText(vg, btnX2 + btnW2 / 2, btnY2 + btnH2 / 2, "宸查鍙?", nil)
             else
                 local bp = 0.85 + 0.15 * math.sin(t * 3.5 + i)
                 nvgBeginPath(vg); nvgRoundedRect(vg, btnX2, btnY2, btnW2, btnH2, 8)
@@ -365,7 +365,7 @@ function DrawMailBoxScreen()
             end
         end
 
-        -- 闈炵鐞嗗憳: 绯荤粺閭欢搴曢儴杩藉姞浜戦偖浠?
+        -- 闈炵鐞嗗憳: 绯荤粺閭欢搴曢儴杩藉姞浜戦偖浠?"
         if not isMailAdmin and #inbox > 0 then
             local cloudStartY = listTop + mailCount * (mailCardH + cardGap)
             for i, cm in ipairs(inbox) do
@@ -402,9 +402,9 @@ function DrawMailBoxScreen()
                     if dt2 < 60 then
                         timeStr = "鍒氬垰"
                     elseif dt2 < 3600 then
-                        timeStr = math.floor(dt2 / 60) .. "鍒嗛挓鍓?
+                        timeStr = math.floor(dt2 / 60) .. "鍒嗛挓鍓?"
                     elseif dt2 < 86400 then
-                        timeStr = math.floor(dt2 / 3600) .. "灏忔椂鍓?
+                        timeStr = math.floor(dt2 / 3600) .. "灏忔椂鍓?"
                     else timeStr = math.floor(dt2 / 86400) .. "澶╁墠" end
                 end
                 nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
@@ -451,7 +451,7 @@ function DrawMailBoxScreen()
                     if isClaimed then
                         nvgFontSize(vg, 15); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                         nvgFillColor(vg, nvgRGBA(100, 100, 100, 140))
-                        nvgText(vg, btnX2 + btnW2 / 2, btnY2 + btnH2 / 2, "宸查鍙?, nil)
+                        nvgText(vg, btnX2 + btnW2 / 2, btnY2 + btnH2 / 2, "宸查鍙?", nil)
                     else
                         local bp = 0.85 + 0.15 * math.sin(t * 3.5 + i)
                         nvgBeginPath(vg); nvgRoundedRect(vg, btnX2, btnY2, btnW2, btnH2, 8)
@@ -480,12 +480,12 @@ function DrawMailBoxScreen()
         ms.cloudBtnRects = {}
         local inbox = CloudManager._mailInbox or {}
 
-        -- 鍐欎俊鎸夐挳浣嶇疆 (鍏朵粬鎸夐挳涔熶緷璧栬繖浜涘潗鏍?
+        -- 鍐欎俊鎸夐挳浣嶇疆 (鍏朵粬鎸夐挳涔熶緷璧栬繖浜涘潗鏍?"
         local compBtnW, compBtnH = 90, 32
         local compBtnX = W - pad - compBtnW
         local compBtnY = listTop
 
-        -- 绠＄悊鍛樻寜閽紙浠呯鐞嗗憳鏋勫缓鍙锛屼唬鐮佸湪 admin/ 鐩綍锛?
+        -- 绠＄悊鍛樻寜閽紙浠呯鐞嗗憳鏋勫缓鍙锛屼唬鐮佸湪 admin/ 鐩綍锛?"
         menuBtnRects.mailCompose = nil
         if IS_ADMIN_BUILD and _AdminMailUI and CloudManager.IsAdmin() then
             _AdminMailUI.DrawAdminMailButtons(W, compBtnX, compBtnY, compBtnW, compBtnH, pad)
@@ -552,9 +552,9 @@ function DrawMailBoxScreen()
                 if dt2 < 60 then
                     timeStr = "鍒氬垰"
                 elseif dt2 < 3600 then
-                    timeStr = math.floor(dt2 / 60) .. "鍒嗛挓鍓?
+                    timeStr = math.floor(dt2 / 60) .. "鍒嗛挓鍓?"
                 elseif dt2 < 86400 then
-                    timeStr = math.floor(dt2 / 3600) .. "灏忔椂鍓?
+                    timeStr = math.floor(dt2 / 3600) .. "灏忔椂鍓?"
                 else
                     timeStr = math.floor(dt2 / 86400) .. "澶╁墠"
                 end
@@ -571,7 +571,7 @@ function DrawMailBoxScreen()
             end
             nvgText(vg, cardX + 10, cardY + 24, cm.subject or "(鏃犱富棰?", nil)
 
-            -- 姝ｆ枃棰勮 (鏈€澶?琛?
+            -- 姝ｆ枃棰勮 (鏈€澶?琛?"
             nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
             nvgFillColor(vg, nvgRGBA(160, 160, 170, isClaimed and 100 or 180))
             local bodyPreview = (cm.body or "")
@@ -603,7 +603,7 @@ function DrawMailBoxScreen()
                 if isClaimed then
                     nvgFontSize(vg, 15); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(100, 100, 100, 140))
-                    nvgText(vg, btnX2 + btnW2 / 2, btnY2 + btnH2 / 2, "宸查鍙?, nil)
+                    nvgText(vg, btnX2 + btnW2 / 2, btnY2 + btnH2 / 2, "宸查鍙?", nil)
                 else
                     local bp = 0.85 + 0.15 * math.sin(t * 3.5 + i)
                     nvgBeginPath(vg); nvgRoundedRect(vg, btnX2, btnY2, btnW2, btnH2, 8)

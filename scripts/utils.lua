@@ -56,7 +56,7 @@ end
 
 --- 获取当前主字体 ID (统一使用 MiSans)
 --- Resolve a rank-list entry's owner across different payload shapes.
---- @param item table?
+--- @param item table?"
 --- @return integer
 function ResolveRankListUserId(item)
     if type(item) ~= "table" then return 0 end

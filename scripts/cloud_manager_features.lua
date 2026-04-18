@@ -1,10 +1,10 @@
 -- ============================================================================
 -- cloud_manager_features.lua - 涓夊浗姝︾伒褰?(浠?cloud_manager.lua 鎷嗗垎)
--- 鍔熻兘妯″潡: 鑱婂ぉ銆佹湰鍦癐O銆佹洿鏂板惊鐜€佸皝绂佺鐞嗐€佺鐞嗗憳銆侀偖浠?
+-- 鍔熻兘妯″潡: 鑱婂ぉ銆佹湰鍦癐O銆佹洿鏂板惊鐜€佸皝绂佺鐞嗐€佺鐞嗗憳銆侀偖浠?"
 -- ============================================================================
 ---@diagnostic disable: undefined-global
 
--- 浠?core 妯″潡瀵煎叆甯搁噺鍜屽叡浜姸鎬?
+-- 浠?core 妯″潡瀵煎叆甯搁噺鍜屽叡浜姸鎬?"
 local C = CloudManager._C
 local S = CloudManager._S
 local PREFIX = C.PREFIX
@@ -34,7 +34,7 @@ end
 -- ============================================================================
 
 local MAX_CHAT_HISTORY = 10   -- 姣忎汉鍦ㄦ帓琛屾淇濈暀鐨勬渶杩戞秷鎭暟
-local CHAT_POLL_INTERVAL = 12 -- 鑱婂ぉ杞闂撮殧(绉?
+local CHAT_POLL_INTERVAL = 12 -- 鑱婂ぉ杞闂撮殧(绉?"
 CloudManager._chatLastPoll = 0
 CloudManager._chatLastSentTs = 0
 CloudManager._chatPendingMsgs = {}  -- 寰呭彂甯冪殑鏈湴娑堟伅闃熷垪
@@ -43,7 +43,7 @@ CloudManager._chatSeenTs = {}       -- 宸茶杩囩殑鏈€澶?ts (per uid)
 
 --- 鍙戦€侀樀钀ヨ亰澶╂秷鎭?(鍐欏叆鏈湴闃熷垪 + 绔嬪嵆鍙戝竷鍒版帓琛屾)
 ---@param text string 娑堟伅鍐呭
----@param senderName string 鍙戦€佽€呮樀绉?
+---@param senderName string 鍙戦€佽€呮樀绉?"
 function CloudManager.SendFactionChat(text, senderName)
     if CloudManager._factionId == 0 then return false, "未加入阵营" end
     if not CloudAPI.IsAvailable() then return false, "云端不可用" end
@@ -59,7 +59,7 @@ function CloudManager.SendFactionChat(text, senderName)
         uid = CloudAPI.GetUserId(),
         av = avIdx,
     }
-    -- 杩藉姞鍒版湰鍦伴槦鍒?
+    -- 杩藉姞鍒版湰鍦伴槦鍒?"
     table.insert(CloudManager._chatPendingMsgs, msg)
     -- 涔熻拷鍔犲埌鍚堝苟鍒楄〃浠ヤ究绔嬪埢鏄剧ず
     table.insert(CloudManager._chatMerged, msg)
@@ -67,7 +67,7 @@ function CloudManager.SendFactionChat(text, senderName)
     -- 鏍囪鑷繁鐨勬椂闂存埑宸茶锛岄槻姝㈣疆璇㈡椂閲嶅鎷夊彇鏈潯娑堟伅
     CloudManager._chatSeenTs[CloudAPI.GetUserId()] = ts
 
-    -- 鍙戝竷鍒版帓琛屾 (淇濈暀鏈€杩?N 鏉?
+    -- 鍙戝竷鍒版帓琛屾 (淇濈暀鏈€杩?N 鏉?"
     local toPublish = {}
     local start = math.max(1, #CloudManager._chatPendingMsgs - MAX_CHAT_HISTORY + 1)
     for i = start, #CloudManager._chatPendingMsgs do
@@ -84,12 +84,12 @@ function CloudManager.SendFactionChat(text, senderName)
     return true
 end
 
---- 鐢熸垚绫诲瀷瀹夊叏鐨勮亰澶╁幓閲?key锛堥伩鍏?int/float tostring 宸紓瀵艰嚧鍘婚噸澶辫触锛?
+--- 鐢熸垚绫诲瀷瀹夊叏鐨勮亰澶╁幓閲?key锛堥伩鍏?int/float tostring 宸紓瀵艰嚧鍘婚噸澶辫触锛?"
 local function chatMsgKey(uid, ts)
     return string.format("%d_%d", math.floor(tonumber(uid) or 0), math.floor(tonumber(ts) or 0))
 end
 
---- 鎷夊彇闃佃惀鑱婂ぉ娑堟伅 (浠庢帓琛屾鑾峰彇鎵€鏈夋垚鍛樼殑鏈€杩戞秷鎭?
+--- 鎷夊彇闃佃惀鑱婂ぉ娑堟伅 (浠庢帓琛屾鑾峰彇鎵€鏈夋垚鍛樼殑鏈€杩戞秷鎭?"
 ---@param callback? fun(messages: table[])
 function CloudManager.PollFactionChat(callback)
     if CloudManager._factionId == 0 then
@@ -111,7 +111,7 @@ function CloudManager.PollFactionChat(callback)
                     local seenTs = CloudManager._chatSeenTs[senderUid] or 0
                     for _, m in ipairs(chatData) do
                         if type(m) == "table" and m.ts and m.ts > seenTs then
-                            -- 鏂版秷鎭?
+                            -- 鏂版秷鎭?"
                             newMsgs[#newMsgs + 1] = {
                                 text = m.text or "",
                                 name = m.name or "???",
@@ -122,7 +122,7 @@ function CloudManager.PollFactionChat(callback)
                             }
                         end
                     end
-                    -- 鏇存柊宸茶鏃堕棿鎴?
+                    -- 鏇存柊宸茶鏃堕棿鎴?"
                     if #chatData > 0 then
                         local maxTs = seenTs
                         for _, m in ipairs(chatData) do
@@ -148,7 +148,7 @@ function CloudManager.PollFactionChat(callback)
             -- 鎸?ts 鎺掑簭
             table.sort(CloudManager._chatMerged, function(a, b) return (a.ts or 0) < (b.ts or 0) end)
 
-            -- 淇濈暀鏈€杩?50 鏉?
+            -- 淇濈暀鏈€杩?50 鏉?"
             while #CloudManager._chatMerged > 50 do
                 table.remove(CloudManager._chatMerged, 1)
             end
@@ -168,21 +168,21 @@ function CloudManager.GetFactionChatMessages()
 end
 
 -- ============================================================================
--- 涓栫晫鑱婂ぉ (鍏ㄦ湇鍏叡棰戦亾, 鎺掕姒滃瓨鍌?
+-- 涓栫晫鑱婂ぉ (鍏ㄦ湇鍏叡棰戦亾, 鎺掕姒滃瓨鍌?"
 -- ============================================================================
 local WORLD_CHAT_MAX_PER_USER = 5     -- 姣忎汉鍦ㄦ帓琛屾淇濈暀鐨勬渶杩戞秷鎭暟
-local WORLD_CHAT_POLL_INTERVAL = 6    -- 涓栫晫鑱婂ぉ杞闂撮殧(绉? - 鏇村疄鏃?
-local WORLD_CHAT_MAX_MERGED = 100     -- 鏈湴鍚堝苟鍒楄〃鏈€澶ф潯鏁?
+local WORLD_CHAT_POLL_INTERVAL = 6    -- 涓栫晫鑱婂ぉ杞闂撮殧(绉? - 鏇村疄鏃?"
+local WORLD_CHAT_MAX_MERGED = 100     -- 鏈湴鍚堝苟鍒楄〃鏈€澶ф潯鏁?"
 
 CloudManager._worldChatLastPoll = 0
 CloudManager._worldChatPendingMsgs = {}
 CloudManager._worldChatMerged = {}
 CloudManager._worldChatSeenTs = {}
 
---- 鍙戦€佷笘鐣岃亰澶╂秷鎭?
+--- 鍙戦€佷笘鐣岃亰澶╂秷鎭?"
 ---@param text string 娑堟伅鍐呭
----@param senderName string 鍙戦€佽€呭悕瀛?
----@return boolean, string?
+---@param senderName string 鍙戦€佽€呭悕瀛?"
+---@return boolean, string?"
 function CloudManager.SendWorldChat(text, senderName)
     if not CloudAPI.IsAvailable() then return false, "云端不可用" end
     if not text or #text == 0 then return false, "消息为空" end
@@ -209,7 +209,7 @@ function CloudManager.SendWorldChat(text, senderName)
     -- 鏍囪鑷繁鐨勬椂闂存埑宸茶锛岄槻姝㈣疆璇㈡椂閲嶅鎷夊彇鏈潯娑堟伅
     CloudManager._worldChatSeenTs[CloudAPI.GetUserId()] = ts
 
-    -- 鍙戝竷鍒版帓琛屾 (淇濈暀鏈€杩?N 鏉?
+    -- 鍙戝竷鍒版帓琛屾 (淇濈暀鏈€杩?N 鏉?"
     local toPublish = {}
     local start = math.max(1, #CloudManager._worldChatPendingMsgs - WORLD_CHAT_MAX_PER_USER + 1)
     for i = start, #CloudManager._worldChatPendingMsgs do
@@ -278,7 +278,7 @@ function CloudManager.PollWorldChat(callback)
             -- 鎸?ts 鎺掑簭
             table.sort(CloudManager._worldChatMerged, function(a, b) return (a.ts or 0) < (b.ts or 0) end)
 
-            -- 淇濈暀鏈€杩?100 鏉?
+            -- 淇濈暀鏈€杩?100 鏉?"
             while #CloudManager._worldChatMerged > WORLD_CHAT_MAX_MERGED do
                 table.remove(CloudManager._worldChatMerged, 1)
             end
@@ -386,7 +386,7 @@ function CloudManager._loadLocalJSON()
     return nil
 end
 
---- 浠庡domain鏁版嵁鎭㈠娓告垙鐘舵€?
+--- 浠庡domain鏁版嵁鎭㈠娓告垙鐘舵€?"
 function CloudManager._applyMultiDomain(saveObj)
     local domains = saveObj.domains
     if not domains then return end
@@ -420,7 +420,7 @@ function CloudManager._applyMultiDomain(saveObj)
 
     -- equip
     if domains.equip and domains.equip.playerEquipment then
-        -- 澶嶇敤 ApplySaveData 鐨勮澶囨仮澶嶉€昏緫 (鍚柊鏃ф牸寮忚縼绉?
+        -- 澶嶇敤 ApplySaveData 鐨勮澶囨仮澶嶉€昏緫 (鍚柊鏃ф牸寮忚縼绉?"
         if rawget(_G, "ApplySaveData") then
             ApplySaveData({ playerEquipment = domains.equip.playerEquipment })
         end
@@ -568,7 +568,7 @@ end
 
 --- 鏋勫缓鏃ф牸寮忓瓨妗ｆ暟鎹?(鍚戜笅鍏煎)
 function CloudManager._buildLegacyData(allData)
-    -- 鍚堝苟鎵€鏈塪omain鍒颁竴涓墎骞硉able (涓庢棫 SaveGameProgress 缁撴瀯涓€鑷?
+    -- 鍚堝苟鎵€鏈塪omain鍒颁竴涓墎骞硉able (涓庢棫 SaveGameProgress 缁撴瀯涓€鑷?"
     local legacy = { savedAt = os.time() }
 
     if allData.core then
@@ -631,10 +631,10 @@ end
 
 -- 鈹€鈹€ 绀句氦杞瀹氭椂鍣?鈹€鈹€
 local socialPollTimer = 0
-local SOCIAL_POLL_INTERVAL = 15  -- 姣?5绉掕疆璇竴娆＄ぞ浜ょ姸鎬?
+local SOCIAL_POLL_INTERVAL = 15  -- 姣?5绉掕疆璇竴娆＄ぞ浜ょ姸鎬?"
 local socialPollBusy = false     -- 闃叉骞跺彂杞
 
---- 鏇存柊閲嶈瘯瀹氭椂鍣?+ 绀句氦杞 (鍦?HandleUpdate 涓皟鐢?
+--- 鏇存柊閲嶈瘯瀹氭椂鍣?+ 绀句氦杞 (鍦?HandleUpdate 涓皟鐢?"
 function CloudManager.Update(dt)
     if S.retryTimer > 0 then
         S.retryTimer = S.retryTimer - dt
@@ -682,8 +682,8 @@ function CloudManager.Update(dt)
                         factionUI.applyStatus = nil
                     end
                 elseif result == "rejected" then
-                    print("[绀句氦杞] 鍏ヨ惀鐢宠琚嫆缁?)
-                    if rawget(_G, "ShowToast") then ShowToast("浣犵殑鍏ヨ惀鐢宠琚嫆缁?) end
+                    print("[绀句氦杞] 鍏ヨ惀鐢宠琚嫆缁?")
+                    if rawget(_G, "ShowToast") then ShowToast("浣犵殑鍏ヨ惀鐢宠琚嫆缁?") end
                     if rawget(_G, "factionUI") then factionUI.applyStatus = nil end
                 end
             end)
@@ -711,7 +711,7 @@ end
 -- 渚挎嵎璁块棶
 -- ============================================================================
 
---- 鑾峰彇鎵€鏈塪omain key鍚?
+--- 鑾峰彇鎵€鏈塪omain key鍚?"
 function CloudManager.GetDomainKeys()
     return DOMAINS
 end
@@ -737,14 +737,14 @@ end
 -- 灏佺绯荤粺
 -- ============================================================================
 
---- 灏佺绛夌骇甯搁噺 (渚涘閮ㄤ娇鐢?
+--- 灏佺绛夌骇甯搁噺 (渚涘閮ㄤ娇鐢?"
 CloudManager.BAN_LEVEL_NONE   = BAN_LEVEL_NONE
 CloudManager.BAN_LEVEL_SOCIAL = BAN_LEVEL_SOCIAL
 CloudManager.BAN_LEVEL_CORE   = BAN_LEVEL_CORE
 CloudManager.BAN_LEVEL_FULL   = BAN_LEVEL_FULL
 
---- 妫€鏌ュ綋鍓嶇帺瀹舵槸鍚﹁灏佺 (鍚姩鏃惰皟鐢?
---- 鍘熺悊: 鎵弿 ban_ts 鎺掕姒? 鎵惧埌绠＄悊鍛樺彂甯冪殑灏佺鍚嶅崟, 妫€鏌ヨ嚜宸辨槸鍚﹀湪鍒楄〃涓?
+--- 妫€鏌ュ綋鍓嶇帺瀹舵槸鍚﹁灏佺 (鍚姩鏃惰皟鐢?"
+--- 鍘熺悊: 鎵弿 ban_ts 鎺掕姒? 鎵惧埌绠＄悊鍛樺彂甯冪殑灏佺鍚嶅崟, 妫€鏌ヨ嚜宸辨槸鍚﹀湪鍒楄〃涓?"
 ---@param callback fun(level: number, reason: string)
 function CloudManager.CheckBanStatus(callback)
     if not CloudAPI.IsAvailable() then
@@ -828,30 +828,30 @@ function CloudManager.GetBanReason()
     return S.banReason
 end
 
---- 鏄惁宸插畬鎴愬皝绂佹鏌?
+--- 鏄惁宸插畬鎴愬皝绂佹鏌?"
 ---@return boolean
 function CloudManager.IsBanChecked()
     return S.banChecked
 end
 
---- 妫€鏌ユ槸鍚﹁灏佺鍒版寚瀹氱瓑绾?
+--- 妫€鏌ユ槸鍚﹁灏佺鍒版寚瀹氱瓑绾?"
 ---@param level number 瑕佹鏌ョ殑绛夌骇
 ---@return boolean
 function CloudManager.IsBanned(level)
     return S.banLevel >= (level or BAN_LEVEL_SOCIAL)
 end
 
---- 鑾峰彇灏佺绛夌骇鐨勪腑鏂囨弿杩?
+--- 鑾峰彇灏佺绛夌骇鐨勪腑鏂囨弿杩?"
 ---@param level number
 ---@return string
 function CloudManager.GetBanLevelName(level)
     if level >= BAN_LEVEL_FULL then return "鍏ㄩ潰灏佺"
     elseif level >= BAN_LEVEL_CORE then return "鏍稿績鍔熻兘灏佺"
     elseif level >= BAN_LEVEL_SOCIAL then return "绀句氦灏佺"
-    else return "鏃? end
+    else return "鏃?" end
 end
 
---- 绠＄悊鍛? 鑾峰彇褰撳墠灏佺鍚嶅崟 (浠庢帓琛屾璇诲彇鑷繁鍙戝竷鐨?
+--- 绠＄悊鍛? 鑾峰彇褰撳墠灏佺鍚嶅崟 (浠庢帓琛屾璇诲彇鑷繁鍙戝竷鐨?"
 ---@param callback fun(bans: table|nil, err: string|nil)
 function CloudManager.AdminGetBanList(callback)
     if not CloudAPI.IsAvailable() then
@@ -874,7 +874,7 @@ function CloudManager.AdminGetBanList(callback)
     })
 end
 
---- 绠＄悊鍛? 鍙戝竷灏佺鍚嶅崟 (瑕嗙洊寮忓啓鍏?
+--- 绠＄悊鍛? 鍙戝竷灏佺鍚嶅崟 (瑕嗙洊寮忓啓鍏?"
 --- bans 鏍煎紡: { ["uid_str"] = { level=1-3, reason="...", until=0 }, ... }
 ---@param bans table 灏佺鍚嶅崟
 ---@param callback fun(ok: boolean, err: string|nil)
@@ -902,27 +902,27 @@ end
 ---@param targetUid number 鐩爣玩家UID
 ---@param callback fun(ok: boolean, msg: string)
 function CloudManager.AdminHidePlayerRank(targetUid, callback)
-    -- 娉ㄦ剰: CloudAPI 鍙兘鎿嶄綔鑷繁鐨勬暟鎹? 鏃犳硶鐩存帴鍒犻櫎浠栦汉鎺掕姒?
-    -- 闅愯棌绛栫暐: 灏嗚 UID 鍔犲叆鏈湴闅愯棌鍒楄〃, 鍦ㄦ帓琛屾娓叉煋鏃惰繃婊?
+    -- 娉ㄦ剰: CloudAPI 鍙兘鎿嶄綔鑷繁鐨勬暟鎹? 鏃犳硶鐩存帴鍒犻櫎浠栦汉鎺掕姒?"
+    -- 闅愯棌绛栫暐: 灏嗚 UID 鍔犲叆鏈湴闅愯棌鍒楄〃, 鍦ㄦ帓琛屾娓叉煋鏃惰繃婊?"
     if not CloudManager._hiddenPlayers then
         CloudManager._hiddenPlayers = {}
     end
     CloudManager._hiddenPlayers[tostring(targetUid)] = true
-    -- 鎸佷箙鍖栧埌 ban_data 涓?
+    -- 鎸佷箙鍖栧埌 ban_data 涓?"
     CloudManager.AdminGetBanList(function(bans, err)
         if not bans then bans = {} end
         local uidStr = tostring(targetUid)
         if not bans[uidStr] then
-            bans[uidStr] = { level = 0, reason = "鎺掕姒滈殣钘?, ["until"] = 0 }
+            bans[uidStr] = { level = 0, reason = "鎺掕姒滈殣钘?", ["until"] = 0 }
         end
         bans[uidStr].rankHidden = true
         CloudManager.AdminPublishBanList(bans, function(ok)
-            if callback then callback(ok, ok and "宸查殣钘? or "鎿嶄綔澶辫触") end
+            if callback then callback(ok, ok and "宸查殣钘?" or "鎿嶄綔澶辫触") end
         end)
     end)
 end
 
---- 绠＄悊鍛? 鎭㈠玩家鎺掕姒滄樉绀?
+--- 绠＄悊鍛? 鎭㈠玩家鎺掕姒滄樉绀?"
 ---@param targetUid number
 ---@param callback fun(ok: boolean, msg: string)
 function CloudManager.AdminUnhidePlayerRank(targetUid, callback)
@@ -940,12 +940,12 @@ function CloudManager.AdminUnhidePlayerRank(targetUid, callback)
             end
         end
         CloudManager.AdminPublishBanList(bans, function(ok)
-            if callback then callback(ok, ok and "宸叉仮澶嶆樉绀? or "鎿嶄綔澶辫触") end
+            if callback then callback(ok, ok and "宸叉仮澶嶆樉绀?" or "鎿嶄綔澶辫触") end
         end)
     end)
 end
 
---- 妫€鏌ユ煇涓帺瀹舵槸鍚﹁闅愯棌鎺掕姒?
+--- 妫€鏌ユ煇涓帺瀹舵槸鍚﹁闅愯棌鎺掕姒?"
 ---@param uid number|string
 ---@return boolean
 function CloudManager.IsPlayerRankHidden(uid)
@@ -953,8 +953,8 @@ function CloudManager.IsPlayerRankHidden(uid)
     return CloudManager._hiddenPlayers[tostring(uid)] == true
 end
 
---- 绠＄悊鍛? 鑾峰彇灏佺鍚嶅崟鎽樿锛堜緵 UI 鍒楄〃灞曠ず锛?
---- 杩斿洖涓や釜鏁扮粍: tempBans(鏆傛椂灏佺), permBans(姘镐箙灏佺/宸插垹闄?
+--- 绠＄悊鍛? 鑾峰彇灏佺鍚嶅崟鎽樿锛堜緵 UI 鍒楄〃灞曠ず锛?"
+--- 杩斿洖涓や釜鏁扮粍: tempBans(鏆傛椂灏佺), permBans(姘镐箙灏佺/宸插垹闄?"
 ---@param callback fun(tempBans: table, permBans: table, err: string|nil)
 function CloudManager.AdminGetBanListSummary(callback)
     CloudManager.AdminGetBanList(function(bans, err)
@@ -1002,15 +1002,15 @@ function CloudManager.AdminPermanentBan(targetUid, callback)
         bans[uidStr].level = 3          -- BAN_LEVEL_FULL
         bans[uidStr].reason = "姘镐箙灏佺(鏁版嵁宸插垹闄?"
         bans[uidStr]["until"] = 0       -- 姘镐箙
-        bans[uidStr].rankHidden = true  -- 闅愯棌鎺掕姒?
-        bans[uidStr].permanent = true   -- 鏍囪涓烘案涔呭皝绂?
+        bans[uidStr].rankHidden = true  -- 闅愯棌鎺掕姒?"
+        bans[uidStr].permanent = true   -- 鏍囪涓烘案涔呭皝绂?"
         CloudManager.AdminPublishBanList(bans, function(ok)
-            if callback then callback(ok, ok and "宸叉案涔呭皝绂? or "鎿嶄綔澶辫触") end
+            if callback then callback(ok, ok and "宸叉案涔呭皝绂?" or "鎿嶄綔澶辫触") end
         end)
     end)
 end
 
---- 绠＄悊鍛? 灏嗘殏鏃跺皝绂佹仮澶嶏紙瀹屽叏瑙ｇ锛屽寘鎷帓琛屾锛?
+--- 绠＄悊鍛? 灏嗘殏鏃跺皝绂佹仮澶嶏紙瀹屽叏瑙ｇ锛屽寘鎷帓琛屾锛?"
 ---@param targetUid number|string
 ---@param callback fun(ok: boolean, msg: string)
 function CloudManager.AdminFullUnban(targetUid, callback)
@@ -1024,12 +1024,12 @@ function CloudManager.AdminFullUnban(targetUid, callback)
         if not bans then bans = {} end
         bans[uidStr] = nil  -- 瀹屽叏绉婚櫎
         CloudManager.AdminPublishBanList(bans, function(ok)
-            if callback then callback(ok, ok and "宸插畬鍏ㄨВ绂? or "鎿嶄綔澶辫触") end
+            if callback then callback(ok, ok and "宸插畬鍏ㄨВ绂?" or "鎿嶄綔澶辫触") end
         end)
     end)
 end
 
---- 鍐呴儴宸ュ叿: 璁＄畻table鍏冪礌鏁?
+--- 鍐呴儴宸ュ叿: 璁＄畻table鍏冪礌鏁?"
 function CloudManager._tableCount(t)
     local n = 0
     if type(t) == "table" then for _ in pairs(t) do n = n + 1 end end
@@ -1040,8 +1040,8 @@ end
 -- 棰戠巼闄愬埗
 -- ============================================================================
 
---- 妫€鏌ユ搷浣滃喎鍗?(閫氳繃杩斿洖true/false琛ㄧず鏄惁鍙墽琛?
---- 濡傛灉鍙墽琛? 鍚屾椂鏇存柊鏃堕棿鎴?
+--- 妫€鏌ユ搷浣滃喎鍗?(閫氳繃杩斿洖true/false琛ㄧず鏄惁鍙墽琛?"
+--- 濡傛灉鍙墽琛? 鍚屾椂鏇存柊鏃堕棿鎴?"
 ---@param action string 鎿嶄綔鍚嶇О
 ---@param cooldownSeconds number 鍐峰嵈绉掓暟
 ---@return boolean 鏄惁鍏佽鎵ц
@@ -1058,7 +1058,7 @@ end
 --- 鑾峰彇鎿嶄綔鍓╀綑鍐峰嵈鏃堕棿
 ---@param action string
 ---@param cooldownSeconds number
----@return number 鍓╀綑绉掓暟 (0=鍙墽琛?
+---@return number 鍓╀綑绉掓暟 (0=鍙墽琛?"
 function CloudManager.GetCooldownRemaining(action, cooldownSeconds)
     local now = os.time()
     local lastTime = S.cooldownTimestamps[action] or 0
@@ -1068,7 +1068,7 @@ function CloudManager.GetCooldownRemaining(action, cooldownSeconds)
 end
 
 -- ============================================================================
--- 璐熷€奸槻鎶?
+-- 璐熷€奸槻鎶?"
 -- ============================================================================
 
 --- 娓呯悊鍏抽敭璧勬簮鐨勮礋鍊?(闃叉浣滃紛/鏁版嵁寮傚父)
@@ -1107,10 +1107,10 @@ end
 -- 瀛樻。鍝堝笇鏍￠獙
 -- ============================================================================
 
---- 璁＄畻瀛樻。鍝堝笇 (绠€鍗曟贩娣嗘牎楠? 闈炲姞瀵嗙骇鍒?
---- 鍘熺悊: 鎻愬彇鍏抽敭瀛楁 鈫?鏁板€兼眰鍜?鈫?娣峰悎uid鍜宻ecret 鈫?鍙栨ā寰楀埌鏍￠獙鍊?
----@param allData table 鎵€鏈塪omain鏁版嵁 (鎴杁omain鍚嶁啋data鐨勬槧灏?
----@return number hash鍊?
+--- 璁＄畻瀛樻。鍝堝笇 (绠€鍗曟贩娣嗘牎楠? 闈炲姞瀵嗙骇鍒?"
+--- 鍘熺悊: 鎻愬彇鍏抽敭瀛楁 鈫?鏁板€兼眰鍜?鈫?娣峰悎uid鍜宻ecret 鈫?鍙栨ā寰楀埌鏍￠獙鍊?"
+---@param allData table 鎵€鏈塪omain鏁版嵁 (鎴杁omain鍚嶁啋data鐨勬槧灏?"
+---@return number hash鍊?"
 function CloudManager._computeSaveHash(allData)
     local uid = 0
     if CloudAPI.IsAvailable() then
@@ -1145,20 +1145,20 @@ function CloudManager._computeSaveHash(allData)
     local mixed = (uid * HASH_SEED + sum) ~ HASH_SECRET
     -- 纭繚姝ｆ暣鏁?(Lua 5.4 鏁存暟鍙兘涓鸿礋)
     if mixed < 0 then mixed = -mixed end
-    return mixed % 999999937  -- 澶х礌鏁板彇妯?
+    return mixed % 999999937  -- 澶х礌鏁板彇妯?"
 end
 
 --- 妫€鏌ュ瓨妗ｅ搱甯屾槸鍚︿笉鍖归厤
----@return boolean true=鍝堝笇涓嶅尮閰?鍙兘琚鏀?
+---@return boolean true=鍝堝笇涓嶅尮閰?鍙兘琚鏀?"
 function CloudManager.IsHashMismatch()
     return CloudManager._hashMismatch == true
 end
 
 -- ============================================================================
--- 闃佃惀鑱屼綅鏌ヨ (瀵煎嚭渚涘閮ㄤ娇鐢?
+-- 闃佃惀鑱屼綅鏌ヨ (瀵煎嚭渚涘閮ㄤ娇鐢?"
 -- ============================================================================
 
---- 瀵煎嚭鑱屼綅瀹氫箟琛?(渚沀I娓叉煋鐢?
+--- 瀵煎嚭鑱屼綅瀹氫箟琛?(渚沀I娓叉煋鐢?"
 CloudManager.FACTION_ROLES = FACTION_ROLES
 
 --- 鑾峰彇鎸囧畾瑙掕壊鐨勪腑鏂囧悕
@@ -1168,7 +1168,7 @@ function CloudManager.GetRoleName(role)
     return _getRoleName(role)
 end
 
---- 鑾峰彇鎸囧畾瑙掕壊鐨勭瓑绾?
+--- 鑾峰彇鎸囧畾瑙掕壊鐨勭瓑绾?"
 ---@param role string
 ---@return number
 function CloudManager.GetRoleLevel(role)
@@ -1209,14 +1209,14 @@ function CloudManager.GetRoleLevel(role)
 end
 
 -- ============================================================================
--- 閭欢绯荤粺 (鍏叡淇＄妯″紡: 鍙戜欢浜哄啓 outbox, 鏀朵欢浜鸿疆璇㈡壂鎻?
+-- 閭欢绯荤粺 (鍏叡淇＄妯″紡: 鍙戜欢浜哄啓 outbox, 鏀朵欢浜鸿疆璇㈡壂鎻?"
 -- ============================================================================
 
-local MAIL_MAX_OUTBOX = 20         -- 姣忎汉鍙戜欢绠辨渶澶氫繚鐣?0灏?
-local MAIL_EXPIRE_DAYS = 7        -- 閭欢7澶╄繃鏈?
+local MAIL_MAX_OUTBOX = 20         -- 姣忎汉鍙戜欢绠辨渶澶氫繚鐣?0灏?"
+local MAIL_EXPIRE_DAYS = 7        -- 閭欢7澶╄繃鏈?"
 local MAIL_POLL_CD = 30           -- 杞鍐峰嵈绉掓暟
 
-CloudManager._mailOutbox = {}     -- 鏈湴鍙戜欢绠辩紦瀛?
+CloudManager._mailOutbox = {}     -- 鏈湴鍙戜欢绠辩紦瀛?"
 CloudManager._mailOutboxLoaded = false -- 鏄惁宸蹭粠浜戠鍔犺浇杩囧彂浠剁
 CloudManager._mailInbox = {}      -- 鎵弿鍒扮殑鏀朵欢鍒楄〃
 CloudManager._mailLastPoll = 0    -- 涓婃杞鏃堕棿
@@ -1224,7 +1224,7 @@ CloudManager._mailLoading = false
 CloudManager._mailClaimed = {}    -- 宸查鍙栫殑閭欢ID闆嗗悎 {[mailId]=true}
 CloudManager.ADMIN_UIDS = {}      -- 绠＄悊鍛楿ID鍒楄〃, 鐢?main.lua 璁剧疆
 
---- 浠庝簯绔姞杞藉凡鏈夊彂浠剁锛堥槻姝㈤噸鍚悗瑕嗙洊锛?
+--- 浠庝簯绔姞杞藉凡鏈夊彂浠剁锛堥槻姝㈤噸鍚悗瑕嗙洊锛?"
 ---@param callback? fun(ok:boolean)
 function CloudManager.LoadMailOutbox(callback)
     if CloudManager._mailOutboxLoaded then
@@ -1250,10 +1250,10 @@ function CloudManager.LoadMailOutbox(callback)
                         end
                     end
                     CloudManager._mailOutbox = kept
-                    print("[邮件] 浜戠鍙戜欢绠卞姞杞芥垚鍔? " .. #kept .. " 灏?)
+                    print("[邮件] 浜戠鍙戜欢绠卞姞杞芥垚鍔? " .. #kept .. " 灏?")
                 else
                     CloudManager._mailOutbox = {}
-                    print("[邮件] 浜戠鍙戜欢绠变负绌?)
+                    print("[邮件] 浜戠鍙戜欢绠变负绌?")
                 end
                 CloudManager._mailOutboxLoaded = true
                 if callback then callback(true) end
@@ -1283,7 +1283,7 @@ function CloudManager.SendMail(targetUid, subject, body, rewards, callback)
     if not CloudManager._mailOutboxLoaded then
         print("[邮件] 鍙戜欢绠辨湭鍔犺浇锛屽厛浠庝簯绔姞杞?..")
         CloudManager.LoadMailOutbox(function(ok)
-            -- 鏃犺鍔犺浇鎴愬姛澶辫触閮界户缁彂閫?
+            -- 鏃犺鍔犺浇鎴愬姛澶辫触閮界户缁彂閫?"
             CloudManager.SendMail(targetUid, subject, body, rewards, callback)
         end)
         return
@@ -1312,7 +1312,7 @@ function CloudManager.SendMail(targetUid, subject, body, rewards, callback)
         time = os.time(),
     }
 
-    -- 鍔犲叆鏈湴鍙戜欢绠?
+    -- 鍔犲叆鏈湴鍙戜欢绠?"
     table.insert(CloudManager._mailOutbox, 1, mailItem)
     -- 瑁佸壀杩囧 / 杩囨湡
     local now = os.time()
@@ -1324,7 +1324,7 @@ function CloudManager.SendMail(targetUid, subject, body, rewards, callback)
     end
     CloudManager._mailOutbox = kept
 
-    -- 涓婁紶鍒颁簯绔?
+    -- 涓婁紶鍒颁簯绔?"
     CloudAPI:BatchSet()
         :SetInt(KEYS.mail_ts, os.time())
         :Set(KEYS.mail_outbox, CloudManager._mailOutbox)
@@ -1340,21 +1340,21 @@ function CloudManager.SendMail(targetUid, subject, body, rewards, callback)
         })
 end
 
---- 骞挎挱閭欢 (绠＄悊鍛樺悜鎵€鏈変汉鍙?
+--- 骞挎挱閭欢 (绠＄悊鍛樺悜鎵€鏈変汉鍙?"
 ---@param subject string 鏍囬
 ---@param body string 姝ｆ枃
 ---@param rewards? table 闄勪欢濂栧姳
 ---@param callback? fun(ok:boolean, msg:string)
 function CloudManager.BroadcastMail(subject, body, rewards, callback)
     if not CloudManager.IsAdmin() then
-        if callback then callback(false, "浠呯鐞嗗憳鍙箍鎾?) end
+        if callback then callback(false, "浠呯鐞嗗憳鍙箍鎾?") end
         return
     end
     -- to=0 琛ㄧず骞挎挱缁欐墍鏈変汉
     CloudManager.SendMail(0, subject, body, rewards, callback)
 end
 
---- 杞鏀朵欢绠?(鎵弿鎵€鏈夌帺瀹剁殑 outbox, 杩囨护鍙戠粰鑷繁鐨?
+--- 杞鏀朵欢绠?(鎵弿鎵€鏈夌帺瀹剁殑 outbox, 杩囨护鍙戠粰鑷繁鐨?"
 ---@param callback? fun(mails:table)
 function CloudManager.PollInbox(callback)
     if not CloudAPI.IsAvailable() then
@@ -1401,12 +1401,12 @@ function CloudManager.PollInbox(callback)
                     end
                 end
             end
-            -- 鎸夋椂闂撮檷搴?
+            -- 鎸夋椂闂撮檷搴?"
             table.sort(inbox, function(a, b) return a.time > b.time end)
             CloudManager._mailInbox = inbox
             CloudManager._mailLastPoll = now
             CloudManager._mailLoading = false
-            print("[邮件] 鏀朵欢绠卞埛鏂? " .. #inbox .. " 灏?)
+            print("[邮件] 鏀朵欢绠卞埛鏂? " .. #inbox .. " 灏?")
             if callback then callback(inbox) end
         end,
         error = function(_, reason)
@@ -1435,7 +1435,7 @@ function CloudManager.IsAdmin()
     return false
 end
 
---- 鏍囪閭欢宸查鍙?
+--- 鏍囪閭欢宸查鍙?"
 ---@param mailId string
 function CloudManager.ClaimMail(mailId)
     CloudManager._mailClaimed[mailId] = true

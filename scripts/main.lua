@@ -222,7 +222,7 @@ function InitModuleBattle()
     IMG.flagWu = nvgCreateImage(vg, "image/faction_flag_wu_20260416015845.png", 0)
     IMG.flagQun = nvgCreateImage(vg, "image/faction_flag_qun_20260416015756.png", 0)
     IMG.btnPause = nvgCreateImage(vg, "image/btn_pause_20260416015754.png", 0)
-    IMG.wmBgClean = nvgCreateImage(vg, "image/edited_world_map_bg_clean_4k_20260417145520.png", 0)
+    IMG.wmBgClean = nvgCreateImage(vg, "image/world_map_bg_clean_20260416015728.png", 0)
 
     -- 兵符经验道具图片
     for idx, item in ipairs(SEAL_EXP_ITEMS) do
@@ -365,12 +365,10 @@ end
 -- 排位匹配生命周期（后台匹配模式）
 -- ============================================================================
 
---- 排位匹配成功回调：引擎 background_match 触发
---- 此时房间服务端已创建，可以初始化客户端网络层
+--- 兼容旧版房间匹配事件。
+--- 当前项目已切换为常驻服务器模式，因此这里只记录日志，不再驱动连接流程。
 function HandleServerReady(eventType, eventData)
-    print("[Main] ServerReady 事件触发 - 排位匹配成功，初始化网络层")
-    local ClientNet = require("network.Client")
-    ClientNet.Start()
+    print("[Main] 忽略旧版 ServerReady 事件：当前使用常驻服务器连接")
 end
 
 -- ============================================================================
@@ -388,8 +386,8 @@ function Start()
         return
     end
 
-    -- 字体初始化: 只加载 MiSans 默认字体
-    fontId = nvgCreateFont(vg, "sans", "Fonts/MiSans-Regular.ttf")
+    -- 字体初始化: 默认使用项目内可用的文楷字体
+    fontId = nvgCreateFont(vg, "sans", "Fonts/LXGWWenKai-Regular.ttf")
 
     -- ========== 阻塞阶段: 首页必需资源全部下载完才进入 ==========
     -- 创建 NanoVG 句柄（DWP 占位）
@@ -449,7 +447,7 @@ function Start()
 
     -- 阻塞下载：字体优先 + 首屏必需资源（减少加载时间）
     local blockingRes = {
-        "Fonts/MiSans-Regular.ttf",
+        "Fonts/LXGWWenKai-Regular.ttf",
 
         "image/avatars_sanguo_v2_20260408082207.png",
         "image/home_bg_sanguo_bright_20260408082713.png",
@@ -585,11 +583,9 @@ function Start()
     DismissEquipRedDots()
     DismissSkillRedDots()
 
-    -- 排位匹配：后台匹配模式，匹配成功后 ServerReady 事件触发连接
-    -- 启动时不连接服务器，仅在排位匹配成功后才初始化网络层
+    -- 常驻服务器模式：CloudAPI.Init 会在启动时立即初始化联机层
     if rawget(_G, "IsNetworkMode") and IsNetworkMode() then
-        SubscribeToEvent("ServerReady", "HandleServerReady")
-        print("[Main] 后台匹配模式：等待 ServerReady 事件")
+        print("[Main] 常驻服务器模式：启动时立即连接服务端")
     end
 
     print("=== 三国武灵录 v5.0 ===")

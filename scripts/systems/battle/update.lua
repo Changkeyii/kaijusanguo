@@ -1,5 +1,5 @@
 -- ============================================================================
--- systems/battle/update.lua - 涓夊浗姝︾伒褰?
+-- systems/battle/update.lua - 涓夊浗姝︾伒褰?"
 -- ============================================================================
 
 
@@ -7,9 +7,9 @@
 -- 鎴樻枟缁撶畻: 鑳滃埄/缁撴潫 缁熶竴鍏ュ彛
 -- ============================================================================
 
---- 鎴樻枟鑳滃埄鏃惰皟鐢?(缁熻銆侀閫氥€佽浼愰€氬叧銆佽В閿佷笅涓€鍏?
+--- 鎴樻枟鑳滃埄鏃惰皟鐢?(缁熻銆侀閫氥€佽浼愰€氬叧銆佽В閿佷笅涓€鍏?"
 function OnBattleVictory()
-    -- 0) 鎺㈢储妯″紡宸茬Щ闄?
+    -- 0) 鎺㈢储妯″紡宸茬Щ闄?"
     -- if gameState.explorationMode then ... end
 
     -- 1) 缁熻
@@ -30,13 +30,13 @@ function OnBattleVictory()
     if not gameState.abyssFloor and not gameState.towerFloor and not gameState.isRanked then
         local stageIdx = stageState.currentStage
         local key = tostring(stageIdx)
-        -- 璁＄畻鏄熺骇: 鍩轰簬鍩哄湴鍓╀綑HP鐧惧垎姣?
+        -- 璁＄畻鏄熺骇: 鍩轰簬鍩哄湴鍓╀綑HP鐧惧垎姣?"
         local hpPct = (gameState.playerBaseHP or 0) / (BASE_HP_MAX or 1)
         local earnedStars = 1
         if hpPct > 0.8 then
             earnedStars = 3
         elseif hpPct > 0.5 then earnedStars = 2 end
-        -- 鏇存柊鏈€楂樻槦绾?
+        -- 鏇存柊鏈€楂樻槦绾?"
         local prevStars = stageStars[key] or 0
         if earnedStars > prevStars then
             stageStars[key] = earnedStars
@@ -52,11 +52,11 @@ function OnBattleVictory()
             if totalJadeReward > 0 then
                 playerInfo.jade = playerInfo.jade + totalJadeReward
                 gameState.firstClearReward = { jade = totalJadeReward }
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "鈽? .. earnedStars .. " 鏄熺骇濂栧姳: +" .. totalJadeReward .. " 铏庣", 2.0, {255, 220, 80}, 20)
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "鈽?" .. earnedStars .. " 鏄熺骇濂栧姳: +" .. totalJadeReward .. " 铏庣", 2.0, {255, 220, 80}, 20)
             end
         end
         gameState.lastEarnedStars = earnedStars  -- 淇濆瓨鐢ㄤ簬缁撶畻灞曠ず
-        -- 鑷姩瑙ｉ攣涓嬩竴鍏?
+        -- 鑷姩瑙ｉ攣涓嬩竴鍏?"
         if stageIdx >= stageState.maxUnlocked and stageIdx < #STAGES then
             stageState.maxUnlocked = stageIdx + 1
         end
@@ -89,11 +89,11 @@ function OnBattleVictory()
         local towerReward = { jade = towerJade, frag = towerFrag }
         GrantRewardTable(towerReward)
         gameState.towerReward = towerReward  -- 淇濆瓨鐢ㄤ簬寮圭獥灞曠ず
-        -- 鎺ㄨ繘灞傛暟 (涓婇檺999灞?
-        towerState.currentFloor = math.min(fl + 1, 1000)  -- 1000琛ㄧず宸查€氬叧999灞傦紝涓嶅彲鍐嶆寫鎴?
+        -- 鎺ㄨ繘灞傛暟 (涓婇檺999灞?"
+        towerState.currentFloor = math.min(fl + 1, 1000)  -- 1000琛ㄧず宸查€氬叧999灞傦紝涓嶅彲鍐嶆寫鎴?"
         if fl > towerState.highestFloor then
             towerState.highestFloor = fl
-            ReportTowerFloor()  -- 涓婃姤浜戠鎺掕姒?
+            ReportTowerFloor()  -- 涓婃姤浜戠鎺掕姒?"
         end
     end
 
@@ -132,7 +132,7 @@ function OnBattleVictory()
     -- 3.9) 鎴樺満鎷涙徑 (鎴樹簤鐗? 鎴樻枟鑳滃埄鍚庢湁姒傜巼鎷涙徑涓€鍚嶆湭鎷ユ湁姝﹀皢)
     do
         local recruitResult = nil
-        -- 鏀堕泦鎵€鏈夋湭鎷ユ湁鐨勬灏?(鍝佽川瓒婁綆瓒婂鏄撴嫑鎻?
+        -- 鏀堕泦鎵€鏈夋湭鎷ユ湁鐨勬灏?(鍝佽川瓒婁綆瓒婂鏄撴嫑鎻?"
         local candidates = {}
         for idx = 1, #HERO_CARDS do
             local hero = playerHeroes[idx]
@@ -185,7 +185,7 @@ function OnBattleVictory()
         gameState.recruitResult = recruitResult  -- 淇濆瓨鐢ㄤ簬缁撶畻鐣岄潰灞曠ず
     end
 
-    -- 3.10) 澶у湴鍥炬垬鏂楄儨鍒╁洖璋?
+    -- 3.10) 澶у湴鍥炬垬鏂楄儨鍒╁洖璋?"
     if gameState.worldMapBattle and rawget(_G, "WorldMap") then
         WorldMap.OnBattleResult(true)
     end
@@ -197,7 +197,7 @@ end
 
 --- 鎴樻枟缁撴潫鏃惰皟鐢?(澶辫触/骞冲眬)
 function OnBattleEnd()
-    -- 鎺㈢储妯″紡宸茬Щ闄?
+    -- 鎺㈢储妯″紡宸茬Щ闄?"
     -- if gameState.explorationMode then ... end
 
     playerInfo.totalBattles = playerInfo.totalBattles + 1
@@ -206,7 +206,7 @@ function OnBattleEnd()
     TrackBattlePassTask("bp_battle3", 1)
     TrackBattlePassTask("bp_wbattle20", 1)
     TrackBattlePassTask("bp_sbattle100", 1)
-    -- 璁ㄤ紣澶辫触涔熻鍏ヨ浼愪换鍔?
+    -- 璁ㄤ紣澶辫触涔熻鍏ヨ浼愪换鍔?"
     if gameState.abyssFloor then
         TrackDailyTask("abyss1", 1)
         TrackWeeklyTask("wabyss3", 1)
@@ -240,7 +240,7 @@ function OnBattleEnd()
         -- 缃戠粶妯″紡: 涓婃姤鏈嶅姟绔繘琛屾潈濞?Elo 缁撶畻
         end
     end
-    -- 澶у湴鍥炬垬鏂楀け璐ュ洖璋?
+    -- 澶у湴鍥炬垬鏂楀け璐ュ洖璋?"
     if gameState.worldMapBattle and rawget(_G, "WorldMap") then
         WorldMap.OnBattleResult(false)
     end
@@ -262,13 +262,13 @@ function HandleUpdate(eventType, eventData)
     if fontRebuildNeeded then
         fontRebuildNeeded = false
         if fontId < 0 then
-            fontId = nvgCreateFont(vg, "sans", "Fonts/MiSans-Regular.ttf")
+            fontId = nvgCreateFont(vg, "sans", "Fonts/LXGWWenKai-Regular.ttf")
             print("[MainThread] 閲嶅缓涓诲瓧浣?fontId=" .. tostring(fontId))
         end
     end
 
     -- 鑷姩瀛樻。锛堟瘡60绉掍繚瀛樹竴娆★紝闃叉鎰忓閫€鍑轰涪澶辫繘搴︼級
-    -- 浠呭湪瀹屾垚璧勬枡璁剧疆涓旇繘鍏ヤ富鑿滃崟鍚庢墠鑷姩瀛樻。锛岄伩鍏嶅湪鍔犺浇/閫夎祫鏂欓樁娈佃鐩栨纭暟鎹?
+    -- 浠呭湪瀹屾垚璧勬枡璁剧疆涓旇繘鍏ヤ富鑿滃崟鍚庢墠鑷姩瀛樻。锛岄伩鍏嶅湪鍔犺浇/閫夎祫鏂欓樁娈佃鐩栨纭暟鎹?"
     autoSaveTimer = (autoSaveTimer or 0) + dt
     if autoSaveTimer >= 60 then
         autoSaveTimer = 0
@@ -287,12 +287,12 @@ function HandleUpdate(eventType, eventData)
     -- 浜戝瓨妗ｉ噸璇?(濮旀墭缁?CloudManager)
     if rawget(_G, 'CloudManager') then CloudManager.Update(dt) end
 
-    -- 浜ゆ槗琛屽畾鏃舵壂鎻?
+    -- 浜ゆ槗琛屽畾鏃舵壂鎻?"
     TradeManager.Tick(dt)
 
-    -- 骞垮憡闄愬埗宸茬Щ闄?
+    -- 骞垮憡闄愬埗宸茬Щ闄?"
 
-    -- 鎴樻枟瑙勫垯寮圭獥婊氬姩鎯€?
+    -- 鎴樻枟瑙勫垯寮圭獥婊氬姩鎯€?"
     if battleRulesState.show and not battleRulesState.isDragging and math.abs(battleRulesState.vel) > 1 then
         battleRulesState.scrollY = battleRulesState.scrollY + battleRulesState.vel * dt
         battleRulesState.vel = battleRulesState.vel * 0.92
@@ -302,7 +302,7 @@ function HandleUpdate(eventType, eventData)
         battleRulesState.vel = 0
     end
 
-    -- 鏂版墜鎸囧紩寮圭獥婊氬姩鎯€?
+    -- 鏂版墜鎸囧紩寮圭獥婊氬姩鎯€?"
     if newbieGuidePopup.show and not newbieGuidePopup.isDragging and math.abs(newbieGuidePopup.vel or 0) > 1 then
         newbieGuidePopup.scrollY = (newbieGuidePopup.scrollY or 0) + (newbieGuidePopup.vel or 0) * dt
         newbieGuidePopup.vel = (newbieGuidePopup.vel or 0) * 0.92
@@ -312,7 +312,7 @@ function HandleUpdate(eventType, eventData)
         newbieGuidePopup.vel = 0
     end
 
-    -- 缁熶竴瑙勫垯寮圭獥婊氬姩鎯€?
+    -- 缁熶竴瑙勫垯寮圭獥婊氬姩鎯€?"
     if phaseRulePopup.show and not phaseRulePopup.isDragging and math.abs(phaseRulePopup.vel or 0) > 1 then
         phaseRulePopup.scrollY = (phaseRulePopup.scrollY or 0) + (phaseRulePopup.vel or 0) * dt
         phaseRulePopup.vel = (phaseRulePopup.vel or 0) * 0.92
@@ -322,7 +322,7 @@ function HandleUpdate(eventType, eventData)
         phaseRulePopup.vel = 0
     end
 
-    -- 鍏电鏇挎崲寮圭獥婊氬姩鎯€?
+    -- 鍏电鏇挎崲寮圭獥婊氬姩鎯€?"
     if sealReplaceState.show then
         local scrl = sealReplaceState.scroll
         if not scrl.isDragging and math.abs(scrl.vel or 0) > 1 then
@@ -343,20 +343,20 @@ function HandleUpdate(eventType, eventData)
         end
     end
 
-    -- (宸茬Щ闄ゆ鎶€闀挎寜寮圭獥, 鏀逛负鎸変笅鍗虫嫋鎷界瀯鍑?
+    -- (宸茬Щ闄ゆ鎶€闀挎寜寮圭獥, 鏀逛负鎸変笅鍗虫嫋鎷界瀯鍑?"
 
-    -- 鎺㈢储妯″紡甯ф洿鏂?(宸茬Щ闄ゆ帰绱㈢郴缁?
+    -- 鎺㈢储妯″紡甯ф洿鏂?(宸茬Щ闄ゆ帰绱㈢郴缁?"
     -- if gameState.phase == "EXPLORATION" then
     --     Exploration.Update(dt)
     -- end
 
-    -- 绱鍦ㄧ嚎鏃堕棿锛堝叏灞€锛屼笉浠呴檺浜庣鍒╅〉锛?
+    -- 绱鍦ㄧ嚎鏃堕棿锛堝叏灞€锛屼笉浠呴檺浜庣鍒╅〉锛?"
     welfareState.onlineTime = welfareState.onlineTime + dt
 
     -- BGM 鍦烘櫙鍒囨崲
     UpdateBGM()
 
-    -- 澶╁懡璧愮婊氬姩鎯€?
+    -- 澶╁懡璧愮婊氬姩鎯€?"
     if gameState.phase == "WELFARE" then
         local ws = welfareState.scroll
         if not ws.isDragging and math.abs(ws.vel) > 0.5 then
@@ -365,7 +365,7 @@ function HandleUpdate(eventType, eventData)
         elseif not ws.isDragging then
             ws.vel = 0
         end
-        -- 璐＄尞姒滅嫭绔嬫粴鍔ㄦ儻鎬?
+        -- 璐＄尞姒滅嫭绔嬫粴鍔ㄦ儻鎬?"
         local cs = welfareState.contribScroll
         if not cs.isDragging and math.abs(cs.vel) > 0.5 then
             cs.offset = cs.offset + cs.vel * dt
@@ -373,7 +373,7 @@ function HandleUpdate(eventType, eventData)
         elseif not cs.isDragging then
             cs.vel = 0
         end
-        -- 鎴樺姏鎺掕姒滅嫭绔嬫粴鍔ㄦ儻鎬?
+        -- 鎴樺姏鎺掕姒滅嫭绔嬫粴鍔ㄦ儻鎬?"
         local ps2 = welfareState.powerScroll
         if not ps2.isDragging and math.abs(ps2.vel) > 0.5 then
             ps2.offset = ps2.offset + ps2.vel * dt
@@ -381,7 +381,7 @@ function HandleUpdate(eventType, eventData)
         elseif not ps2.isDragging then
             ps2.vel = 0
         end
-        -- 妗╅€肩帇鎺掕姒滄粴鍔ㄦ儻鎬?
+        -- 妗╅€肩帇鎺掕姒滄粴鍔ㄦ儻鎬?"
         local ds = welfareState.dummyScroll
         if not ds.isDragging and math.abs(ds.vel) > 0.5 then
             ds.offset = ds.offset + ds.vel * dt
@@ -391,7 +391,7 @@ function HandleUpdate(eventType, eventData)
         end
     end
 
-    -- 闃佃惀鎴愬憳鍒楄〃婊氬姩鎯€?
+    -- 闃佃惀鎴愬憳鍒楄〃婊氬姩鎯€?"
     if gameState.phase == "FACTION" then
         local fs = factionUI.scroll
         if not fs.isDragging and math.abs(fs.vel) > 0.5 then
@@ -403,7 +403,7 @@ function HandleUpdate(eventType, eventData)
         end
     end
 
-    -- 浜ゆ槗琛屾粴鍔ㄦ儻鎬?
+    -- 浜ゆ槗琛屾粴鍔ㄦ儻鎬?"
     if gameState.phase == "TRADE" then
         local ts = tradeState.scroll
         if not ts.isDragging and math.abs(ts.vel) > 0.5 then
@@ -419,7 +419,7 @@ function HandleUpdate(eventType, eventData)
         end
     end
 
-    -- 缂栭槦鐣岄潰婊氬姩鎯€?
+    -- 缂栭槦鐣岄潰婊氬姩鎯€?"
     if gameState.phase == "FORMATION" and formationUI then
         menuAnimTimer = menuAnimTimer + dt
         if not formationUI.isDragging and math.abs(formationUI.scrollVel or 0) > 0.5 then
@@ -430,7 +430,7 @@ function HandleUpdate(eventType, eventData)
         end
     end
 
-    -- 閭欢鍒楄〃婊氬姩鎯€?
+    -- 閭欢鍒楄〃婊氬姩鎯€?"
     if gameState.phase == "MAIL_BOX" then
         local ms = welfareState.mail.scroll
         if ms and not ms.isDragging and math.abs(ms.vel) > 0.5 then
@@ -442,7 +442,7 @@ function HandleUpdate(eventType, eventData)
         end
     end
 
-    -- 鎴樹护閫氳璇佷换鍔″垪琛ㄦ粴鍔ㄦ儻鎬?
+    -- 鎴樹护閫氳璇佷换鍔″垪琛ㄦ粴鍔ㄦ儻鎬?"
     if gameState.phase == "BATTLE_PASS" and battlePassUIState.tab ~= 1 then
         local bs = battlePassUIState
         if not bs.isDragging then
@@ -467,11 +467,11 @@ function HandleUpdate(eventType, eventData)
         end
     end
 
-    -- 姣忔棩浠诲姟/鎴愬氨婊氬姩鎯€?(甯﹁竟鐣屽洖寮?
+    -- 姣忔棩浠诲姟/鎴愬氨婊氬姩鎯€?(甯﹁竟鐣屽洖寮?"
     if gameState.phase == "PROGRESS" then
         local ps = progressUIState
         if not ps.isDragging then
-            -- 鎯€ц“鍑忥紙鏇村钩婊戠殑鎸囨暟琛板噺锛?
+            -- 鎯€ц“鍑忥紙鏇村钩婊戠殑鎸囨暟琛板噺锛?"
             if math.abs(ps.scrollVel) > 0.3 then
                 ps.scrollY = ps.scrollY + ps.scrollVel * dt
                 ps.scrollVel = ps.scrollVel * math.pow(0.12, dt) -- 鏃堕棿鏃犲叧琛板噺
@@ -483,12 +483,12 @@ function HandleUpdate(eventType, eventData)
             local minY = -math.max(0, maxScroll)
             local maxY = 0
             if ps.scrollY > maxY then
-                -- 椤堕儴瓒呭嚭锛屽脊鍥?
+                -- 椤堕儴瓒呭嚭锛屽脊鍥?"
                 ps.scrollY = ps.scrollY + (maxY - ps.scrollY) * math.min(1, 12 * dt)
                 ps.scrollVel = ps.scrollVel * 0.5
                 if math.abs(ps.scrollY - maxY) < 0.5 then ps.scrollY = maxY end
             elseif ps.scrollY < minY then
-                -- 搴曢儴瓒呭嚭锛屽脊鍥?
+                -- 搴曢儴瓒呭嚭锛屽脊鍥?"
                 ps.scrollY = ps.scrollY + (minY - ps.scrollY) * math.min(1, 12 * dt)
                 ps.scrollVel = ps.scrollVel * 0.5
                 if math.abs(ps.scrollY - minY) < 0.5 then ps.scrollY = minY end
@@ -498,15 +498,15 @@ function HandleUpdate(eventType, eventData)
             local maxScroll = ps.contentHeight or 0
             local minY = -math.max(0, maxScroll)
             if ps.scrollY > 0 then
-                ps.scrollY = ps.scrollY * 0.6  -- 椤堕儴姗＄毊绛嬮樆鍔?
+                ps.scrollY = ps.scrollY * 0.6  -- 椤堕儴姗＄毊绛嬮樆鍔?"
             elseif ps.scrollY < minY then
                 local over = minY - ps.scrollY
-                ps.scrollY = minY - over * 0.6  -- 搴曢儴姗＄毊绛嬮樆鍔?
+                ps.scrollY = minY - over * 0.6  -- 搴曢儴姗＄毊绛嬮樆鍔?"
             end
         end
     end
 
-    -- 缂栬緫鍣ㄦ粴鍔ㄦ儻鎬?(甯﹁竟鐣屽洖寮?
+    -- 缂栬緫鍣ㄦ粴鍔ㄦ儻鎬?(甯﹁竟鐣屽洖寮?"
     if gameState.phase == "DEV_EDITOR" then
         local es = editorState
         if not es.isDragging then
@@ -545,7 +545,7 @@ function HandleUpdate(eventType, eventData)
         phaseChangeCooldown = phaseChangeCooldown - dt
     end
 
-    -- CDK 缁撴灉鎻愮ず鍊掕鏃?
+    -- CDK 缁撴灉鎻愮ず鍊掕鏃?"
     if cdkState.resultTimer > 0 then
         cdkState.resultTimer = cdkState.resultTimer - dt
     end
@@ -562,7 +562,7 @@ function HandleUpdate(eventType, eventData)
         menuAnimTimer = menuAnimTimer + dt
         if blockingLoadState.ready then
             if playerInfo.profileSet then
-                -- 宸茶缃繃璧勬枡锛岃烦杩囧ご鍍忛€夋嫨鐩存帴杩涘叆涓昏彍鍗?
+                -- 宸茶缃繃璧勬枡锛岃烦杩囧ご鍍忛€夋嫨鐩存帴杩涘叆涓昏彍鍗?"
                 gameState.phase = "MENU"
                 print("=== 闃诲鍔犺浇瀹屾垚锛宲rofileSet=true锛岀洿鎺ヨ繘鍏?MENU ===")
             else
@@ -570,7 +570,7 @@ function HandleUpdate(eventType, eventData)
                 print("=== 闃诲鍔犺浇瀹屾垚锛岃繘鍏?PROFILE锛堥娆¤缃祫鏂欙級===")
             end
         end
-        -- 鐐瑰嚮鎻愮ず鍊掕鏃?
+        -- 鐐瑰嚮鎻愮ず鍊掕鏃?"
         if loadingClickTipTimer and loadingClickTipTimer > 0 then
             loadingClickTipTimer = loadingClickTipTimer - dt
         end
@@ -581,7 +581,7 @@ function HandleUpdate(eventType, eventData)
         menuAnimTimer = menuAnimTimer + dt
     elseif gameState.phase == "MENU" then
         menuAnimTimer = menuAnimTimer + dt
-        -- 宸︿晶鏍忔粴鍔ㄦ儻鎬?
+        -- 宸︿晶鏍忔粴鍔ㄦ儻鎬?"
         if not leftSidebarScroll.isDragging and math.abs(leftSidebarScroll.vel) > 0.5 then
             leftSidebarScroll.y = leftSidebarScroll.y + leftSidebarScroll.vel * dt
             leftSidebarScroll.vel = leftSidebarScroll.vel * 0.92
@@ -608,7 +608,7 @@ function HandleUpdate(eventType, eventData)
                 end
             end
         end
-        -- 娈嬬墖浠撳簱鎯€ф粴鍔?
+        -- 娈嬬墖浠撳簱鎯€ф粴鍔?"
         if gachaState.showFragShop and not fragShopScroll.isDragging and math.abs(fragShopScroll.vel) > 0.5 then
             fragShopScroll.offset = fragShopScroll.offset + fragShopScroll.vel * dt
             fragShopScroll.vel = fragShopScroll.vel * 0.92
@@ -617,16 +617,16 @@ function HandleUpdate(eventType, eventData)
         end
     elseif gameState.phase == "CODEX" then
         menuAnimTimer = menuAnimTimer + dt
-        -- 婊氬姩鎯€?
+        -- 婊氬姩鎯€?"
         if not codexScroll.isDragging and math.abs(codexScroll.vel) > 0.5 then
             codexScroll.y = codexScroll.y + codexScroll.vel * dt
-            codexScroll.vel = codexScroll.vel * 0.92  -- 鎽╂摝鍔涜“鍑?
+            codexScroll.vel = codexScroll.vel * 0.92  -- 鎽╂摝鍔涜“鍑?"
         else
             codexScroll.vel = 0
         end
     elseif gameState.phase == "HERO_DETAIL" then
         menuAnimTimer = menuAnimTimer + dt
-        -- 婊氬姩鎯€?
+        -- 婊氬姩鎯€?"
         if not heroDetailScroll.isDragging and math.abs(heroDetailScroll.vel) > 0.5 then
             heroDetailScroll.y = heroDetailScroll.y + heroDetailScroll.vel * dt
             heroDetailScroll.vel = heroDetailScroll.vel * 0.92
@@ -635,7 +635,7 @@ function HandleUpdate(eventType, eventData)
         end
     elseif gameState.phase == "PLAYER_DETAIL" then
         menuAnimTimer = menuAnimTimer + dt
-        -- 婊氬姩鎯€?
+        -- 婊氬姩鎯€?"
         if not playerDetailScroll.isDragging and math.abs(playerDetailScroll.vel) > 0.5 then
             playerDetailScroll.y = playerDetailScroll.y + playerDetailScroll.vel * dt
             playerDetailScroll.vel = playerDetailScroll.vel * 0.92
@@ -644,7 +644,7 @@ function HandleUpdate(eventType, eventData)
         end
     elseif gameState.phase == "SKILL_CODEX" then
         menuAnimTimer = menuAnimTimer + dt
-        -- 婊氬姩鎯€?
+        -- 婊氬姩鎯€?"
         if not skillCodexState.isDragging and math.abs(skillCodexState.scrollVel) > 0.5 then
             skillCodexState.scrollY = skillCodexState.scrollY + skillCodexState.scrollVel * dt
             skillCodexState.scrollVel = skillCodexState.scrollVel * 0.92
@@ -656,11 +656,11 @@ function HandleUpdate(eventType, eventData)
         skillCodexState.scrollY = math.max(0, math.min(maxScroll, skillCodexState.scrollY))
     elseif gameState.phase == "EQUIP" then
         menuAnimTimer = menuAnimTimer + dt
-        -- 鏂扮増EquipUI鏇存柊锛堟粴鍔ㄦ儻鎬с€侀暱鎸夎鏃剁瓑锛?
+        -- 鏂扮増EquipUI鏇存柊锛堟粴鍔ㄦ儻鎬с€侀暱鎸夎鏃剁瓑锛?"
         if EquipUI.isVisible then
             EquipUI.Update(dt)
         else
-            -- 鏃х増婊氬姩鎯€?
+            -- 鏃х増婊氬姩鎯€?"
             if not equipScreenState.isDragging and math.abs(equipScreenState.scrollVel) > 0.5 then
                 equipScreenState.scrollY = equipScreenState.scrollY + equipScreenState.scrollVel * dt
                 equipScreenState.scrollVel = equipScreenState.scrollVel * 0.92
@@ -670,7 +670,7 @@ function HandleUpdate(eventType, eventData)
         end
     elseif gameState.phase == "EQUIP_CODEX" then
         menuAnimTimer = menuAnimTimer + dt
-        -- 鍏电敳鍥惧綍婊氬姩鎯€?
+        -- 鍏电敳鍥惧綍婊氬姩鎯€?"
         if not equipCodexState.isDragging and math.abs(equipCodexState.scrollVel) > 0.5 then
             equipCodexState.scrollY = equipCodexState.scrollY + equipCodexState.scrollVel * dt
             equipCodexState.scrollVel = equipCodexState.scrollVel * 0.92
@@ -679,7 +679,7 @@ function HandleUpdate(eventType, eventData)
         end
     elseif gameState.phase == "SEAL_MGR" then
         menuAnimTimer = menuAnimTimer + dt
-        -- 鍏电绠＄悊婊氬姩鎯€э紙閫変腑鍒嗚В鍒楄〃锛?
+        -- 鍏电绠＄悊婊氬姩鎯€э紙閫変腑鍒嗚В鍒楄〃锛?"
         if not sealMgrScroll.isDragging and math.abs(sealMgrScroll.vel) > 0.5 then
             sealMgrScroll.y = (sealMgrScroll.y or 0) + sealMgrScroll.vel * dt
             sealMgrScroll.vel = sealMgrScroll.vel * 0.92
@@ -689,7 +689,7 @@ function HandleUpdate(eventType, eventData)
         elseif not sealMgrScroll.isDragging then
             sealMgrScroll.vel = 0
         end
-        -- 鑻遍泟閫夋嫨寮圭獥婊氬姩鎯€?
+        -- 鑻遍泟閫夋嫨寮圭獥婊氬姩鎯€?"
         if sealMgrState.showHeroPicker and not heroPickerScroll.isDragging and math.abs(heroPickerScroll.vel) > 0.5 then
             heroPickerScroll.y = (heroPickerScroll.y or 0) + heroPickerScroll.vel * dt
             local maxScroll = math.max(0, (heroPickerScroll.contentH or 0) - (heroPickerScroll.viewH or 0))
@@ -704,7 +704,7 @@ function HandleUpdate(eventType, eventData)
         menuAnimTimer = menuAnimTimer + dt
     elseif gameState.phase == "POWER_RANK" then
         menuAnimTimer = menuAnimTimer + dt
-        -- 鎴樺姏/澧冪晫鎺掕姒滄粴鍔ㄦ儻鎬э紙鏍规嵁褰撳墠椤电锛?
+        -- 鎴樺姏/澧冪晫鎺掕姒滄粴鍔ㄦ儻鎬э紙鏍规嵁褰撳墠椤电锛?"
         local ps2 = welfareState.powerScroll
         if not ps2.isDragging and math.abs(ps2.vel) > 0.5 then
             ps2.offset = ps2.offset + ps2.vel * dt
@@ -721,7 +721,7 @@ function HandleUpdate(eventType, eventData)
         end
     elseif gameState.phase == "CONTRIB_RANK" then
         menuAnimTimer = menuAnimTimer + dt
-        -- 璐＄尞姒滆鎯呴〉婊氬姩鎯€?
+        -- 璐＄尞姒滆鎯呴〉婊氬姩鎯€?"
         local cs2 = welfareState.contribDetailScroll
         if not cs2.isDragging and math.abs(cs2.vel) > 0.5 then
             cs2.offset = cs2.offset + cs2.vel * dt
@@ -782,7 +782,7 @@ function HandleUpdate(eventType, eventData)
         end
             end
         end
-        -- 鎺掕姒滄粴鍔ㄦ儻鎬?
+        -- 鎺掕姒滄粴鍔ㄦ儻鎬?"
         if rankedState.showLeaderboard and not rankedState.rankScroll.isDragging then
             if math.abs(rankedState.rankScroll.vel) > 0.5 then
                 rankedState.rankScroll.offset = rankedState.rankScroll.offset + rankedState.rankScroll.vel * dt
@@ -794,7 +794,7 @@ function HandleUpdate(eventType, eventData)
         end
     elseif gameState.phase == "DUMMY_SELECT" then
         menuAnimTimer = menuAnimTimer + dt
-        -- 鎵撴々閫夊皢婊氬姩鎯€?
+        -- 鎵撴々閫夊皢婊氬姩鎯€?"
         if not dummyState.isDragging and math.abs(dummyState.scrollVel) > 0.5 then
             dummyState.scrollY = dummyState.scrollY + dummyState.scrollVel * dt
             dummyState.scrollVel = dummyState.scrollVel * 0.92
@@ -841,13 +841,13 @@ end
 --- 鏍规嵁鑷姩琛屽啗绛栫暐閫夋嫨杞﹂亾
 function PickLaneByStrategy(strategy)
     if strategy == "mid_focus" then
-        -- 鍏ㄦ涓矾: 鍏ㄩ儴鍏靛姏闆嗕腑绗?閬?
+        -- 鍏ㄦ涓矾: 鍏ㄩ儴鍏靛姏闆嗕腑绗?閬?"
         return 3
     elseif strategy == "side_spread" then
-        -- 鍒嗘暎渚х考: 鍏ㄩ儴鍏靛姏鍙蛋绗?鍜岀5閬?
+        -- 鍒嗘暎渚х考: 鍏ㄩ儴鍏靛姏鍙蛋绗?鍜岀5閬?"
         if math.random(2) == 1 then return 1 else return 5 end
     else
-        -- 浜旇矾骞惰繘(榛樿): 闅忔満鍏ㄨ溅閬?
+        -- 浜旇矾骞惰繘(榛樿): 闅忔満鍏ㄨ溅閬?"
         return math.random(1, NUM_LANES)
     end
 end
@@ -856,9 +856,9 @@ end
 --- 鑷姩閲婃斁鐜╁鎶€鑳?(autoMarch寮€鍚椂, 鎵嬪姩鎿嶄綔浼樺厛)
 function UpdateAutoSkills(dt)
     if not gameState.autoMarch then return end
-    if skillTargeting.active then return end  -- 鐜╁姝ｅ湪鎵嬪姩鐬勫噯锛岃烦杩?
+    if skillTargeting.active then return end  -- 鐜╁姝ｅ湪鎵嬪姩鐬勫噯锛岃烦杩?"
     if #playerEquippedSkills == 0 then return end
-    if #playerUnits == 0 then return end  -- 娌℃湁宸辨柟鍗曚綅涓嶉噴鏀?
+    if #playerUnits == 0 then return end  -- 娌℃湁宸辨柟鍗曚綅涓嶉噴鏀?"
 
     autoSkillState.timer = autoSkillState.timer + dt
     if autoSkillState.timer < autoSkillState.nextTime then return end
@@ -866,7 +866,7 @@ function UpdateAutoSkills(dt)
     autoSkillState.timer = 0
     autoSkillState.nextTime = autoSkillState.interval + (math.random() - 0.5) * 2.0
 
-    -- 绛涢€夊彲鐢?涓嶅湪CD)鐨勫凡瑁呭鎶€鑳?
+    -- 绛涢€夊彲鐢?涓嶅湪CD)鐨勫凡瑁呭鎶€鑳?"
     local readySkills = {}
     for _, techIdx in ipairs(playerEquippedSkills) do
         local skill = SKILL_DEFS[techIdx]
@@ -876,7 +876,7 @@ function UpdateAutoSkills(dt)
     end
     if #readySkills == 0 then return end
 
-    -- 闅忔満閫変竴涓妧鑳?
+    -- 闅忔満閫変竴涓妧鑳?"
     local chosenIdx = readySkills[math.random(1, #readySkills)]
     local skill = SKILL_DEFS[chosenIdx]
     if not skill then return end
@@ -908,18 +908,18 @@ end
 
 
 -- ============================================================================
--- 鍏ㄨ嚜鍔ㄦ垬鏂?AI (绠€鍗曢€昏緫: 鑷姩涔板崱涓婇樀銆佸紑鎴樸€佽鍐涖€佸埛鏂?
+-- 鍏ㄨ嚜鍔ㄦ垬鏂?AI (绠€鍗曢€昏緫: 鑷姩涔板崱涓婇樀銆佸紑鎴樸€佽鍐涖€佸埛鏂?"
 -- ============================================================================
 
---- 鑷姩浠庡晢搴楄喘涔板崱鐗屽苟鏀惧叆绌烘Ы浣?
---- @return boolean 鏄惁鎴愬姛璐拱浜嗚嚦灏戜竴寮?
+--- 鑷姩浠庡晢搴楄喘涔板崱鐗屽苟鏀惧叆绌烘Ы浣?"
+--- @return boolean 鏄惁鎴愬姛璐拱浜嗚嚦灏戜竴寮?"
 function AutoBuyAndPlace()
     local bought = false
 
-    -- 浼樺厛绾х瓥鐣?
+    -- 浼樺厛绾х瓥鐣?"
     -- 1. 浼樺厛璐拱鑳戒笌宸蹭笂闃垫鐏靛悎骞跺崌绾х殑鍗＄墝 (鍚屽悕)
     -- 2. 鍏舵鎸夎垂鐢ㄩ檷搴忚喘涔伴珮鍝佽川鍗＄墝
-    -- 3. 鏈夌┖妲芥墠鏀炬柊鍗?
+    -- 3. 鏈夌┖妲芥墠鏀炬柊鍗?"
 
     -- 鏀堕泦宸蹭笂闃垫鐏靛悕绉?(鐢ㄤ簬鍚堝苟鍗囩骇鍒ゆ柇)
     local onBoardNames = {}
@@ -929,11 +929,11 @@ function AutoBuyAndPlace()
         end
     end
 
-    -- 鎸夎垂鐢ㄩ檷搴忔帓鍒楃储寮?
+    -- 鎸夎垂鐢ㄩ檷搴忔帓鍒楃储寮?"
     local sortedIndices = {}
     for i = 1, #shopCards do sortedIndices[i] = i end
 
-    -- 鎺掑簭: 鍙悎骞剁殑浼樺厛, 鍚屼紭鍏堢骇鎸夎垂鐢ㄩ檷搴?
+    -- 鎺掑簭: 鍙悎骞剁殑浼樺厛, 鍚屼紭鍏堢骇鎸夎垂鐢ㄩ檷搴?"
     table.sort(sortedIndices, function(a, b)
         local sa, sb = shopCards[a], shopCards[b]
         local heroA = HERO_CARDS[sa.cardIdx]
@@ -960,10 +960,10 @@ function AutoBuyAndPlace()
             end
 
             if mergeSlot then
-                -- 鍚堝苟鍗囩骇: 璐拱鍚庡崌绾у凡鏈夊崱鐗?
+                -- 鍚堝苟鍗囩骇: 璐拱鍚庡崌绾у凡鏈夊崱鐗?"
                 gameState.gold = gameState.gold - shopItem.cost
                 shopItem.sold = true
-                -- 鍗囩骇: 绛夌骇+1, 灞炴€ф彁鍗?
+                -- 鍗囩骇: 绛夌骇+1, 灞炴€ф彁鍗?"
                 local mc = mergeSlot.card
                 mc.level = (mc.level or 1) + 1
                 mc.constellation = (mc.constellation or 0) + (shopItem.constellation or 0)
@@ -971,7 +971,7 @@ function AutoBuyAndPlace()
                 AddFloatText(DESIGN_W / 2, DESIGN_H * 0.5,
                     mc.name .. " 鍗囩骇 Lv" .. mc.level, 1.0, { 255, 220, 80 }, 14)
             else
-                -- 鎵句竴涓┖妲戒綅鏀炬柊鍗?
+                -- 鎵句竴涓┖妲戒綅鏀炬柊鍗?"
                 local emptySlot = nil
                 for _, slot in ipairs(PLAYER_SLOTS) do
                     if not slot.filled then
@@ -980,7 +980,7 @@ function AutoBuyAndPlace()
                     end
                 end
                 if not emptySlot then break end -- 娌℃湁绌烘Ы浣嶄簡
-                -- 璐拱骞舵斁缃?
+                -- 璐拱骞舵斁缃?"
                 gameState.gold = gameState.gold - shopItem.cost
                 shopItem.sold = true
                 local cardData = DeepCopy(HERO_CARDS[shopItem.cardIdx])
@@ -997,22 +997,22 @@ function AutoBuyAndPlace()
 end
 
 
---- 鑷姩鎴樻枟涓绘洿鏂?(鐢ㄥ師濮媎t鑺傛祦, 涓嶅彈鍊嶉€熷奖鍝?
+--- 鑷姩鎴樻枟涓绘洿鏂?(鐢ㄥ師濮媎t鑺傛祦, 涓嶅彈鍊嶉€熷奖鍝?"
 function UpdateAutoBattle(dt)
     if not gameState.autoBattle then return end
-    if gameState.noFullAuto then gameState.autoBattle = false; return end -- 鍓湰绂佺敤鍏ㄨ嚜鍔?
+    if gameState.noFullAuto then gameState.autoBattle = false; return end -- 鍓湰绂佺敤鍏ㄨ嚜鍔?"
 
     autoBattleTimer = (autoBattleTimer or 0) + dt
 
     if gameState.battlePhase == "SHOP" then
-        -- SHOP闃舵: 姣?.3s鎵ц涓€娆? 涔板崱涓婇樀鐒跺悗寮€鎴?
+        -- SHOP闃舵: 姣?.3s鎵ц涓€娆? 涔板崱涓婇樀鐒跺悗寮€鎴?"
         if autoBattleTimer < 0.3 then return end
         autoBattleTimer = 0
 
-        -- 鑷姩璐拱骞朵笂闃?
+        -- 鑷姩璐拱骞朵笂闃?"
         local bought = AutoBuyAndPlace()
 
-        -- 濡傛灉涔颁笉鍒版洿澶氬崱 (閽变笉澶熸垨妲戒綅婊?, 鑷姩寮€鎴?
+        -- 濡傛灉涔颁笉鍒版洿澶氬崱 (閽变笉澶熸垨妲戒綅婊?", 鑷姩寮€鎴?"
         if not bought and GetPlayerFilledSlotCount() > 0 then
             gameState.battlePhase = "FIGHT"
             AggregateBaseStats()
@@ -1023,16 +1023,16 @@ function UpdateAutoBattle(dt)
         end
 
     elseif gameState.battlePhase == "FIGHT" then
-        -- FIGHT闃舵: 姣?s鎵ц涓€娆?
+        -- FIGHT闃舵: 姣?s鎵ц涓€娆?"
         if autoBattleTimer < 1.0 then return end
         autoBattleTimer = 0
 
-        -- 纭繚鑷姩琛屽啗寮€鍚?
+        -- 纭繚鑷姩琛屽啗寮€鍚?"
         if not gameState.autoMarch then
             gameState.autoMarch = true
         end
 
-        -- 鍟嗗簵鍞絼涓旀湁鍐涜祫鏃惰嚜鍔ㄥ埛鏂?
+        -- 鍟嗗簵鍞絼涓旀湁鍐涜祫鏃惰嚜鍔ㄥ埛鏂?"
         if GetUnsoldShopCardCount() == 0 and gameState.gold >= GameConfig.REFRESH_COST then
             gameState.gold = gameState.gold - GameConfig.REFRESH_COST
             RefreshShop()
@@ -1046,32 +1046,32 @@ end
 
 function UpdateBattle(dt)
     -- ============================
-    -- SHOP: 甯冮樀璐崱闃舵 - 涓嶅嚭鍏? 绛夌帺瀹剁偣鍑诲紑鎴?
+    -- SHOP: 甯冮樀璐崱闃舵 - 涓嶅嚭鍏? 绛夌帺瀹剁偣鍑诲紑鎴?"
     -- ============================
     if gameState.battlePhase == "SHOP" then
         return
     end
 
     -- ============================
-    -- FIGHT: 杩炵画鍑哄叺+鎴樻枟 (鏃犲洖鍚? 鐩村埌涓€鏂瑰熀鍦拌閲忓綊闆?
+    -- FIGHT: 杩炵画鍑哄叺+鎴樻枟 (鏃犲洖鍚? 鐩村埌涓€鏂瑰熀鍦拌閲忓綊闆?"
     -- ============================
 
     -- === 鎵撴々妯″紡: 30s鍊掕鏃?+ 浼ゅ杩借釜 ===
     if gameState.isDummy then
-        -- 鍑嗗闃舵涓嶈鏃?
+        -- 鍑嗗闃舵涓嶈鏃?"
         if dummyState.prepPhase then return end
 
         local prevHP = gameState.enemyBaseHP
-        -- 缁х画姝ｅ父鎴樻枟鏇存柊锛堜笅鏂归€昏緫浼氬噺灏慹nemyBaseHP锛?
+        -- 缁х画姝ｅ父鎴樻枟鏇存柊锛堜笅鏂归€昏緫浼氬噺灏慹nemyBaseHP锛?"
         -- 浣嗗厛澶勭悊璁℃椂
         dummyState.timer = dummyState.timer - dt
         if dummyState.timer <= 0 then
-            -- 璁＄畻鏈抚鏈€鍚庝激瀹?
+            -- 璁＄畻鏈抚鏈€鍚庝激瀹?"
             local frameDmg = prevHP - gameState.enemyBaseHP
             if frameDmg > 0 then
                 dummyState.totalDamage = dummyState.totalDamage + frameDmg
             end
-            -- 鏃堕棿鍒帮紝杩涘叆缁撴灉椤?
+            -- 鏃堕棿鍒帮紝杩涘叆缁撴灉椤?"
             gameState.phase = "DUMMY_RESULT"
             gameState.isDummy = false
             gameState.abyssFloor = nil
@@ -1082,7 +1082,7 @@ function UpdateBattle(dt)
             PlaySFX(AUDIO.sfx_click)
             print(string.format("=== 30s鎵撴々缁撴潫 | 鎬讳激瀹? %d | DPS: %.0f ===",
                 math.floor(dummyState.totalDamage), dummyState.totalDamage / 30))
-            -- 璁板綍鏈€楂樻墦妗╀激瀹?& 涓婃姤鍒版々閫肩帇鎺掕姒?
+            -- 璁板綍鏈€楂樻墦妗╀激瀹?& 涓婃姤鍒版々閫肩帇鎺掕姒?"
             if dummyState.totalDamage > (playerInfo.bestDummyDamage or 0) then
                 playerInfo.bestDummyDamage = dummyState.totalDamage
             end
@@ -1159,7 +1159,7 @@ function UpdateBattle(dt)
         if slot.spawnFlash and slot.spawnFlash > 0 then slot.spawnFlash = slot.spawnFlash - dt end
     end
 
-    -- 鏇存柊姝︽妧鎶€鑳界壒鏁?
+    -- 鏇存柊姝︽妧鎶€鑳界壒鏁?"
     UpdateSkillEffects(dt)
 
     -- AI瀵规墜閲婃斁姝︽妧鎶€鑳?(鎺掍綅/璁ㄤ紣妯″紡)
@@ -1173,7 +1173,7 @@ function UpdateBattle(dt)
     UpdateUnits(dt, enemyUnits, playerUnits, false)
 
     -- === 鐜╁鍏电獊鐮存晫鏂逛复鐣岀嚎 >> 鐩存帴鏀诲嚮鏁屾柟澶ф湰钀?===
-    -- 鐨囧鎴樹簤璁捐: 绐佺牬=澶т激瀹? 涓€涓叺杩囩嚎灏卞緢鐥?
+    -- 鐨囧鎴樹簤璁捐: 绐佺牬=澶т激瀹? 涓€涓叺杩囩嚎灏卞緢鐥?"
     for i = #playerUnits, 1, -1 do
         local u = playerUnits[i]
         if u.alive and u.x >= BATTLE_ZONE.enemyLine - 8 then
@@ -1204,7 +1204,7 @@ function UpdateBattle(dt)
     -- === 鏁屾柟鍏电獊鐮寸帺瀹朵复鐣岀嚎 >> 鐩存帴鏀诲嚮鐜╁澶ф湰钀?===
     for i = #enemyUnits, 1, -1 do
         local u = enemyUnits[i]
-        -- 鎵撴々鑰佽檸涓嶇Щ鍔?speed=0)锛屼笉浼氱獊鐮翠复鐣岀嚎锛屼絾浠ラ槻涓囦竴涔熻烦杩?
+        -- 鎵撴々鑰佽檸涓嶇Щ鍔?speed=0)锛屼笉浼氱獊鐮翠复鐣岀嚎锛屼絾浠ラ槻涓囦竴涔熻烦杩?"
         if u.alive and u.x <= BATTLE_ZONE.playerLine + 8 then
             if not u.isDummyTiger then
                 local classBreak = (u.unitClass and u.unitClass.breakDmg or 1) * 15
@@ -1228,7 +1228,7 @@ function UpdateBattle(dt)
 
     -- === 鎵撴々妯″紡: 姣忓抚浼ゅ绱 + 鑰佽檸鏃犻檺杞洖 ===
     if gameState.isDummy then
-        -- 璁板綍鏈抚閫犳垚鐨勪激瀹?(enemyBaseHP鍦ㄤ笂鏂硅鍑忓皯浜?
+        -- 璁板綍鏈抚閫犳垚鐨勪激瀹?(enemyBaseHP鍦ㄤ笂鏂硅鍑忓皯浜?"
         local curHP = gameState.enemyBaseHP
         local expectedHP = 999999
         local frameDmg = expectedHP - curHP
@@ -1292,7 +1292,7 @@ function UpdateBattle(dt)
             AddFloatText(DESIGN_W / 2, BATTLE_ZONE.centerY, "鏃堕棿鍒?璐ュ寳...", 3.0, { 255, 80, 80 }, 48)
             PlaySFX(AUDIO.sfx_lose)
         else
-            -- 瀹屽叏骞冲眬 >> 鍒ゅ畾涓哄け璐?
+            -- 瀹屽叏骞冲眬 >> 鍒ゅ畾涓哄け璐?"
             gameState.playerBaseHP = 0
             gameState.phase = "LOSE"
             gameState.resultTimer = 0

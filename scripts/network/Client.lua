@@ -1,7 +1,7 @@
 -- ============================================================================
--- Client.lua - 鎺掍綅瀵规垬瀹㈡埛绔綉缁滃眰
--- 浠呭湪鎺掍綅鍖归厤鎴愬姛鍚庯紙ServerReady 浜嬩欢锛夋墠鍒濆鍖栬繛鎺?
--- 鎴块棿鐢熷懡鍛ㄦ湡锛歋erverReady 鈫?Start 鈫?鎴樻枟 鈫?缁撶畻 鈫?Disconnect
+-- Client.lua - 常驻服务器客户端网络层
+-- 启动时直接连接常驻服务器，由服务端统一处理云存档、排行和排位匹配
+-- ============================================================================
 -- ============================================================================
 
 ---@diagnostic disable: undefined-global
@@ -15,10 +15,10 @@ local Protocol = require("network.Protocol")
 local EVENTS = Protocol.EVENTS
 
 -- ============================================================================
--- 鐘舵€?
+-- 鐘舵€?"
 -- ============================================================================
 
--- 缃戠粶鐘舵€侊紙鍏ㄥ眬锛屼緵鍏朵粬妯″潡璁块棶锛?
+-- 缃戠粶鐘舵€侊紙鍏ㄥ眬锛屼緵鍏朵粬妯″潡璁块棶锛?"
 netState = netState or {
     connected = false,         -- 鏄惁宸茶繛鎺ユ埧闂存湇鍔＄
     userId = 0,                -- 鑷繁鐨?userId
@@ -73,7 +73,7 @@ local function flushDelayedCloudQueue()
 end
 
 -- ============================================================================
--- 鍏ュ彛锛堟帓浣嶅尮閰嶆垚鍔熷悗璋冪敤锛?
+-- 鍏ュ彛锛堟帓浣嶅尮閰嶆垚鍔熷悗璋冪敤锛?"
 -- ============================================================================
 
 function Client.Start()
@@ -84,13 +84,13 @@ function Client.Start()
 
     Shared.RegisterEvents()
 
-    -- 鍒涘缓绌哄満鏅紙缃戠粶蹇呴渶锛?
+    -- 鍒涘缓绌哄満鏅紙缃戠粶蹇呴渶锛?"
     if not scene_ then
         scene_ = Scene()
         scene_:CreateComponent("Octree", LOCAL)
     end
 
-    -- 鑾峰彇鏈嶅姟绔繛鎺?
+    -- 鑾峰彇鏈嶅姟绔繛鎺?"
     serverConnection_ = network:GetServerConnection()
     if not serverConnection_ then
         print("[Client] ERROR: No server connection")
@@ -100,7 +100,7 @@ function Client.Start()
     -- 璁剧疆鍦烘櫙
     serverConnection_.scene = scene_
 
-    -- 璁㈤槄鏈嶅姟绔簨浠?
+    -- 璁㈤槄鏈嶅姟绔簨浠?"
     if not eventsSubscribed_ then
         SubscribeToEvent(EVENTS.WELCOME, "HandleWelcome")
         SubscribeToEvent(EVENTS.ERROR, "HandleServerError")
@@ -112,12 +112,12 @@ function Client.Start()
         eventsSubscribed_ = true
     end
 
-    -- 鍙戦€佸氨缁?
+    -- 鍙戦€佸氨缁?"
     if not netState.connected then
         serverConnection_:SendRemoteEvent(EVENTS.CLIENT_READY, true)
     end
     netState.connected = true
-    print("[Client] 宸茶繛鎺ユ帓浣嶆埧闂存湇鍔＄锛屽彂閫?ClientReady")
+    print("[Client] 已连接常驻服务器，发送 ClientReady")
     return true
 end
 
@@ -126,7 +126,7 @@ function Client.Stop()
     netState.serverReady = false
     serverConnection_ = nil
     scene_ = nil
-    print("[Client] 鏂紑鎺掍綅鎴块棿杩炴帴")
+    print("[Client] 断开常驻服务器连接")
 end
 
 -- ============================================================================
@@ -224,7 +224,7 @@ function HandleRankedEnd(eventType, eventData)
         return
     end
 
-    -- 鎴樻枟缁撶畻缁撴灉锛堟湇鍔＄鏉冨▉锛?
+    -- 鎴樻枟缁撶畻缁撴灉锛堟湇鍔＄鏉冨▉锛?"
     local isWin = eventData["IsWin"]:GetBool()
     local serverDelta = eventData["ServerDelta"]:GetInt()
     local newElo = eventData["NewElo"]:GetInt()
@@ -251,7 +251,7 @@ function HandleRankedEnd(eventType, eventData)
 end
 
 -- ============================================================================
--- 鍙戦€佽姹傜殑鍏叡鎺ュ彛锛堜粎鎺掍綅鐩稿叧锛?
+-- 鍙戦€佽姹傜殑鍏叡鎺ュ彛锛堜粎鎺掍綅鐩稿叧锛?"
 -- ============================================================================
 
 --- 璇锋眰鍔犲叆鎺掍綅
@@ -340,14 +340,14 @@ function Client.ReportRankedBattleResult(isWin, score, delta, streak)
     })
 end
 
---- 鎺掍綅鎶曢檷/閫€鍑?
+--- 鎺掍綅鎶曢檷/閫€鍑?"
 function Client.ForfeitRanked()
     return Client.SendRankedAction({
         subAction = "forfeit",
     })
 end
 
---- 妫€鏌ユ槸鍚﹀凡杩炴帴骞跺氨缁?
+--- 妫€鏌ユ槸鍚﹀凡杩炴帴骞跺氨缁?"
 function Client.IsReady()
     return netState.connected and netState.serverReady
 end

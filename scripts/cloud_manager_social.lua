@@ -4,7 +4,7 @@
 -- ============================================================================
 ---@diagnostic disable: undefined-global
 
--- 浠?core 妯″潡瀵煎叆甯搁噺鍜屽叡浜姸鎬?
+-- 浠?core 妯″潡瀵煎叆甯搁噺鍜屽叡浜姸鎬?"
 local C = CloudManager._C
 local S = CloudManager._S
 local KEYS = C.KEYS
@@ -37,10 +37,10 @@ end
 -- 鍏紑妗ｆ
 -- ============================================================================
 
---- 鍙戝竷鍏紑妗ｆ (鑷姩浠庡叏灞€鍙橀噺鎻愬彇, 鏈夐鐜囬檺鍒?
+--- 鍙戝竷鍏紑妗ｆ (鑷姩浠庡叏灞€鍙橀噺鎻愬彇, 鏈夐鐜囬檺鍒?"
 function CloudManager._publishProfile(allData)
     if not CloudAPI.IsAvailable() then return end
-    -- 灏佺妫€鏌?
+    -- 灏佺妫€鏌?"
     if S.banLevel >= BAN_LEVEL_CORE then return end
     -- 棰戠巼闄愬埗
     if not CloudManager._checkCooldown("publish_profile", COOLDOWN_PROFILE_PUBLISH) then return end
@@ -69,7 +69,7 @@ function CloudManager._publishProfile(allData)
                 profile.heroLineup[#profile.heroLineup + 1] = tonumber(idx) or idx
             end
         end
-        -- 鍙繚鐣欏墠6涓?
+        -- 鍙繚鐣欏墠6涓?"
         while #profile.heroLineup > 6 do table.remove(profile.heroLineup) end
     end
 
@@ -80,7 +80,7 @@ function CloudManager._publishProfile(allData)
         end
     end
 
-    -- 鏈€楂樿澶囧搧闃?
+    -- 鏈€楂樿澶囧搧闃?"
     if rawget(_G, "playerEquipment") and playerEquipment.owned then
         for _, item in ipairs(playerEquipment.owned) do
             if item.tier and item.tier > profile.mainEquipTier then
@@ -89,7 +89,7 @@ function CloudManager._publishProfile(allData)
         end
     end
 
-    -- 璁＄畻鎴樺姏 (涓庣幇鏈夐€昏緫淇濇寔涓€鑷?
+    -- 璁＄畻鎴樺姏 (涓庣幇鏈夐€昏緫淇濇寔涓€鑷?"
     local combatPower = 0
     if rawget(_G, "CalcPlayerTotalPower") then
         combatPower = CalcPlayerTotalPower() or 0
@@ -110,8 +110,8 @@ function CloudManager.PublishProfile()
     CloudManager._publishProfile(nil)
 end
 
---- 鑾峰彇鍏朵粬鐜╁鐨勫叕寮€妗ｆ (閫氳繃鎴樺姏鎺掕姒?
----@param start number 璧峰浣嶇疆 (0寮€濮?
+--- 鑾峰彇鍏朵粬鐜╁鐨勫叕寮€妗ｆ (閫氳繃鎴樺姏鎺掕姒?"
+---@param start number 璧峰浣嶇疆 (0寮€濮?"
 ---@param count number 鑾峰彇鏁伴噺
 ---@param callback fun(profiles: table[])
 function CloudManager.GetPublicProfiles(start, count, callback)
@@ -171,8 +171,8 @@ function CloudManager.GetPublicProfiles(start, count, callback)
 end
 
 -- ============================================================================
--- 濂藉弸绯荤粺 (鍏叡鐢宠姹犳ā鍨?鈥?瀹夊叏鐗?
--- 鏍稿績: 鎺掕姒滃仛鍏叡淇＄, 姣忎汉鍙啓鑷繁鏁版嵁, 姘镐笉鍐欏埆浜哄瓨妗?
+-- 濂藉弸绯荤粺 (鍏叡鐢宠姹犳ā鍨?鈥?瀹夊叏鐗?"
+-- 鏍稿績: 鎺掕姒滃仛鍏叡淇＄, 姣忎汉鍙啓鑷繁鏁版嵁, 姘镐笉鍐欏埆浜哄瓨妗?"
 -- ============================================================================
 
 CloudManager._friendIds = {}           -- 宸茬‘璁ゅソ鍙?{ userId1, userId2, ... }
@@ -231,14 +231,14 @@ function CloudManager._loadMyOutbox(callback)
                 if values[KEYS.camp_resp] and type(values[KEYS.camp_resp]) == "table" then
                     CloudManager._campOutResp = values[KEYS.camp_resp]
                 end
-                -- 鐩熶富闃佃惀鍏冩暟鎹?
+                -- 鐩熶富闃佃惀鍏冩暟鎹?"
                 if values[KEYS.camp_meta] and type(values[KEYS.camp_meta]) == "table"
                    and values[KEYS.camp_meta].id then
                     CloudManager._factionMeta = values[KEYS.camp_meta]
                 end
                 print("[绀句氦] 鍑虹珯淇＄宸插姞杞? 濂藉弸鐢宠=" .. _tableCount(CloudManager._outgoingRequests)
                     .. " 濂藉弸鍥炲=" .. _tableCount(CloudManager._outgoingResponses)
-                    .. " 闃佃惀鐢宠=" .. (CloudManager._campOutApply and "鏈? or "鏃?))
+                    .. " 闃佃惀鐢宠=" .. (CloudManager._campOutApply and "鏈?" or "鏃?"))
                 -- 闃佃惀缁т綅妫€娴? 濡傛灉鏈夐樀钀ュ綊灞? 鑷姩妫€鏌ユ槸鍚﹀彂鐢熶簡鐩熶富杞
                 if CloudManager._factionId ~= 0 then
                     CloudManager._refreshFactionStatus()
@@ -274,13 +274,13 @@ end
 
 -- 鈹€鈹€ 鍙戦€佸ソ鍙嬬敵璇?鈹€鈹€
 
---- 鍚戠洰鏍囩帺瀹跺彂閫佸ソ鍙嬬敵璇?(鍐欏叆鑷繁鐨勫嚭绔欎俊绠?
+--- 鍚戠洰鏍囩帺瀹跺彂閫佸ソ鍙嬬敵璇?(鍐欏叆鑷繁鐨勫嚭绔欎俊绠?"
 ---@param targetUserId number
 ---@param message? string 鐢宠鐣欒█
 ---@return boolean success
 ---@return string? reason
 function CloudManager.SendFriendRequest(targetUserId, message)
-    -- 灏佺妫€鏌? 绀句氦灏佺鍙婁互涓婄姝?
+    -- 灏佺妫€鏌? 绀句氦灏佺鍙婁互涓婄姝?"
     if S.banLevel >= BAN_LEVEL_SOCIAL then
         return false, "绀句氦鍔熻兘宸茶闄愬埗"
     end
@@ -293,18 +293,18 @@ function CloudManager.SendFriendRequest(targetUserId, message)
     end
     -- 棰戠巼闄愬埗
     if not CloudManager._checkCooldown("friend_request", COOLDOWN_FRIEND_REQUEST) then
-        return false, "鎿嶄綔杩囦簬棰戠箒, 璇? .. COOLDOWN_FRIEND_REQUEST .. "绉掑悗鍐嶈瘯"
+        return false, "鎿嶄綔杩囦簬棰戠箒, 璇?" .. COOLDOWN_FRIEND_REQUEST .. "绉掑悗鍐嶈瘯"
     end
     -- 宸叉槸濂藉弸
     if CloudManager.IsFriend(targetUserId) then
         return false, "宸叉槸濂藉弸"
     end
-    -- 宸叉湁寰呭鐞嗙敵璇?(7澶╁唴闃查噸澶?
+    -- 宸叉湁寰呭鐞嗙敵璇?(7澶╁唴闃查噸澶?"
     local uidKey = tostring(targetUserId)
     if CloudManager._outgoingRequests[uidKey] then
         return false, "宸插彂閫佽繃鐢宠, 绛夊緟瀵规柟鍥炲簲"
     end
-    -- 琚嫆缁濆喎鍗? 24灏忔椂鍐呬笉鑳介噸澶嶇敵璇峰悓涓€浜?
+    -- 琚嫆缁濆喎鍗? 24灏忔椂鍐呬笉鑳介噸澶嶇敵璇峰悓涓€浜?"
     local rejectTime = S.rejectedByCache[uidKey]
     if rejectTime and (os.time() - rejectTime) < COOLDOWN_REJECTED_RETRY then
         local remaining = COOLDOWN_REJECTED_RETRY - (os.time() - rejectTime)
@@ -343,7 +343,7 @@ function CloudManager.CheckIncomingRequests(callback)
     end
     local myUid = CloudAPI.GetUserId()
 
-    -- 鎵弿 freq_outbox_ts 鎺掕姒?(鎸夋渶杩戞洿鏂版帓搴? 鎷?00浜?
+    -- 鎵弿 freq_outbox_ts 鎺掕姒?(鎸夋渶杩戞洿鏂版帓搴? 鎷?00浜?"
     CloudAPI:GetRankList(KEYS.freq_outbox_ts, 0, 200, {
         ok = function(rankList)
             local incoming = {}
@@ -356,7 +356,7 @@ function CloudManager.CheckIncomingRequests(callback)
                     local outbox = item.score[KEYS.freq_outbox]
                     if type(outbox) == "table" and outbox[myUidStr] then
                         local req = outbox[myUidStr]
-                        -- 妫€鏌ヨ繃鏈?
+                        -- 妫€鏌ヨ繃鏈?"
                         if req.time and (os.time() - req.time) <= REQUEST_EXPIRE_SECONDS then
                             -- 鎺掗櫎宸叉槸濂藉弸 & 宸插洖澶嶇殑
                             if not CloudManager.IsFriend(senderId)
@@ -374,7 +374,7 @@ function CloudManager.CheckIncomingRequests(callback)
                 end
             end
 
-            -- 鎵归噺鏌ユ樀绉?
+            -- 鎵归噺鏌ユ樀绉?"
             if #senderIds > 0 and rawget(_G, "GetUserNickname") then
                 GetUserNickname({
                     userIds = senderIds,
@@ -405,7 +405,7 @@ end
 
 -- 鈹€鈹€ 鍚屾剰濂藉弸鐢宠 鈹€鈹€
 
---- 鍚屾剰鏉ヨ嚜 fromUserId 鐨勫ソ鍙嬬敵璇?
+--- 鍚屾剰鏉ヨ嚜 fromUserId 鐨勫ソ鍙嬬敵璇?"
 ---@param fromUserId number
 ---@return boolean
 function CloudManager.AcceptFriendRequest(fromUserId)
@@ -420,7 +420,7 @@ function CloudManager.AcceptFriendRequest(fromUserId)
     -- 1. 鍔犲叆鑷繁濂藉弸鍒楄〃
     table.insert(CloudManager._friendIds, fromUserId)
 
-    -- 2. 鍙戝竷鍥炲鍒拌嚜宸辩殑 resp 淇＄ (瀵规柟涓嬫鐧诲綍浼氭壂鍒?
+    -- 2. 鍙戝竷鍥炲鍒拌嚜宸辩殑 resp 淇＄ (瀵规柟涓嬫鐧诲綍浼氭壂鍒?"
     CloudManager._outgoingResponses[tostring(fromUserId)] = {
         accepted = true,
         time = os.time(),
@@ -428,7 +428,7 @@ function CloudManager.AcceptFriendRequest(fromUserId)
     CloudManager._publishResponses()
     CloudManager._syncSocialDomain()
 
-    print("[濂藉弸] 宸插悓鎰?" .. tostring(fromUserId) .. " 鐨勭敵璇? 褰撳墠濂藉弸 " .. #CloudManager._friendIds .. " 浜?)
+    print("[濂藉弸] 宸插悓鎰?" .. tostring(fromUserId) .. " 鐨勭敵璇? 褰撳墠濂藉弸 " .. #CloudManager._friendIds .. " 浜?")
     return true
 end
 
@@ -441,7 +441,7 @@ function CloudManager.RejectFriendRequest(fromUserId)
         time = os.time(),
     }
     CloudManager._publishResponses()
-    print("[濂藉弸] 宸叉嫆缁?" .. tostring(fromUserId) .. " 鐨勭敵璇?)
+    print("[濂藉弸] 宸叉嫆缁?" .. tostring(fromUserId) .. " 鐨勭敵璇?")
 end
 
 -- 鈹€鈹€ 妫€鏌ユ垜鍙戝嚭鐨勭敵璇风殑鍥炲 (鑷姩瀹屾垚鍙屽悜鍔犲ソ鍙? 鈹€鈹€
@@ -456,7 +456,7 @@ function CloudManager.CheckMyRequestResponses(callback)
     local myUid = CloudAPI.GetUserId()
     local myUidStr = tostring(myUid)
 
-    -- 鎴戞湁鍝簺寰呭鐞嗙殑鍑虹珯鐢宠?
+    -- 鎴戞湁鍝簺寰呭鐞嗙殑鍑虹珯鐢宠?"
     local pendingUids = {}
     for uidStr, _ in pairs(CloudManager._outgoingRequests) do
         table.insert(pendingUids, tonumber(uidStr))
@@ -492,16 +492,16 @@ function CloudManager.CheckMyRequestResponses(callback)
                         toUid = responder,
                         accepted = resp.accepted or false,
                     })
-                    -- 浠庡嚭绔欎俊绠辩Щ闄ゅ凡澶勭悊鐨?
+                    -- 浠庡嚭绔欎俊绠辩Щ闄ゅ凡澶勭悊鐨?"
                     CloudManager._outgoingRequests[tostring(responder)] = nil
                 end
             end
 
             -- 濡傛灉鏈夋柊澧炲ソ鍙? 鍚屾
             if #completedUids > 0 then
-                CloudManager._publishOutbox()  -- 鏇存柊鍑虹珯 (绉婚櫎宸插鐞?
+                CloudManager._publishOutbox()  -- 鏇存柊鍑虹珯 (绉婚櫎宸插鐞?"
                 CloudManager._syncSocialDomain()
-                print("[濂藉弸] 鑷姩浜掑姞瀹屾垚: +" .. #completedUids .. " 浜?)
+                print("[濂藉弸] 鑷姩浜掑姞瀹屾垚: +" .. #completedUids .. " 浜?")
             end
 
             if callback then callback(results) end
@@ -515,7 +515,7 @@ end
 
 -- 鈹€鈹€ 闅忔満鎺ㄨ崘鐜╁ 鈹€鈹€
 
---- 浠庢垬鍔涙帓琛屾闅忔満鎶藉彇 count 涓帺瀹?(鎺掗櫎鑷繁鍜屽凡鏈夊ソ鍙?
+--- 浠庢垬鍔涙帓琛屾闅忔満鎶藉彇 count 涓帺瀹?(鎺掗櫎鑷繁鍜屽凡鏈夊ソ鍙?"
 ---@param count number
 ---@param callback fun(players: table[])
 function CloudManager.GetRandomPlayers(count, callback)
@@ -525,14 +525,14 @@ function CloudManager.GetRandomPlayers(count, callback)
         return
     end
 
-    -- 鍏堣幏鍙栨帓琛屾鎬讳汉鏁?
+    -- 鍏堣幏鍙栨帓琛屾鎬讳汉鏁?"
     CloudAPI:GetRankTotal(KEYS.combat_power, {
         ok = function(total)
             if total <= 0 then
                 if callback then callback({}) end
                 return
             end
-            -- 闅忔満鍋忕Щ, 鎷?count*3 鏉?(鐣欎綑閲忚繃婊?
+            -- 闅忔満鍋忕Щ, 鎷?count*3 鏉?(鐣欎綑閲忚繃婊?"
             local fetchCount = math.min(total, count * 3, 200)
             local maxStart = math.max(0, total - fetchCount)
             local startPos = math.random(0, maxStart)
@@ -634,7 +634,7 @@ end
 -- 闃佃惀鍏绘垚绯荤粺 (鍗囩骇 / 鎹愮尞 / 鍏憡)
 -- ============================================================================
 
--- 闃佃惀绛夌骇缁忛獙琛? 鍗囧埌璇ョ瓑绾ф墍闇€鐨勭疮璁＄粡楠?
+-- 闃佃惀绛夌骇缁忛獙琛? 鍗囧埌璇ョ瓑绾ф墍闇€鐨勭疮璁＄粡楠?"
 -- 鍏紡: Lv N 鈫?鎴愬憳涓婇檺 (10+10N), 姣忎汉鎹?N脳10000, 鍗曠骇闇€ (10+10N)脳N脳10000
 local FACTION_LEVEL_EXP = {
     [1]  = 0,          -- 璧峰
@@ -654,9 +654,9 @@ local FACTION_LEVEL_MAX_MEMBERS = {
     [6]  = 70,  [7]  = 80,  [8]  = 90,  [9]  = 100, [10] = 100,
 }
 local FACTION_MAX_LEVEL = 10
-local FACTION_DONATE_MIN = 100         -- 鍗曟鏈€灏戞崘鐚?
+local FACTION_DONATE_MIN = 100         -- 鍗曟鏈€灏戞崘鐚?"
 
--- 鑱屼綅棰濆鍔犳垚绯绘暟 (姣忛樀钀ョ瓑绾ч澶?x%鎴樺姏, 鐩熶富鏈€楂? 鎴愬憳鏃犻澶?
+-- 鑱屼綅棰濆鍔犳垚绯绘暟 (姣忛樀钀ョ瓑绾ч澶?x%鎴樺姏, 鐩熶富鏈€楂? 鎴愬憳鏃犻澶?"
 local ROLE_BUFF_PER_LEVEL = {
     leader      = 0.6,
     vice_leader = 0.5,
@@ -689,7 +689,7 @@ function CloudManager.GetFactionLevelInfo()
         maxLevel = FACTION_MAX_LEVEL,
         buffPercent = baseBuff,          -- 鍏ㄥ憳鍩虹鍔犳垚%
         roleBonusPercent = roleBonus,    -- 鑱屼綅棰濆鍔犳垚%
-        totalBuffPercent = baseBuff + roleBonus,  -- 鎬诲姞鎴?
+        totalBuffPercent = baseBuff + roleBonus,  -- 鎬诲姞鎴?"
         maxMembers = FACTION_LEVEL_MAX_MEMBERS[lv] or 20,
     }
 end
@@ -708,22 +708,22 @@ function CloudManager.GetTodayDonation()
     return meta.donateDaily[uidStr].amount or 0
 end
 
---- 鎹愮尞铏庣缁欓樀钀?
+--- 鎹愮尞铏庣缁欓樀钀?"
 ---@param amount number 鎹愮尞鏁伴噺
 ---@param callback? fun(success: boolean, reason: string)
 function CloudManager.DonateFaction(amount, callback)
     local meta = CloudManager._factionMeta
     if not meta then
-        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?) end
+        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?") end
         return
     end
     if not CloudAPI.IsAvailable() then
-        if callback then callback(false, "浜戠涓嶅彲鐢?) end
+        if callback then callback(false, "浜戠涓嶅彲鐢?") end
         return
     end
     amount = math.floor(amount)
     if amount < FACTION_DONATE_MIN then
-        if callback then callback(false, "鏈€灏戞崘鐚? .. FACTION_DONATE_MIN .. "铏庣") end
+        if callback then callback(false, "鏈€灏戞崘鐚?" .. FACTION_DONATE_MIN .. "铏庣") end
         return
     end
     if not rawget(_G, "playerInfo") or (playerInfo.jade or 0) < amount then
@@ -735,7 +735,7 @@ function CloudManager.DonateFaction(amount, callback)
     local uidStr = tostring(myUid)
     local today = os.date("%Y%m%d")
 
-    -- 妫€鏌ユ瘡鏃ラ檺棰?
+    -- 妫€鏌ユ瘡鏃ラ檺棰?"
     if not meta.donateDaily then meta.donateDaily = {} end
     if not meta.donateDaily[uidStr] then meta.donateDaily[uidStr] = { day = today, amount = 0 } end
     if meta.donateDaily[uidStr].day ~= today then
@@ -743,7 +743,7 @@ function CloudManager.DonateFaction(amount, callback)
     end
     local todayDone = meta.donateDaily[uidStr].amount or 0
 
-    -- 鎵ｈ檸绗?
+    -- 鎵ｈ檸绗?"
     playerInfo.jade = playerInfo.jade - amount
 
     -- 鏇存柊 meta
@@ -755,7 +755,7 @@ function CloudManager.DonateFaction(amount, callback)
     if not meta.contributions then meta.contributions = {} end
     meta.contributions[uidStr] = (meta.contributions[uidStr] or 0) + amount
 
-    -- 妫€鏌ュ崌绾?
+    -- 妫€鏌ュ崌绾?"
     local oldLevel = meta.level or 1
     local newLevel = oldLevel
     for lv = oldLevel + 1, FACTION_MAX_LEVEL do
@@ -767,7 +767,7 @@ function CloudManager.DonateFaction(amount, callback)
     end
     local leveled = newLevel > oldLevel
     meta.level = newLevel
-    -- 鍗囩骇鍚庢洿鏂版垚鍛樹笂闄?
+    -- 鍗囩骇鍚庢洿鏂版垚鍛樹笂闄?"
     if leveled then
         meta.maxMembers = FACTION_LEVEL_MAX_MEMBERS[newLevel] or meta.maxMembers
     end
@@ -810,16 +810,16 @@ function CloudManager.HasSignedInToday()
     return meta.donateDaily[uidStr].day == today and meta.donateDaily[uidStr].signedIn == true
 end
 
---- 闃佃惀绛惧埌 (姣忔棩鍏嶈垂鎹愮尞500缁忛獙锛屼笉娑堣€楄檸绗?
+--- 闃佃惀绛惧埌 (姣忔棩鍏嶈垂鎹愮尞500缁忛獙锛屼笉娑堣€楄檸绗?"
 ---@param callback? fun(success: boolean, reason: string)
 function CloudManager.FactionSignIn(callback)
     local meta = CloudManager._factionMeta
     if not meta then
-        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?) end
+        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?") end
         return
     end
     if not CloudAPI.IsAvailable() then
-        if callback then callback(false, "浜戠涓嶅彲鐢?) end
+        if callback then callback(false, "浜戠涓嶅彲鐢?") end
         return
     end
 
@@ -828,7 +828,7 @@ function CloudManager.FactionSignIn(callback)
     local today = os.date("%Y%m%d")
     local signInAmount = 500
 
-    -- 鍒濆鍖栨瘡鏃ヨ褰?
+    -- 鍒濆鍖栨瘡鏃ヨ褰?"
     if not meta.donateDaily then meta.donateDaily = {} end
     if not meta.donateDaily[uidStr] then meta.donateDaily[uidStr] = { day = today, amount = 0 } end
     if meta.donateDaily[uidStr].day ~= today then
@@ -837,7 +837,7 @@ function CloudManager.FactionSignIn(callback)
 
     -- 妫€鏌ユ槸鍚﹀凡绛惧埌
     if meta.donateDaily[uidStr].signedIn then
-        if callback then callback(false, "浠婃棩宸茬鍒?) end
+        if callback then callback(false, "浠婃棩宸茬鍒?") end
         return
     end
 
@@ -851,7 +851,7 @@ function CloudManager.FactionSignIn(callback)
     if not meta.contributions then meta.contributions = {} end
     meta.contributions[uidStr] = (meta.contributions[uidStr] or 0) + signInAmount
 
-    -- 妫€鏌ュ崌绾?
+    -- 妫€鏌ュ崌绾?"
     local oldLevel = meta.level or 1
     local newLevel = oldLevel
     for lv = oldLevel + 1, FACTION_MAX_LEVEL do
@@ -904,17 +904,17 @@ function CloudManager.GetContributionRank()
     return list
 end
 
---- 璁剧疆闃佃惀鍏憡 (鐩熶富/鍓洘涓?
+--- 璁剧疆闃佃惀鍏憡 (鐩熶富/鍓洘涓?"
 ---@param text string 鍏憡鍐呭
 ---@param callback? fun(success: boolean, reason: string)
 function CloudManager.SetFactionAnnouncement(text, callback)
     local meta = CloudManager._factionMeta
     if not meta then
-        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?) end
+        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?") end
         return
     end
     if not CloudAPI.IsAvailable() then
-        if callback then callback(false, "浜戠涓嶅彲鐢?) end
+        if callback then callback(false, "浜戠涓嶅彲鐢?") end
         return
     end
     local myRole = CloudManager._factionRole
@@ -923,7 +923,7 @@ function CloudManager.SetFactionAnnouncement(text, callback)
         return
     end
     if text and #text > 200 then
-        if callback then callback(false, "鍏憡鏈€澶?00瀛?) end
+        if callback then callback(false, "鍏憡鏈€澶?00瀛?") end
         return
     end
 
@@ -934,7 +934,7 @@ function CloudManager.SetFactionAnnouncement(text, callback)
         :Set(KEYS.camp_meta, meta)
         :Save("璁剧疆鍏憡", {
             ok = function()
-                print("[闃佃惀] 鍏憡宸叉洿鏂?)
+                print("[闃佃惀] 鍏憡宸叉洿鏂?")
                 if callback then callback(true, nil) end
             end,
             error = function(_, reason)
@@ -975,7 +975,7 @@ function CloudManager.GetDonateConfig()
     return { minAmount = FACTION_DONATE_MIN }
 end
 
---- 鑾峰彇濂藉弸妗ｆ鍒楄〃 (閫氳繃鎺掕姒滃尮閰?
+--- 鑾峰彇濂藉弸妗ｆ鍒楄〃 (閫氳繃鎺掕姒滃尮閰?"
 ---@param callback fun(friends: table[])
 function CloudManager.GetFriendProfiles(callback)
     if #CloudManager._friendIds == 0 then
@@ -995,7 +995,7 @@ function CloudManager.GetFriendProfiles(callback)
     end)
 end
 
---- 鏄惁鏄ソ鍙?
+--- 鏄惁鏄ソ鍙?"
 ---@param userId number
 ---@return boolean
 function CloudManager.IsFriend(userId)
@@ -1017,7 +1017,7 @@ function CloudManager._syncSocialDomain()
 end
 
 -- ============================================================================
--- 闃佃惀绯荤粺 (鍏叡鐢宠姹犳ā鍨?鈥?瀹夊叏鐗?
+-- 闃佃惀绯荤粺 (鍏叡鐢宠姹犳ā鍨?鈥?瀹夊叏鐗?"
 -- 鏍稿績: 鐩熶富閫氳繃鎺掕姒滃彂甯冮樀钀? 鐢宠鑰呴€氳繃鎺掕姒滄彁浜? 鐩熶富瀹℃壒鍚庢洿鏂版垚鍛樿〃
 -- 瑙掕壊浣撶郴: leader(鐩熶富) > vice_leader(鍓洘涓? > member(鎴愬憳)
 -- 缁ф壙閾? 鐩熶富閫€鍑?鈫?鍓洘涓荤户浣?鈫?鏈€鏃╂垚鍛樼户浣?鈫?鏈€鍚庝竴浜洪€€鍑?瑙ｆ暎
@@ -1028,7 +1028,7 @@ CloudManager._factionName = ""
 CloudManager._factionRole = "none"  -- "leader" / "vice_leader" / "member" / "none"
 CloudManager._factionMeta = nil     -- 闃佃惀鍏冩暟鎹?(鐩熶富缁存姢, 鍚?roles 瀛楁)
 CloudManager._campOutApply = nil    -- 鏈湴缂撳瓨: 鎴戠殑鍏ヨ惀鐢宠
-CloudManager._campOutResp = {}      -- 鏈湴缂撳瓨: 鐩熶富鐨勫鎵瑰洖澶?
+CloudManager._campOutResp = {}      -- 鏈湴缂撳瓨: 鐩熶富鐨勫鎵瑰洖澶?"
 
 -- 鈹€鈹€ 鍒涘缓闃佃惀 鈹€鈹€
 
@@ -1037,7 +1037,7 @@ CloudManager._campOutResp = {}      -- 鏈湴缂撳瓨: 鐩熶富鐨勫鎵
 ---@param desc string
 ---@param callback? fun(success: boolean, reason: string)
 function CloudManager.CreateFaction(name, desc, callback)
-    -- 灏佺妫€鏌?
+    -- 灏佺妫€鏌?"
     if S.banLevel >= BAN_LEVEL_SOCIAL then
         if callback then callback(false, "绀句氦鍔熻兘宸茶闄愬埗") end
         return
@@ -1047,18 +1047,18 @@ function CloudManager.CreateFaction(name, desc, callback)
         return
     end
     if not CloudAPI.IsAvailable() then
-        if callback then callback(false, "浜戠涓嶅彲鐢?) end
+        if callback then callback(false, "浜戠涓嶅彲鐢?") end
         return
     end
-    -- 妫€鏌ヨ檸绗?
+    -- 妫€鏌ヨ檸绗?"
     if not rawget(_G, "playerInfo") or (playerInfo.jade or 0) < CAMP_CREATE_COST then
-        if callback then callback(false, "铏庣涓嶈冻(闇€瑕? .. CAMP_CREATE_COST .. ")") end
+        if callback then callback(false, "铏庣涓嶈冻(闇€瑕?" .. CAMP_CREATE_COST .. ")") end
         return
     end
 
     local uid = CloudAPI.GetUserId()
     local ts = os.time()
-    -- 鐢熸垚鍞竴闃佃惀ID: 鏃堕棿鎴冲悗6浣?* 10000 + uid鍚?浣?
+    -- 鐢熸垚鍞竴闃佃惀ID: 鏃堕棿鎴冲悗6浣?* 10000 + uid鍚?浣?"
     local campId = (ts % 1000000) * 10000 + (uid % 10000)
 
     -- 1. 鍏堟墸铏庣 (鍐欏叆鑷繁瀛樻。)
@@ -1072,9 +1072,9 @@ function CloudManager.CreateFaction(name, desc, callback)
         leaderId = uid,
         createdAt = ts,
         maxMembers = MAX_CAMP_MEMBERS,
-        members = { uid },  -- 鐩熶富鑷繁鏄涓垚鍛?
+        members = { uid },  -- 鐩熶富鑷繁鏄涓垚鍛?"
         memberCount = 1,
-        roles = { [uidStr] = "leader" },  -- 瑙掕壊鏄犲皠: uid鈫掕鑹?
+        roles = { [uidStr] = "leader" },  -- 瑙掕壊鏄犲皠: uid鈫掕鑹?"
     }
 
     CloudManager._factionId = campId
@@ -1088,7 +1088,7 @@ function CloudManager.CreateFaction(name, desc, callback)
         :Set(KEYS.camp_meta, meta)
         :Save("鍒涘缓闃佃惀", {
             ok = function()
-                print("[闃佃惀] 鍒涘缓鎴愬姛: " .. name .. " (ID=" .. campId .. "), 鐩熶富, 娑堣€? .. CAMP_CREATE_COST .. "铏庣")
+                print("[闃佃惀] 鍒涘缓鎴愬姛: " .. name .. " (ID=" .. campId .. "), 鐩熶富, 娑堣€?" .. CAMP_CREATE_COST .. "铏庣")
                 CloudManager._syncSocialDomain()
                 CloudManager.PublishProfile()
                 if callback then callback(true, "鍒涘缓鎴愬姛") end
@@ -1107,7 +1107,7 @@ end
 
 -- 鈹€鈹€ 鍒楀嚭鎵€鏈夐樀钀?鈹€鈹€
 
---- 鍒楀嚭闃佃惀鍒楄〃 (浠?camp_leader_ts 鎺掕姒? 鎸塩ampId鍘婚噸淇濈暀鏈€鏂?
+--- 鍒楀嚭闃佃惀鍒楄〃 (浠?camp_leader_ts 鎺掕姒? 鎸塩ampId鍘婚噸淇濈暀鏈€鏂?"
 ---@param callback fun(factions: table[])
 function CloudManager.ListFactions(callback)
     if not CloudAPI.IsAvailable() then
@@ -1117,7 +1117,7 @@ function CloudManager.ListFactions(callback)
 
     CloudAPI:GetRankList(KEYS.camp_leader_ts, 0, 100, {
         ok = function(rankList)
-            -- 鎸?campId 鍘婚噸: 鐩熶富杞鍚庡彲鑳藉瓨鍦ㄦ柊鏃т袱鏉? 淇濈暀鎺掕闈犲墠(鏃堕棿鎴虫洿澶?鐨?
+            -- 鎸?campId 鍘婚噸: 鐩熶富杞鍚庡彲鑳藉瓨鍦ㄦ柊鏃т袱鏉? 淇濈暀鎺掕闈犲墠(鏃堕棿鎴虫洿澶?鐨?"
             local campMap = {}  -- campId 鈫?faction entry
             local campOrder = {} -- 淇濇寔椤哄簭
 
@@ -1133,7 +1133,7 @@ function CloudManager.ListFactions(callback)
                         campMap[cid] = {
                             _ts = ts,
                             campId = cid,
-                            name = meta.name or "鏈懡鍚?,
+                            name = meta.name or "鏈懡鍚?",
                             desc = meta.desc or "",
                             leaderId = meta.leaderId or _getRankItemUserId(item),
                             leaderNickname = "",
@@ -1159,7 +1159,7 @@ function CloudManager.ListFactions(callback)
                 table.insert(leaderIds, f.leaderId)
             end
 
-            -- 鎵归噺鏌ユ樀绉?
+            -- 鎵归噺鏌ユ樀绉?"
             if #leaderIds > 0 and rawget(_G, "GetUserNickname") then
                 GetUserNickname({
                     userIds = leaderIds,
@@ -1189,7 +1189,7 @@ end
 ---@param campName string
 ---@param callback? fun(success: boolean, reason: string)
 function CloudManager.ApplyToFaction(campId, campName, callback)
-    -- 灏佺妫€鏌?
+    -- 灏佺妫€鏌?"
     if S.banLevel >= BAN_LEVEL_SOCIAL then
         if callback then callback(false, "绀句氦鍔熻兘宸茶闄愬埗") end
         return
@@ -1199,7 +1199,7 @@ function CloudManager.ApplyToFaction(campId, campName, callback)
         return
     end
     if not CloudAPI.IsAvailable() then
-        if callback then callback(false, "浜戠涓嶅彲鐢?) end
+        if callback then callback(false, "浜戠涓嶅彲鐢?") end
         return
     end
 
@@ -1216,7 +1216,7 @@ function CloudManager.ApplyToFaction(campId, campName, callback)
         :Save("鐢宠鍔犲叆闃佃惀", {
             ok = function()
                 print("[闃佃惀] 宸叉彁浜ょ敵璇? " .. (campName or "") .. " (ID=" .. campId .. ")")
-                if callback then callback(true, "鐢宠宸叉彁浜?) end
+                if callback then callback(true, "鐢宠宸叉彁浜?") end
             end,
             error = function(_, reason)
                 CloudManager._campOutApply = nil
@@ -1227,7 +1227,7 @@ end
 
 -- 鈹€鈹€ 鐩熶富瀹℃壒 鈹€鈹€
 
---- 鐩熶富/鍓洘涓绘煡鐪嬮樀钀ョ敵璇?(鎵弿 camp_apply_ts 鎺掕姒?
+--- 鐩熶富/鍓洘涓绘煡鐪嬮樀钀ョ敵璇?(鎵弿 camp_apply_ts 鎺掕姒?"
 ---@param callback fun(applications: table[])
 function CloudManager.CheckFactionApplications(callback)
     -- 鍓洘涓诲強浠ヤ笂鍙鎵?(level >= 5)
@@ -1251,7 +1251,7 @@ function CloudManager.CheckFactionApplications(callback)
                 local applyData = item.score[KEYS.camp_apply]
                 if type(applyData) == "table" and applyData.campId == myCampId then
                     local applicantId = _getRankItemUserId(item)
-                    -- 鎺掗櫎杩囨湡 & 宸插湪鎴愬憳鍒楄〃涓?
+                    -- 鎺掗櫎杩囨湡 & 宸插湪鎴愬憳鍒楄〃涓?"
                     if applyData.time and (os.time() - applyData.time) <= REQUEST_EXPIRE_SECONDS then
                         local alreadyMember = false
                         if CloudManager._factionMeta and CloudManager._factionMeta.members then
@@ -1259,7 +1259,7 @@ function CloudManager.CheckFactionApplications(callback)
                                 if mid == applicantId then alreadyMember = true; break end
                             end
                         end
-                        -- 鎺掗櫎宸插洖澶嶆嫆缁?鍚屾剰鐨?
+                        -- 鎺掗櫎宸插洖澶嶆嫆缁?鍚屾剰鐨?"
                         local alreadyResp = CloudManager._campOutResp[tostring(applicantId)]
                         if not alreadyMember and not alreadyResp then
                             table.insert(applications, {
@@ -1295,11 +1295,11 @@ function CloudManager.CheckFactionApplications(callback)
     }, KEYS.camp_apply)
 end
 
---- 鐩熶富/鍓洘涓诲悓鎰忕敵璇?
+--- 鐩熶富/鍓洘涓诲悓鎰忕敵璇?"
 ---@param applicantUserId number
 ---@param callback? fun(success: boolean)
 function CloudManager.ApproveFactionApplication(applicantUserId, callback)
-    -- 鍓洘涓诲強浠ヤ笂鍙鎵?
+    -- 鍓洘涓诲強浠ヤ笂鍙鎵?"
     if _getRoleLevel(CloudManager._factionRole) < _getRoleLevel("vice_leader")
        or not CloudManager._factionMeta then
         if callback then callback(false) end
@@ -1316,7 +1316,7 @@ function CloudManager.ApproveFactionApplication(applicantUserId, callback)
 
     -- 杩藉姞鎴愬憳
     if not meta.members then meta.members = {} end
-    -- 妫€鏌ラ噸澶?
+    -- 妫€鏌ラ噸澶?"
     for _, mid in ipairs(meta.members) do
         if mid == applicantUserId then
             if callback then callback(true) end -- 宸插湪鍒楄〃
@@ -1325,7 +1325,7 @@ function CloudManager.ApproveFactionApplication(applicantUserId, callback)
     end
     table.insert(meta.members, applicantUserId)
     meta.memberCount = #meta.members
-    -- 鏂版垚鍛橀粯璁よ鑹?
+    -- 鏂版垚鍛橀粯璁よ鑹?"
     if not meta.roles then meta.roles = {} end
     meta.roles[tostring(applicantUserId)] = "member"
 
@@ -1344,7 +1344,7 @@ function CloudManager.ApproveFactionApplication(applicantUserId, callback)
         :Set(KEYS.camp_resp, CloudManager._campOutResp)
         :Save("鍚屾剰鍏ヨ惀", {
             ok = function()
-                print("[闃佃惀] 宸插悓鎰?" .. tostring(applicantUserId) .. " 鍔犲叆, 褰撳墠" .. meta.memberCount .. "浜?)
+                print("[闃佃惀] 宸插悓鎰?" .. tostring(applicantUserId) .. " 鍔犲叆, 褰撳墠" .. meta.memberCount .. "浜?")
                 if callback then callback(true) end
             end,
             error = function()
@@ -1393,7 +1393,7 @@ function CloudManager.CheckMyFactionApplication(callback)
     local myUidStr = tostring(myUid)
     local targetCampId = CloudManager._campOutApply.campId
 
-    -- 鎵弿鐩熶富鐨勫鎵瑰洖澶?
+    -- 鎵弿鐩熶富鐨勫鎵瑰洖澶?"
     CloudAPI:GetRankList(KEYS.camp_resp_ts, 0, 100, {
         ok = function(rankList)
             for _, item in ipairs(rankList) do
@@ -1414,13 +1414,13 @@ function CloudManager.CheckMyFactionApplication(callback)
                                 :Save("娓呯悊鍏ヨ惀鐢宠")
                             CloudManager._syncSocialDomain()
                             CloudManager.PublishProfile()
-                            -- 鎷夊彇闃佃惀meta(鐩熶富鍚?浜烘暟绛?, 渚沀I鏄剧ず
+                            -- 鎷夊彇闃佃惀meta(鐩熶富鍚?浜烘暟绛?", 渚沀I鏄剧ず
                             CloudManager._refreshFactionStatus()
                             print("[闃佃惀] 鍏ヨ惀瀹℃壒閫氳繃!")
                             if callback then callback("approved") end
                         else
                             CloudManager._campOutApply = nil
-                            print("[闃佃惀] 鍏ヨ惀鐢宠琚嫆缁?)
+                            print("[闃佃惀] 鍏ヨ惀鐢宠琚嫆缁?")
                             if callback then callback("rejected") end
                         end
                         return
@@ -1439,7 +1439,7 @@ end
 
 --- 浠庢垚鍛樺垪琛ㄤ腑鎵惧埌缁т换鑰?(鎸夌巼鍦熻亴浣嶇户鎵块摼: 鍓洘涓烩啋鍐涘笀鈫掑厛閿嬪畼鈫掑浜ゅ畼鈫掔簿鑻扁啋鎴愬憳)
 --- 鍚岀骇鍒唴鎸夊姞鍏ラ『搴?members鏁扮粍椤哄簭)浼樺厛
----@param meta table 闃佃惀鍏冩暟鎹?
+---@param meta table 闃佃惀鍏冩暟鎹?"
 ---@param excludeUid number 瑕佹帓闄ょ殑uid(鍗冲皢绂诲紑鐨勪汉)
 ---@return number|nil successorUid
 local function _findSuccessor(meta, excludeUid)
@@ -1457,16 +1457,16 @@ local function _findSuccessor(meta, excludeUid)
 end
 
 --- 绂诲紑褰撳墠闃佃惀
---- 鐩熶富閫€鍑? 鏈夊叾浠栨垚鍛樷啋杞鐩熶富(鍓洘涓讳紭鍏?, 鏃犲叾浠栨垚鍛樷啋瑙ｆ暎
+--- 鐩熶富閫€鍑? 鏈夊叾浠栨垚鍛樷啋杞鐩熶富(鍓洘涓讳紭鍏?", 鏃犲叾浠栨垚鍛樷啋瑙ｆ暎
 --- 闈炵洘涓婚€€鍑? 鐩存帴绂诲紑, 鏈湴娓呴櫎
 ---@param callback? fun(success: boolean, info: string)
 function CloudManager.LeaveFaction(callback)
     if CloudManager._factionId == 0 then
-        if callback then callback(true, "鏈姞鍏ラ樀钀?) end
+        if callback then callback(true, "鏈姞鍏ラ樀钀?") end
         return
     end
     if not CloudAPI.IsAvailable() then
-        if callback then callback(false, "浜戠涓嶅彲鐢?) end
+        if callback then callback(false, "浜戠涓嶅彲鐢?") end
         return
     end
 
@@ -1481,7 +1481,7 @@ function CloudManager.LeaveFaction(callback)
 
         if successor then
             -- 鏈夌户浠昏€? 杞鐩熶富, 闃佃惀瀛樼画
-            -- 浠庢垚鍛樺垪琛ㄧЩ闄よ嚜宸?
+            -- 浠庢垚鍛樺垪琛ㄧЩ闄よ嚜宸?"
             local newMembers = {}
             for _, mid in ipairs(meta.members) do
                 if mid ~= myUid then
@@ -1491,38 +1491,38 @@ function CloudManager.LeaveFaction(callback)
             meta.members = newMembers
             meta.memberCount = #newMembers
             meta.leaderId = successor
-            -- 鏇存柊瑙掕壊: 缁т换鑰呪啋leader, 绉婚櫎鏃х洘涓?
+            -- 鏇存柊瑙掕壊: 缁т换鑰呪啋leader, 绉婚櫎鏃х洘涓?"
             if not meta.roles then meta.roles = {} end
             meta.roles[tostring(myUid)] = nil
             meta.roles[tostring(successor)] = "leader"
 
-            -- 娓呴櫎鏈湴鐘舵€?
+            -- 娓呴櫎鏈湴鐘舵€?"
             CloudManager._factionId = 0
             CloudManager._factionName = ""
             CloudManager._factionRole = "none"
 
-            -- 鍙戝竷鏇存柊鍚庣殑meta (鏃х洘涓绘渶鍚庝竴娆″啓鍏? 淇濈暀鎺掕鏉＄洰渚涢樀钀ョ户缁彲瑙?
+            -- 鍙戝竷鏇存柊鍚庣殑meta (鏃х洘涓绘渶鍚庝竴娆″啓鍏? 淇濈暀鎺掕鏉＄洰渚涢樀钀ョ户缁彲瑙?"
             CloudAPI:BatchSet()
                 :Set(KEYS.camp_meta, meta)
                 :SetInt(KEYS.camp_resp_ts, 0)
                 :Set(KEYS.camp_resp, {})
-                :Save("鐩熶富閫€浣? 杞缁? .. tostring(successor), {
+                :Save("鐩熶富閫€浣? 杞缁?" .. tostring(successor), {
                     ok = function()
                         print("[闃佃惀] 鐩熶富閫€鍑? " .. oldName
                             .. ", 杞缁?" .. tostring(successor)
-                            .. ", 鍓╀綑" .. meta.memberCount .. "浜?)
+                            .. ", 鍓╀綑" .. meta.memberCount .. "浜?")
                         CloudManager._factionMeta = nil
                         CloudManager._campOutResp = {}
                         CloudManager._syncSocialDomain()
                         CloudManager.PublishProfile()
-                        if callback then callback(true, "宸查€€鍑? 鐩熶富宸茶浆璁?) end
+                        if callback then callback(true, "宸查€€鍑? 鐩熶富宸茶浆璁?") end
                     end,
                     error = function()
                         -- 鍥炴粴
                         CloudManager._factionId = meta.id
                         CloudManager._factionName = oldName
                         CloudManager._factionRole = "leader"
-                        if callback then callback(false, "閫€鍑哄け璐?) end
+                        if callback then callback(false, "閫€鍑哄け璐?") end
                     end,
                 })
         else
@@ -1543,7 +1543,7 @@ function CloudManager.LeaveFaction(callback)
                         CloudManager._campOutResp = {}
                         CloudManager._syncSocialDomain()
                         CloudManager.PublishProfile()
-                        if callback then callback(true, "闃佃惀宸茶В鏁?) end
+                        if callback then callback(true, "闃佃惀宸茶В鏁?") end
                     end,
                     error = function()
                         if callback then callback(false, "瑙ｆ暎澶辫触") end
@@ -1559,19 +1559,19 @@ function CloudManager.LeaveFaction(callback)
         CloudManager._factionRole = "none"
         CloudManager._campOutApply = nil
 
-        -- 娓呯悊鑷繁鐨勭敵璇锋帓琛屾潯鐩?
+        -- 娓呯悊鑷繁鐨勭敵璇锋帓琛屾潯鐩?"
         CloudAPI:BatchSet()
             :SetInt(KEYS.camp_apply_ts, 0)
             :Set(KEYS.camp_apply, {})
-            :Save("鎴愬憳閫€鍑洪樀钀?, {
+            :Save("鎴愬憳閫€鍑洪樀钀?", {
                 ok = function()
                     print("[闃佃惀] 宸查€€鍑? " .. oldName)
                     CloudManager._syncSocialDomain()
                     CloudManager.PublishProfile()
-                    if callback then callback(true, "宸查€€鍑洪樀钀?) end
+                    if callback then callback(true, "宸查€€鍑洪樀钀?") end
                 end,
                 error = function()
-                    if callback then callback(false, "閫€鍑哄け璐?) end
+                    if callback then callback(false, "閫€鍑哄け璐?") end
                 end,
             })
     end
@@ -1612,7 +1612,7 @@ function CloudManager.GetFactionMembers(callback)
                 if not profileMap[mid] then missing[#missing + 1] = mid end
             end
 
-            -- 琛ユ煡瀹屾垚鍚庢墽琛岄獙璇佹竻鐞?
+            -- 琛ユ煡瀹屾垚鍚庢墽琛岄獙璇佹竻鐞?"
             local function _afterFetchMissing()
                 -- 楠岃瘉: 鍙竻鐞?factionId>0 涓?!= myFid 鐨勶紙鏄庣‘鍔犲叆浜嗗叾浠栭樀钀ワ級
                 local myFid = CloudManager._factionId
@@ -1650,7 +1650,7 @@ function CloudManager.GetFactionMembers(callback)
                         :Set(KEYS.camp_meta, meta)
                         :Save("鐩熶富鑷姩娓呯悊宸茬寮€鎴愬憳", {
                             ok = function()
-                                print("[闃佃惀] 宸茶嚜鍔ㄦ竻鐞?" .. #removed .. " 鍚嶇寮€鎴愬憳, 鍓╀綑" .. meta.memberCount .. "浜?)
+                                print("[闃佃惀] 宸茶嚜鍔ㄦ竻鐞?" .. #removed .. " 鍚嶇寮€鎴愬憳, 鍓╀綑" .. meta.memberCount .. "浜?")
                             end,
                         })
                 end
@@ -1675,7 +1675,7 @@ function CloudManager.GetFactionMembers(callback)
             end
         end
 
-        -- 鍏堟媺鍙?top-200 profiles, 瑕嗙洊澶у鏁版垚鍛?
+        -- 鍏堟媺鍙?top-200 profiles, 瑕嗙洊澶у鏁版垚鍛?"
         CloudManager.GetPublicProfiles(0, 200, function(profiles)
             _processMembers(profiles)
         end)
@@ -1727,30 +1727,30 @@ end
 -- 鈹€鈹€ 璁剧疆鎴愬憳鑱屼綅 (浠跨巼鍦熶箣婊? 鈹€鈹€
 
 --- 璁剧疆鎴愬憳鑱屼綅 (闇€瑕佹搷浣滆€呮潈闄愰珮浜庣洰鏍囧綋鍓嶈亴浣嶅拰鐩爣鑱屼綅)
---- 鏈夋晥鑱屼綅: "vice_leader"(鍓洘涓?, "strategist"(鍐涘笀), "vanguard"(鍏堥攱瀹?,
----           "diplomat"(澶栦氦瀹?, "elite"(绮捐嫳), "member"(鎴愬憳)
+--- 鏈夋晥鑱屼綅: "vice_leader"(鍓洘涓?", "strategist"(鍐涘笀), "vanguard"(鍏堥攱瀹?",
+---           "diplomat"(澶栦氦瀹?", "elite"(绮捐嫳), "member"(鎴愬憳)
 ---@param targetUserId number 鐩爣鎴愬憳uid
----@param newRole string 鏂拌亴浣嶅悕绉?
+---@param newRole string 鏂拌亴浣嶅悕绉?"
 ---@param callback? fun(success: boolean, reason: string)
 function CloudManager.SetMemberRole(targetUserId, newRole, callback)
     local meta = CloudManager._factionMeta
     if not meta then
-        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?) end
+        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?") end
         return
     end
     if not CloudAPI.IsAvailable() then
-        if callback then callback(false, "浜戠涓嶅彲鐢?) end
+        if callback then callback(false, "浜戠涓嶅彲鐢?") end
         return
     end
 
     local myUid = CloudAPI.GetUserId()
     local myRole = CloudManager._factionRole
     if targetUserId == myUid then
-        if callback then callback(false, "涓嶈兘瀵硅嚜宸辨搷浣?) end
+        if callback then callback(false, "涓嶈兘瀵硅嚜宸辨搷浣?") end
         return
     end
 
-    -- 楠岃瘉鐩爣鑱屼綅鍚堟硶鎬?
+    -- 楠岃瘉鐩爣鑱屼綅鍚堟硶鎬?"
     if newRole == "leader" then
         if callback then callback(false, "鐩熶富鍙兘閫氳繃杞璁剧疆") end
         return
@@ -1760,13 +1760,13 @@ function CloudManager.SetMemberRole(targetUserId, newRole, callback)
         return
     end
 
-    -- 妫€鏌ョ洰鏍囨槸鍚﹀湪闃佃惀涓?
+    -- 妫€鏌ョ洰鏍囨槸鍚﹀湪闃佃惀涓?"
     local isMember = false
     for _, mid in ipairs(meta.members or {}) do
         if mid == targetUserId then isMember = true; break end
     end
     if not isMember then
-        if callback then callback(false, "瀵规柟涓嶅湪闃佃惀涓?) end
+        if callback then callback(false, "瀵规柟涓嶅湪闃佃惀涓?") end
         return
     end
 
@@ -1796,7 +1796,7 @@ function CloudManager.SetMemberRole(targetUserId, newRole, callback)
     end
 
     if oldRole == newRole then
-        if callback then callback(true, "宸茬粡鏄? .. _getRoleName(newRole)) end
+        if callback then callback(true, "宸茬粡鏄?" .. _getRoleName(newRole)) end
         return
     end
 
@@ -1808,8 +1808,8 @@ function CloudManager.SetMemberRole(targetUserId, newRole, callback)
         :Save("璁剧疆鑱屼綅", {
             ok = function()
                 print("[闃佃惀] " .. tostring(targetUserId) .. " "
-                    .. _getRoleName(oldRole) .. "鈫? .. _getRoleName(newRole))
-                if callback then callback(true, "宸茶涓? .. _getRoleName(newRole)) end
+                    .. _getRoleName(oldRole) .. "鈫?" .. _getRoleName(newRole))
+                if callback then callback(true, "宸茶涓?" .. _getRoleName(newRole)) end
             end,
             error = function(_, reason)
                 -- 鍥炴粴
@@ -1819,7 +1819,7 @@ function CloudManager.SetMemberRole(targetUserId, newRole, callback)
         })
 end
 
---- 鍏煎鏃ф帴鍙? 璁剧疆/鍙栨秷鍓洘涓?
+--- 鍏煎鏃ф帴鍙? 璁剧疆/鍙栨秷鍓洘涓?"
 ---@param targetUserId number
 ---@param setAsVice boolean
 ---@param callback? fun(success: boolean, reason: string)
@@ -1838,7 +1838,7 @@ function CloudManager.RenameFaction(newName, callback)
     end
     local meta = CloudManager._factionMeta
     if not meta then
-        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?) end
+        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?") end
         return
     end
     if not newName or #newName == 0 then
@@ -1876,18 +1876,18 @@ end
 function CloudManager.KickMember(targetUserId, callback)
     local meta = CloudManager._factionMeta
     if not meta then
-        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?) end
+        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?") end
         return
     end
     if not CloudAPI.IsAvailable() then
-        if callback then callback(false, "浜戠涓嶅彲鐢?) end
+        if callback then callback(false, "浜戠涓嶅彲鐢?") end
         return
     end
 
     local myUid = CloudAPI.GetUserId()
     local myRole = CloudManager._factionRole
     if targetUserId == myUid then
-        if callback then callback(false, "涓嶈兘韪㈣嚜宸? 璇蜂娇鐢ㄩ€€鍑?) end
+        if callback then callback(false, "涓嶈兘韪㈣嚜宸? 璇蜂娇鐢ㄩ€€鍑?") end
         return
     end
 
@@ -1897,13 +1897,13 @@ function CloudManager.KickMember(targetUserId, callback)
         return
     end
 
-    -- 妫€鏌ョ洰鏍囨槸鍚﹀湪闃佃惀涓?
+    -- 妫€鏌ョ洰鏍囨槸鍚﹀湪闃佃惀涓?"
     local targetIdx = nil
     for i, mid in ipairs(meta.members or {}) do
         if mid == targetUserId then targetIdx = i; break end
     end
     if not targetIdx then
-        if callback then callback(false, "瀵规柟涓嶅湪闃佃惀涓?) end
+        if callback then callback(false, "瀵规柟涓嶅湪闃佃惀涓?") end
         return
     end
 
@@ -1917,7 +1917,7 @@ function CloudManager.KickMember(targetUserId, callback)
         return
     end
 
-    -- 浠庢垚鍛樺垪琛ㄧЩ闄?
+    -- 浠庢垚鍛樺垪琛ㄧЩ闄?"
     local removedUid = table.remove(meta.members, targetIdx)
     meta.memberCount = #meta.members
     meta.roles[targetUidStr] = nil
@@ -1928,8 +1928,8 @@ function CloudManager.KickMember(targetUserId, callback)
         :Save("韪㈠嚭鎴愬憳", {
             ok = function()
                 print("[闃佃惀] 韪㈠嚭 " .. tostring(targetUserId) .. " (" .. _getRoleName(targetRole) .. ")"
-                    .. ", 鍓╀綑" .. meta.memberCount .. "浜?)
-                if callback then callback(true, "宸茶涪鍑?) end
+                    .. ", 鍓╀綑" .. meta.memberCount .. "浜?")
+                if callback then callback(true, "宸茶涪鍑?") end
             end,
             error = function(_, reason)
                 -- 鍥炴粴
@@ -1943,7 +1943,7 @@ end
 
 -- 鈹€鈹€ 杞鐩熶富 鈹€鈹€
 
---- 鐩熶富涓诲姩杞缁欐寚瀹氭垚鍛?
+--- 鐩熶富涓诲姩杞缁欐寚瀹氭垚鍛?"
 ---@param targetUserId number
 ---@param callback? fun(success: boolean, reason: string)
 function CloudManager.TransferLeadership(targetUserId, callback)
@@ -1953,27 +1953,27 @@ function CloudManager.TransferLeadership(targetUserId, callback)
     end
     local meta = CloudManager._factionMeta
     if not meta then
-        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?) end
+        if callback then callback(false, "闃佃惀鏁版嵁鏈姞杞?") end
         return
     end
     if not CloudAPI.IsAvailable() then
-        if callback then callback(false, "浜戠涓嶅彲鐢?) end
+        if callback then callback(false, "浜戠涓嶅彲鐢?") end
         return
     end
 
     local myUid = CloudAPI.GetUserId()
     if targetUserId == myUid then
-        if callback then callback(false, "涓嶈兘杞缁欒嚜宸?) end
+        if callback then callback(false, "涓嶈兘杞缁欒嚜宸?") end
         return
     end
 
-    -- 妫€鏌ョ洰鏍囨槸鍚﹀湪闃佃惀涓?
+    -- 妫€鏌ョ洰鏍囨槸鍚﹀湪闃佃惀涓?"
     local isMember = false
     for _, mid in ipairs(meta.members or {}) do
         if mid == targetUserId then isMember = true; break end
     end
     if not isMember then
-        if callback then callback(false, "瀵规柟涓嶅湪闃佃惀涓?) end
+        if callback then callback(false, "瀵规柟涓嶅湪闃佃惀涓?") end
         return
     end
 
@@ -1995,7 +1995,7 @@ function CloudManager.TransferLeadership(targetUserId, callback)
                 print("[闃佃惀] 鐩熶富宸茶浆璁╃粰 " .. tostring(targetUserId))
                 CloudManager._factionMeta = nil  -- 涓嶅啀鏄洘涓? 涓嶆寔鏈塵eta
                 CloudManager._syncSocialDomain()
-                if callback then callback(true, "鐩熶富宸茶浆璁?) end
+                if callback then callback(true, "鐩熶富宸茶浆璁?") end
             end,
             error = function(_, reason)
                 -- 鍥炴粴
@@ -2010,7 +2010,7 @@ end
 
 -- 鈹€鈹€ 缁т綅妫€娴? 鏂扮洘涓讳笂绾垮悗鎺ョ 鈹€鈹€
 
---- 鍒锋柊闃佃惀鐘舵€?(鐧诲綍鏃惰嚜鍔ㄨ皟鐢?
+--- 鍒锋柊闃佃惀鐘舵€?(鐧诲綍鏃惰嚜鍔ㄨ皟鐢?"
 --- 妫€娴嬪綋鍓嶇帺瀹舵槸鍚﹀洜鐩熶富閫€鍑鸿€岃鎻愬崌涓烘柊鐩熶富, 濡傛灉鏄垯閲嶆柊鍙戝竷 camp_meta
 ---@param callback? fun(transferred: boolean)
 function CloudManager._refreshFactionStatus(callback)
@@ -2045,8 +2045,8 @@ function CloudManager._refreshFactionStatus(callback)
             end
 
             if not latestMeta then
-                -- 闃佃惀宸蹭笉瀛樺湪 (鍙兘宸茶В鏁?
-                print("[闃佃惀] 闃佃惀宸蹭笉瀛樺湪, 娓呴櫎鏈湴鐘舵€?)
+                -- 闃佃惀宸蹭笉瀛樺湪 (鍙兘宸茶В鏁?"
+                print("[闃佃惀] 闃佃惀宸蹭笉瀛樺湪, 娓呴櫎鏈湴鐘舵€?")
                 CloudManager._factionId = 0
                 CloudManager._factionName = ""
                 CloudManager._factionRole = "none"
@@ -2056,7 +2056,7 @@ function CloudManager._refreshFactionStatus(callback)
                 return
             end
 
-            -- 妫€鏌ヨ嚜宸辨槸鍚﹀湪鎴愬憳鍒楄〃涓?
+            -- 妫€鏌ヨ嚜宸辨槸鍚﹀湪鎴愬憳鍒楄〃涓?"
             local inMembers = false
             for _, mid in ipairs(latestMeta.members or {}) do
                 if mid == myUid then inMembers = true; break end
@@ -2064,7 +2064,7 @@ function CloudManager._refreshFactionStatus(callback)
 
             if not inMembers then
                 -- 鎴戝凡涓嶅湪闃佃惀涓?(鍙兘琚涪)
-                print("[闃佃惀] 鎴戝凡涓嶅湪闃佃惀鎴愬憳涓? 娓呴櫎鏈湴鐘舵€?)
+                print("[闃佃惀] 鎴戝凡涓嶅湪闃佃惀鎴愬憳涓? 娓呴櫎鏈湴鐘舵€?")
                 CloudManager._factionId = 0
                 CloudManager._factionName = ""
                 CloudManager._factionRole = "none"
@@ -2077,7 +2077,7 @@ function CloudManager._refreshFactionStatus(callback)
             -- 鍚屾闃佃惀鍚嶇О鍜宮eta
             CloudManager._factionName = latestMeta.name or CloudManager._factionName
 
-            -- 鍏抽敭: 妫€鏌?leaderId 鏄惁鏄嚜宸?
+            -- 鍏抽敭: 妫€鏌?leaderId 鏄惁鏄嚜宸?"
             if latestMeta.leaderId == myUid then
                 if CloudManager._factionRole ~= "leader" then
                     -- 鎴戣鎻愬崌涓烘柊鐩熶富! 閲嶆柊鍙戝竷 camp_meta 鍒拌嚜宸辩殑鎺掕鏉＄洰
@@ -2088,7 +2088,7 @@ function CloudManager._refreshFactionStatus(callback)
                     CloudAPI:BatchSet()
                         :SetInt(KEYS.camp_leader_ts, os.time())
                         :Set(KEYS.camp_meta, latestMeta)
-                        :Save("鏂扮洘涓绘帴绠￠樀钀?, {
+                        :Save("鏂扮洘涓绘帴绠￠樀钀?", {
                             ok = function()
                                 print("[闃佃惀] 鏂扮洘涓绘帴绠″畬鎴? " .. (latestMeta.name or ""))
                                 CloudManager._syncSocialDomain()
@@ -2106,7 +2106,7 @@ function CloudManager._refreshFactionStatus(callback)
                     CloudManager._factionMeta = latestMeta
                 end
             else
-                -- 闈炵洘涓? 鏇存柊瑙掕壊, 淇濈暀meta渚沀I鏄剧ず(鐩熶富鍚?浜烘暟绛?
+                -- 闈炵洘涓? 鏇存柊瑙掕壊, 淇濈暀meta渚沀I鏄剧ず(鐩熶富鍚?浜烘暟绛?"
                 local roles = latestMeta.roles or {}
                 local myRole = roles[tostring(myUid)] or "member"
                 CloudManager._factionRole = myRole

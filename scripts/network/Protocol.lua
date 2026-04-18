@@ -1,6 +1,6 @@
 -- ============================================================================
--- Protocol.lua - 排位对战网络协议常量
--- 仅用于排位 1v1 房间制对战（征途为纯单机，不走网络）
+-- Protocol.lua - 常驻服务器网络协议常量
+-- 用于客户端与常驻服务端之间的云数据、排行和排位对战通信
 -- ============================================================================
 
 local Protocol = {}
@@ -16,7 +16,7 @@ Protocol.EVENTS = {
     CLOUD_REQUEST      = "CloudRequest",        -- C→S: 通用云数据请求
     CLOUD_RESPONSE     = "CloudResponse",       -- S→C: 通用云数据响应
 
-    -- 排位模式（房间制 1v1）
+    -- 排位模式（由常驻服务器撮合与结算）
     RANKED_JOIN        = "RankedJoin",          -- C→S: 加入排位匹配
     RANKED_CANCEL      = "RankedCancel",        -- C→S: 取消匹配
     RANKED_READY       = "RankedReady",         -- C→S: 确认准备

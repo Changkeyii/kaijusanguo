@@ -1,626 +1,524 @@
--- ui/screens_combat.lua - 涓夊浗姝︾伒褰?(浠?screens.lua 鎷嗗垎)
+-- ui/screens_combat.lua
+
+local function DrawScreenOverlay(W, H, topAlpha, bottomAlpha)
+    local topGrad = nvgLinearGradient(vg, 0, 0, 0, H * 0.18,
+        nvgRGBA(8, 8, 18, topAlpha or 180), nvgRGBA(0, 0, 0, 0))
+    nvgBeginPath(vg)
+    nvgRect(vg, 0, 0, W, H * 0.18)
+    nvgFillPaint(vg, topGrad)
+    nvgFill(vg)
+
+    local bottomGrad = nvgLinearGradient(vg, 0, H * 0.72, 0, H,
+        nvgRGBA(0, 0, 0, 0), nvgRGBA(10, 8, 18, bottomAlpha or 170))
+    nvgBeginPath(vg)
+    nvgRect(vg, 0, H * 0.72, W, H * 0.28)
+    nvgFillPaint(vg, bottomGrad)
+    nvgFill(vg)
+end
+
+local function DrawSoftPanel(x, y, w, h, radius, fill, stroke)
+    fill = fill or nvgRGBA(20, 18, 32, 220)
+    stroke = stroke or nvgRGBA(120, 90, 70, 120)
+    nvgBeginPath(vg)
+    nvgRoundedRect(vg, x, y, w, h, radius or 8)
+    nvgFillColor(vg, fill)
+    nvgFill(vg)
+    nvgBeginPath(vg)
+    nvgRoundedRect(vg, x, y, w, h, radius or 8)
+    nvgStrokeColor(vg, stroke)
+    nvgStrokeWidth(vg, 1.2)
+    nvgStroke(vg)
+end
+
+local function DrawButton(x, y, w, h, label, opts)
+    opts = opts or {}
+    local radius = opts.radius or 6
+    local fillTop = opts.fillTop or nvgRGBA(140, 70, 50, 220)
+    local fillBottom = opts.fillBottom or nvgRGBA(90, 40, 24, 230)
+    local stroke = opts.stroke or nvgRGBA(240, 200, 150, 150)
+    local textColor = opts.textColor or nvgRGBA(245, 232, 215, 240)
+    local shadowColor = opts.shadowColor or nvgRGBA(0, 0, 0, 130)
+    local fontSize = opts.fontSize or 26
+
+    local grad = nvgLinearGradient(vg, x, y, x, y + h, fillTop, fillBottom)
+    nvgBeginPath(vg)
+    nvgRoundedRect(vg, x, y, w, h, radius)
+    nvgFillPaint(vg, grad)
+    nvgFill(vg)
+
+    nvgBeginPath(vg)
+    nvgRoundedRect(vg, x, y, w, h, radius)
+    nvgStrokeColor(vg, stroke)
+    nvgStrokeWidth(vg, 1.2)
+    nvgStroke(vg)
+
+    nvgFontSize(vg, fontSize)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, shadowColor)
+    nvgText(vg, x + w / 2 + 1, y + h / 2 + 1, label, nil)
+    nvgFillColor(vg, textColor)
+    nvgText(vg, x + w / 2, y + h / 2, label, nil)
+end
+
+local function DrawTopBar(W, title, accent)
+    local topY = 14
+    local backW, backH = 100, 36
+    local backX = 14
+
+    DrawButton(backX, topY, backW, backH, "< 返回", {
+        fillTop = nvgRGBA(55, 28, 28, 220),
+        fillBottom = nvgRGBA(25, 12, 12, 230),
+        stroke = nvgRGBA(180, 90, 90, 130),
+        fontSize = 24,
+    })
+
+    local cx = W / 2
+    nvgFontFaceId(vg, GetMainFont())
+    nvgFontSize(vg, 38)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(0, 0, 0, 120))
+    nvgText(vg, cx + 2, topY + backH / 2 + 2, title, nil)
+    nvgFillColor(vg, accent or nvgRGBA(255, 220, 190, 240))
+    nvgText(vg, cx, topY + backH / 2, title, nil)
+
+    DrawHelpBtn(DESIGN_W - 44, topY + 3, 30)
+
+    return {
+        x = backX,
+        y = topY,
+        w = backW,
+        h = backH,
+        centerY = topY + backH / 2,
+    }
+end
+
 function DrawAbyssSelectScreen()
     if gameState.phase ~= "ABYSS_SELECT" then return end
+
     local W = DESIGN_W
     local H = DESIGN_H
     local cx = W / 2
-    local t = gameState.gameTime
 
-    -- 璁ㄤ紣涓撳睘鑳屾櫙 (鏂板摜鐗归)
     DrawBgImage(IMG.abyssSelectBg, W, H, 572, 1025)
-    -- 椤堕儴鏆楀寲娓愬彉
-    local topGrad = nvgLinearGradient(vg, 0, 0, 0, H * 0.15,
-        nvgRGBA(8, 4, 16, 180), nvgRGBA(0, 0, 0, 0))
-    nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H * 0.15)
-    nvgFillPaint(vg, topGrad); nvgFill(vg)
-    -- 搴曢儴璁ㄤ紣杩烽浘
-    local botGrad = nvgLinearGradient(vg, 0, H * 0.75, 0, H,
-        nvgRGBA(0, 0, 0, 0), nvgRGBA(12, 4, 20, 160))
-    nvgBeginPath(vg); nvgRect(vg, 0, H * 0.75, W, H * 0.25)
-    nvgFillPaint(vg, botGrad); nvgFill(vg)
-
+    DrawScreenOverlay(W, H, 190, 180)
     nvgFontFaceId(vg, GetMainFont())
 
-    -- 椤堕儴杩斿洖鎸夐挳 (鏆楃孩鍝ョ壒杈规)
-    local topY = 14
-    local backW, backH = 90, 34
-    nvgBeginPath(vg); nvgRoundedRect(vg, 14, topY, backW, backH, 4)
-    local backBg = nvgLinearGradient(vg, 14, topY, 14, topY + backH,
-        nvgRGBA(40, 12, 18, 220), nvgRGBA(20, 8, 12, 220))
-    nvgFillPaint(vg, backBg); nvgFill(vg)
-    nvgStrokeColor(vg, nvgRGBA(120, 50, 50, 140)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-    nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(14 + backW/2, topY + backH/2, "< 杩斿洖")
-    abyssState.backBtnRect = { x = 14, y = topY, w = backW, h = backH }
+    local topBar = DrawTopBar(W, "深渊试炼", nvgRGBA(230, 150, 150, 240))
+    abyssState.backBtnRect = { x = topBar.x, y = topBar.y, w = topBar.w, h = topBar.h }
 
-    -- 鏍囬鍖哄煙 (鐧借壊+榛戞弿杈?
-    local titleCY = topY + backH / 2
-    nvgFontSize(vg, 40); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(cx, titleCY, "璁ㄤ紣鎴?)
-    DrawHelpBtn(DESIGN_W - 14 - 30, topY + (backH - 30) / 2, 30)
+    nvgFontSize(vg, 22)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(220, 200, 180, 200))
+    nvgText(vg, cx, topBar.centerY + 30, "首通可得 100 玉石 | 层数越高敌人越强", nil)
 
-    -- 瑁呴グ: 宸﹀彸琛€绾㈡笎鍙樺垎闅旂嚎
-    local sepY2 = titleCY + 24
-    local sepHW = 120
-    local sepGradL = nvgLinearGradient(vg, cx - sepHW, sepY2, cx - 6, sepY2,
-        nvgRGBA(120, 40, 40, 0), nvgRGBA(160, 60, 60, 160))
-    nvgBeginPath(vg); nvgMoveTo(vg, cx - sepHW, sepY2); nvgLineTo(vg, cx - 6, sepY2)
-    nvgStrokeWidth(vg, 1); nvgStrokePaint(vg, sepGradL); nvgStroke(vg)
-    local sepGradR = nvgLinearGradient(vg, cx + 6, sepY2, cx + sepHW, sepY2,
-        nvgRGBA(160, 60, 60, 160), nvgRGBA(120, 40, 40, 0))
-    nvgBeginPath(vg); nvgMoveTo(vg, cx + 6, sepY2); nvgLineTo(vg, cx + sepHW, sepY2)
-    nvgStrokeWidth(vg, 1); nvgStrokePaint(vg, sepGradR); nvgStroke(vg)
-    -- 涓績楠烽珔鑿卞舰
-    nvgBeginPath(vg)
-    nvgMoveTo(vg, cx, sepY2 - 4); nvgLineTo(vg, cx + 4, sepY2)
-    nvgLineTo(vg, cx, sepY2 + 4); nvgLineTo(vg, cx - 4, sepY2)
-    nvgClosePath(vg)
-    nvgFillColor(vg, nvgRGBA(180, 80, 80, 200)); nvgFill(vg)
-
-    -- 璁ㄤ紣鍏ュ満璐?& 鐖嗙巼鎻愮ず
-    nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, nvgRGBA(180, 140, 100, 180))
-    nvgText(vg, cx, sepY2 + 16, "姣忔娑堣€?00铏庣 | 澶ч噺瑁呭鎺夎惤", nil)
-
-    -- 鍏冲崱鍒楄〃
+    local listStartY = topBar.centerY + 50
     local cardW = W - 32
     local cardH = 110
-    local cardGap = 10
-    local listStartY = sepY2 + 34
+    local gap = 10
     abyssState.floorRects = {}
+    abyssState.startBtnRect = nil
+    abyssState.previewCloseRect = nil
 
     for i = 1, #abyssState.floors do
         local floor = abyssState.floors[i]
-        local fc = floor.color
-        local cy = listStartY + (i - 1) * (cardH + cardGap)
-        local isUnlocked = (stageState.maxUnlocked >= floor.unlockStage)
+        local fc = floor.color or { 180, 120, 120 }
+        local y = listStartY + (i - 1) * (cardH + gap)
+        local unlocked = stageState.maxUnlocked >= floor.unlockStage
 
-        abyssState.floorRects[i] = { x = 16, y = cy, w = cardW, h = cardH }
+        abyssState.floorRects[i] = { x = 16, y = y, w = cardW, h = cardH }
+        DrawSoftPanel(16, y, cardW, cardH, 6,
+            unlocked and nvgRGBA(28, 18, 28, 220) or nvgRGBA(22, 20, 24, 220),
+            unlocked and nvgRGBA(fc[1], fc[2], fc[3], 150) or nvgRGBA(90, 80, 90, 90))
 
-        -- 鍗＄墖鑳屾櫙 (娣辫壊鍝ョ壒娓愬彉搴曟澘)
-        nvgBeginPath(vg); nvgRoundedRect(vg, 16, cy, cardW, cardH, 5)
-        if isUnlocked then
-            local cardBg = nvgLinearGradient(vg, 16, cy, 16 + cardW, cy,
-                nvgRGBA(18, 10, 28, 200), nvgRGBA(28, 16, 22, 200))
-            nvgFillPaint(vg, cardBg)
-        else
-            nvgFillColor(vg, nvgRGBA(20, 18, 24, 210))
-        end
+        nvgBeginPath(vg)
+        nvgRoundedRect(vg, 16, y, 5, cardH, 3)
+        nvgFillColor(vg, unlocked and nvgRGBA(fc[1], fc[2], fc[3], 220) or nvgRGBA(70, 70, 70, 140))
         nvgFill(vg)
 
-        -- 宸︿晶绔栨潯瑁呴グ (棰滆壊鏍囪瘑)
-        nvgBeginPath(vg); nvgRoundedRect(vg, 16, cy, 4, cardH, 2)
-        if isUnlocked then
-            nvgFillColor(vg, nvgRGBA(fc[1], fc[2], fc[3], 200))
-        else
-            nvgFillColor(vg, nvgRGBA(50, 45, 55, 120))
-        end
-        nvgFill(vg)
-
-        -- 杈规 (鏆楃孩鎻忚竟)
-        nvgBeginPath(vg); nvgRoundedRect(vg, 16, cy, cardW, cardH, 5)
-        if isUnlocked then
-            local bPulse = 0.6 + 0.4 * math.sin(t * 1.8 + i * 0.9)
-            nvgStrokeColor(vg, nvgRGBA(
-                math.floor(fc[1] * 0.5 + 120 * 0.5),
-                math.floor(fc[2] * 0.3 + 40 * 0.7),
-                math.floor(fc[3] * 0.3 + 40 * 0.7),
-                math.floor(100 * bPulse)))
-        else
-            nvgStrokeColor(vg, nvgRGBA(45, 40, 50, 80))
-        end
-        nvgStrokeWidth(vg, 1); nvgStroke(vg)
-
-        -- 宸︿晶鍥炬爣 (鏂瑰舰鍦嗚)
         local iconSize = 56
-        local iconX = 28
-        local iconY = cy + (cardH - iconSize) / 2
-
+        local iconX = 30
+        local iconY = y + (cardH - iconSize) / 2
         if IsImageReady(IMG.abyssIcon and IMG.abyssIcon[i]) then
-            local pat = nvgImagePattern(vg, iconX, iconY, iconSize, iconSize, 0, IMG.abyssIcon[i], isUnlocked and 1.0 or 0.25)
-            nvgBeginPath(vg); nvgRoundedRect(vg, iconX, iconY, iconSize, iconSize, 6)
-            nvgFillPaint(vg, pat); nvgFill(vg)
+            local pat = nvgImagePattern(vg, iconX, iconY, iconSize, iconSize, 0, IMG.abyssIcon[i], unlocked and 1 or 0.28)
+            nvgBeginPath(vg)
+            nvgRoundedRect(vg, iconX, iconY, iconSize, iconSize, 6)
+            nvgFillPaint(vg, pat)
+            nvgFill(vg)
         else
-            nvgBeginPath(vg); nvgRoundedRect(vg, iconX, iconY, iconSize, iconSize, 6)
-            nvgFillColor(vg, nvgRGBA(25, 18, 35, 200)); nvgFill(vg)
-            DrawSpinner(iconX + iconSize/2, iconY + iconSize/2, 12)
+            nvgBeginPath(vg)
+            nvgRoundedRect(vg, iconX, iconY, iconSize, iconSize, 6)
+            nvgFillColor(vg, nvgRGBA(30, 24, 36, 220))
+            nvgFill(vg)
+            DrawSpinner(iconX + iconSize / 2, iconY + iconSize / 2, 12)
         end
-        -- 鍥炬爣杈规
-        nvgBeginPath(vg); nvgRoundedRect(vg, iconX, iconY, iconSize, iconSize, 6)
-        if isUnlocked then
-            nvgStrokeColor(vg, nvgRGBA(fc[1], fc[2], fc[3], 120))
-        else
-            nvgStrokeColor(vg, nvgRGBA(45, 40, 50, 70))
-        end
-        nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
-        -- 鍙充晶鏂囧瓧鍖哄煙
-        local textX = iconX + iconSize + 12
-        local textCY2 = cy + cardH / 2
+        local textX = iconX + iconSize + 14
+        local midY = y + cardH / 2
         nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
 
-        if isUnlocked then
-            -- 灞傛暟 + 鍚嶇О
-            local floorTitle = "绗? .. i .. "灞?路 " .. floor.name
-            nvgFontSize(vg, 27)
-            nvgFillColor(vg, nvgRGBA(fc[1], fc[2], fc[3], 240))
-            nvgText(vg, textX, textCY2 - 22, floorTitle, nil)
+        if unlocked then
+            local myPower = CalcPlayerTotalPower()
+            local enemyPower, minReq, recReq = CalcStageRequiredPower(floor.enemyScale)
+            local ratio = enemyPower > 0 and (myPower / enemyPower) or 99
+            local gradeText, gradeColor = GetPowerGrade(ratio)
 
-            -- 鎻忚堪
-            nvgFontSize(vg, 22)
-            nvgFillColor(vg, nvgRGBA(160, 150, 140, 180))
-            nvgText(vg, textX, textCY2 + 2, floor.desc, nil)
-
-            -- 鎴樺姏璇勪及
-            local myP = CalcPlayerTotalPower()
-            local ePow, minReq, recReq = CalcStageRequiredPower(floor.enemyScale)
-            local pRatio = (ePow > 0) and (myP / ePow) or 99.0
-            local gT, gC = GetPowerGrade(pRatio)
-            nvgFontSize(vg, 20)
-            nvgFillColor(vg, (myP >= minReq) and nvgRGBA(80, 200, 110, 210) or nvgRGBA(220, 70, 70, 210))
-            nvgText(vg, textX, textCY2 + 24, "闇€ " .. FormatPower(minReq), nil)
-            local recColor = (myP >= recReq) and nvgRGBA(80, 200, 110, 210) or nvgRGBA(220, 170, 60, 210)
-            nvgFillColor(vg, recColor)
-            nvgText(vg, textX + 80, textCY2 + 24, "鑽?" .. FormatPower(recReq), nil)
-            nvgFillColor(vg, nvgRGBA(gC[1], gC[2], gC[3], 200))
-            nvgText(vg, textX + 160, textCY2 + 24, gT, nil)
-
-            -- 鍙充晶绠ご
-            nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
             nvgFontSize(vg, 28)
-            nvgFillColor(vg, nvgRGBA(fc[1], fc[2], fc[3], 100))
-            nvgText(vg, 16 + cardW - 10, textCY2, ">", nil)
+            nvgFillColor(vg, nvgRGBA(fc[1], fc[2], fc[3], 245))
+            nvgText(vg, textX, midY - 24, "第" .. i .. "层 · " .. floor.name, nil)
+
+            nvgFontSize(vg, 22)
+            nvgFillColor(vg, nvgRGBA(220, 210, 200, 220))
+            nvgText(vg, textX, midY + 2, floor.desc or "", nil)
+
+            nvgFontSize(vg, 20)
+            nvgFillColor(vg, myPower >= minReq and nvgRGBA(100, 220, 140, 220) or nvgRGBA(240, 110, 110, 220))
+            nvgText(vg, textX, midY + 28, "最低 " .. FormatPower(minReq), nil)
+            nvgFillColor(vg, myPower >= recReq and nvgRGBA(120, 220, 150, 220) or nvgRGBA(255, 200, 100, 220))
+            nvgText(vg, textX + 90, midY + 28, "推荐 " .. FormatPower(recReq), nil)
+            nvgFillColor(vg, nvgRGBA(gradeColor[1], gradeColor[2], gradeColor[3], 220))
+            nvgText(vg, textX + 190, midY + 28, gradeText, nil)
         else
-            -- 閿佸畾
-            nvgFontSize(vg, 27)
-            nvgFillColor(vg, nvgRGBA(80, 75, 85, 180))
-            nvgText(vg, textX, textCY2 - 12, "绗? .. i .. "灞?路 ???", nil)
-            nvgFontSize(vg, 22)
             local reqStage = STAGES[floor.unlockStage]
-            local reqName = reqStage and reqStage.name or ("鍏冲崱" .. floor.unlockStage)
-            nvgFillColor(vg, nvgRGBA(100, 80, 80, 150))
-            nvgText(vg, textX, textCY2 + 12, "閫氬叧銆? .. reqName .. "銆嶈В閿?, nil)
-            -- 閿佸浘鏍?
-            nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
-            nvgFontSize(vg, 26)
-            nvgFillColor(vg, nvgRGBA(80, 60, 60, 120))
-            nvgText(vg, 16 + cardW - 10, textCY2, "閿?, nil)
-        end
-    end
+            local reqName = reqStage and reqStage.name or ("关卡" .. floor.unlockStage)
 
-    -- ===========================
-    -- 璁ㄤ紣鍏冲崱棰勮寮圭獥 (閲嶅埗)
-    -- ===========================
-    if abyssState.showPreview then
-        local fi = abyssState.selectedFloor
-        local floor = abyssState.floors[fi]
-        if floor then
-            local fc = floor.color
-            local popW = W - 32
-            local popH = 240
-            local popX = 16
-            local popY = H / 2 - popH / 2 - 20
+            nvgFontSize(vg, 28)
+            nvgFillColor(vg, nvgRGBA(150, 140, 150, 190))
+            nvgText(vg, textX, midY - 14, "第" .. i .. "层 · 未解锁", nil)
 
-            -- 鍏ㄥ睆閬僵
-            nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
-            nvgFillColor(vg, nvgRGBA(0, 0, 0, 140)); nvgFill(vg)
-
-            -- 寮圭獥搴曟澘 (鏆楃孩娓愬彉+鍙屽眰杈规)
-            nvgBeginPath(vg); nvgRoundedRect(vg, popX, popY, popW, popH, 8)
-            local popBg = nvgLinearGradient(vg, popX, popY, popX, popY + popH,
-                nvgRGBA(35, 15, 22, 245), nvgRGBA(18, 10, 16, 245))
-            nvgFillPaint(vg, popBg); nvgFill(vg)
-            -- 澶栬竟妗?(鏆楃孩)
-            nvgBeginPath(vg); nvgRoundedRect(vg, popX, popY, popW, popH, 8)
-            nvgStrokeColor(vg, nvgRGBA(140, 50, 50, 120)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
-            -- 鍐呰竟妗?(鏇存殫)
-            nvgBeginPath(vg); nvgRoundedRect(vg, popX + 3, popY + 3, popW - 6, popH - 6, 6)
-            nvgStrokeColor(vg, nvgRGBA(80, 30, 30, 60)); nvgStrokeWidth(vg, 0.5); nvgStroke(vg)
-
-            -- 鑳屾櫙棰勮 (妯潯缂╃暐鍥?
-            local prevW = popW - 20
-            local prevH = 80
-            local prevX = popX + 10
-            local prevY = popY + 44
-            if IsImageReady(IMG.abyssBg and IMG.abyssBg[fi]) then
-                local imgW, imgH = 714, 1280
-                local pScale = math.max(prevW / imgW, prevH / imgH)
-                local pat = nvgImagePattern(vg, prevX + (prevW - imgW * pScale)/2,
-                    prevY + (prevH - imgH * pScale)/2,
-                    imgW * pScale, imgH * pScale, 0, IMG.abyssBg[fi], 0.6)
-                nvgBeginPath(vg); nvgRoundedRect(vg, prevX, prevY, prevW, prevH, 4)
-                nvgFillPaint(vg, pat); nvgFill(vg)
-                -- 鏆楀寲
-                nvgBeginPath(vg); nvgRoundedRect(vg, prevX, prevY, prevW, prevH, 4)
-                nvgFillColor(vg, nvgRGBA(0, 0, 0, 40)); nvgFill(vg)
-            else
-                nvgBeginPath(vg); nvgRoundedRect(vg, prevX, prevY, prevW, prevH, 4)
-                nvgFillColor(vg, nvgRGBA(20, 12, 25, 200)); nvgFill(vg)
-                DrawSpinner(prevX + prevW / 2, prevY + prevH / 2, 14)
-            end
-
-            -- 鏍囬 (琛€绾㈡姇褰?
-            local popTitle = "绗? .. fi .. "灞?路 " .. floor.name
-            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            nvgFontSize(vg, 32)
-            nvgFillColor(vg, nvgRGBA(60, 10, 10, 100))
-            nvgText(vg, cx + 1, popY + 24 + 1, popTitle, nil)
-            nvgFillColor(vg, nvgRGBA(fc[1], fc[2], fc[3], 240))
-            nvgText(vg, cx, popY + 24, popTitle, nil)
-
-            -- 鎻忚堪 + 鏁屾柟寮哄害
-            nvgFontSize(vg, 24)
-            nvgFillColor(vg, nvgRGBA(180, 160, 150, 200))
-            nvgText(vg, cx, popY + 140, floor.desc, nil)
             nvgFontSize(vg, 22)
-            nvgFillColor(vg, nvgRGBA(200, 120, 100, 200))
-            nvgText(vg, cx, popY + 164, "鏁屾柟寮哄害: 脳" .. string.format("%.1f", floor.enemyScale), nil)
+            nvgFillColor(vg, nvgRGBA(180, 150, 150, 180))
+            nvgText(vg, textX, midY + 16, "通关《" .. reqName .. "》后解锁", nil)
 
-            -- 鍑烘垬鎸夐挳 (鏆楃孩娓愬彉)
-            local startBtnW = 160
-            local startBtnH = 40
-            local startBtnX = cx - startBtnW / 2
-            local startBtnY = popY + popH - 52
-            local btnPulse = 0.7 + 0.3 * math.sin(t * 2.5)
-            nvgBeginPath(vg); nvgRoundedRect(vg, startBtnX, startBtnY, startBtnW, startBtnH, 6)
-            local sBtnBg = nvgLinearGradient(vg, startBtnX, startBtnY, startBtnX, startBtnY + startBtnH,
-                nvgRGBA(100, 30, 30, 230), nvgRGBA(60, 15, 15, 230))
-            nvgFillPaint(vg, sBtnBg); nvgFill(vg)
-            nvgBeginPath(vg); nvgRoundedRect(vg, startBtnX, startBtnY, startBtnW, startBtnH, 6)
-            nvgStrokeColor(vg, nvgRGBA(200, 100, 80, math.floor(160 * btnPulse)))
-            nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
-            nvgFontSize(vg, 28); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            nvgFillColor(vg, nvgRGBA(240, 210, 190, 240))
-            nvgText(vg, cx, startBtnY + startBtnH / 2, "鎸? 鎴?, nil)
-            abyssState.startBtnRect = { x = startBtnX, y = startBtnY, w = startBtnW, h = startBtnH }
-
-            -- 鍏抽棴鎸夐挳
-            local closeBtnW = 28
-            local closeBtnX = popX + popW - closeBtnW - 6
-            local closeBtnY3 = popY + 6
-            nvgBeginPath(vg); nvgCircle(vg, closeBtnX + closeBtnW/2, closeBtnY3 + closeBtnW/2, closeBtnW/2)
-            nvgFillColor(vg, nvgRGBA(50, 20, 20, 200)); nvgFill(vg)
-            nvgStrokeColor(vg, nvgRGBA(120, 50, 50, 100)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-            nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            nvgFillColor(vg, nvgRGBA(200, 150, 130, 200))
-            nvgText(vg, closeBtnX + closeBtnW/2, closeBtnY3 + closeBtnW/2, "脳", nil)
-            abyssState.previewCloseRect = { x = closeBtnX, y = closeBtnY3, w = closeBtnW, h = closeBtnW }
+            nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 24)
+            nvgFillColor(vg, nvgRGBA(120, 90, 90, 180))
+            nvgText(vg, 16 + cardW - 14, midY, "锁", nil)
         end
     end
+
+    if not abyssState.showPreview then
+        return
+    end
+
+    local idx = abyssState.selectedFloor
+    local floor = abyssState.floors[idx]
+    if not floor then
+        return
+    end
+
+    local fc = floor.color or { 180, 120, 120 }
+    local popW = W - 40
+    local popH = 250
+    local popX = 20
+    local popY = H / 2 - popH / 2 - 10
+
+    nvgBeginPath(vg)
+    nvgRect(vg, 0, 0, W, H)
+    nvgFillColor(vg, nvgRGBA(0, 0, 0, 155))
+    nvgFill(vg)
+
+    DrawSoftPanel(popX, popY, popW, popH, 10, nvgRGBA(32, 16, 20, 245), nvgRGBA(fc[1], fc[2], fc[3], 150))
+
+    local previewX = popX + 12
+    local previewY = popY + 48
+    local previewW = popW - 24
+    local previewH = 84
+    if IsImageReady(IMG.abyssBg and IMG.abyssBg[idx]) then
+        local imgW, imgH = 714, 1280
+        local scale = math.max(previewW / imgW, previewH / imgH)
+        local px = previewX + (previewW - imgW * scale) / 2
+        local py = previewY + (previewH - imgH * scale) / 2
+        local pat = nvgImagePattern(vg, px, py, imgW * scale, imgH * scale, 0, IMG.abyssBg[idx], 0.75)
+        nvgBeginPath(vg)
+        nvgRoundedRect(vg, previewX, previewY, previewW, previewH, 6)
+        nvgFillPaint(vg, pat)
+        nvgFill(vg)
+    else
+        nvgBeginPath(vg)
+        nvgRoundedRect(vg, previewX, previewY, previewW, previewH, 6)
+        nvgFillColor(vg, nvgRGBA(22, 18, 28, 220))
+        nvgFill(vg)
+        DrawSpinner(previewX + previewW / 2, previewY + previewH / 2, 14)
+    end
+
+    nvgFontSize(vg, 32)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(fc[1], fc[2], fc[3], 245))
+    nvgText(vg, cx, popY + 24, "第" .. idx .. "层 · " .. floor.name, nil)
+
+    nvgFontSize(vg, 24)
+    nvgFillColor(vg, nvgRGBA(230, 220, 210, 220))
+    nvgText(vg, cx, popY + 152, floor.desc or "", nil)
+
+    nvgFontSize(vg, 22)
+    nvgFillColor(vg, nvgRGBA(255, 190, 160, 220))
+    nvgText(vg, cx, popY + 178, "敌方强度: x" .. string.format("%.1f", floor.enemyScale or 1), nil)
+
+    local startW = 180
+    local startH = 42
+    local startX = cx - startW / 2
+    local startY = popY + popH - 54
+    DrawButton(startX, startY, startW, startH, "开始挑战", {
+        fillTop = nvgRGBA(170, 70, 60, 230),
+        fillBottom = nvgRGBA(110, 35, 35, 235),
+        stroke = nvgRGBA(255, 180, 160, 150),
+        fontSize = 28,
+    })
+    abyssState.startBtnRect = { x = startX, y = startY, w = startW, h = startH }
+
+    local closeSize = 28
+    local closeX = popX + popW - closeSize - 8
+    local closeY = popY + 8
+    nvgBeginPath(vg)
+    nvgCircle(vg, closeX + closeSize / 2, closeY + closeSize / 2, closeSize / 2)
+    nvgFillColor(vg, nvgRGBA(60, 28, 28, 220))
+    nvgFill(vg)
+    nvgStrokeColor(vg, nvgRGBA(220, 140, 140, 120))
+    nvgStrokeWidth(vg, 1)
+    nvgStroke(vg)
+    nvgFontSize(vg, 22)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(240, 210, 200, 230))
+    nvgText(vg, closeX + closeSize / 2, closeY + closeSize / 2, "X", nil)
+    abyssState.previewCloseRect = { x = closeX, y = closeY, w = closeSize, h = closeSize }
 end
 
-
--- ============================================================================
--- 鏃犲敖鐖 閫夋嫨鐣岄潰
--- ============================================================================
 function DrawTowerSelectScreen()
     if gameState.phase ~= "TOWER_SELECT" then return end
+
     local W = DESIGN_W
     local H = DESIGN_H
     local cx = W / 2
-    local t = gameState.gameTime
-    local fl = towerState.currentFloor
-    local towerScale = math.pow(1.15, fl)
+    local t = gameState.gameTime or 0
+    local floor = towerState.currentFloor or 1
+    local towerScale = math.pow(1.15, floor)
 
-    -- 鐖涓撳睘鑳屾櫙
     DrawBgImage(IMG.towerSelectBg, W, H, 1143, 2048)
-    nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
-    nvgFillColor(vg, nvgRGBA(5, 8, 18, 40)); nvgFill(vg)
-    local botGrad = nvgLinearGradient(vg, 0, H * 0.7, 0, H,
-        nvgRGBA(0, 0, 0, 0), nvgRGBA(10, 5, 25, 120))
-    nvgBeginPath(vg); nvgRect(vg, 0, H * 0.7, W, H * 0.3)
-    nvgFillPaint(vg, botGrad); nvgFill(vg)
-
+    DrawScreenOverlay(W, H, 170, 150)
     nvgFontFaceId(vg, GetMainFont())
 
-    -- 椤堕儴杩斿洖鎸夐挳
-    local topY = 14
-    local backW, backH = 100, 38
-    nvgBeginPath(vg); nvgRoundedRect(vg, 14, topY, backW, backH, 6)
-    nvgFillColor(vg, nvgRGBA(15, 12, 30, 200)); nvgFill(vg)
-    nvgStrokeColor(vg, nvgRGBA(90, 45, 55, 140)); nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
-    nvgFontSize(vg, 26); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, nvgRGBA(5, 5, 12, 95))
-    nvgText(vg, 14 + backW/2 + 1, topY + backH/2 + 1, "< 杩斿洖", nil)
-    DrawWhiteInkText(14 + backW/2, topY + backH/2, "< 杩斿洖")
-    towerState.backBtnRect = { x = 14, y = topY, w = backW, h = backH }
+    local topBar = DrawTopBar(W, "无尽爬塔", nvgRGBA(140, 210, 255, 240))
+    towerState.backBtnRect = { x = topBar.x, y = topBar.y, w = topBar.w, h = topBar.h }
 
-    -- 鏍囬
-    local titleCY = topY + backH/2
-    nvgFontSize(vg, 38); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, nvgRGBA(5, 5, 12, 130))
-    nvgText(vg, cx + 2, titleCY + 2, "鏃犲敖鐖", nil)
-    nvgFillColor(vg, nvgRGBA(60, 120, 180, 180))
-    nvgText(vg, cx + 1, titleCY + 1, "鏃犲敖鐖", nil)
-    DrawWhiteInkText(cx, titleCY, "鏃犲敖鐖")
-    DrawHelpBtn(DESIGN_W - 14 - 30, topY + (backH - 30) / 2, 30)
+    nvgFontSize(vg, 24)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(210, 225, 240, 200))
+    nvgText(vg, cx, topBar.centerY + 28, "- 层层递进 - 最高 999 层 -", nil)
 
-    -- 鍓爣棰?
-    nvgFontSize(vg, 27)
-    nvgFillColor(vg, nvgRGBA(0, 0, 0, 80))
-    local subTitle = "- 灞傚眰閫掕繘 - 鏈€楂?99灞?-"
-    nvgText(vg, cx + 1, titleCY + 22, subTitle, nil)
-    DrawWhiteInkText(cx, titleCY + 21, subTitle)
+    local contentX = 30
+    local contentY = topBar.centerY + 50
+    local contentW = W - 60
+    local contentH = 210
+    DrawSoftPanel(contentX, contentY, contentW, contentH, 10, nvgRGBA(22, 24, 42, 215), nvgRGBA(100, 170, 240, 130))
 
-    -- 瑁呴グ鍒嗛殧绾?
-    local sepY2 = titleCY + 36
-    local sepHalfW2 = 130
-    local lineGradL2 = nvgLinearGradient(vg, cx - sepHalfW2, sepY2, cx - 8, sepY2,
-        nvgRGBA(60, 120, 200, 0), nvgRGBA(80, 150, 220, 160))
-    nvgBeginPath(vg)
-    nvgMoveTo(vg, cx - sepHalfW2, sepY2); nvgLineTo(vg, cx - 8, sepY2)
-    nvgStrokeWidth(vg, 1.2); nvgStrokePaint(vg, lineGradL2); nvgStroke(vg)
-    local lineGradR2 = nvgLinearGradient(vg, cx + 8, sepY2, cx + sepHalfW2, sepY2,
-        nvgRGBA(80, 150, 220, 160), nvgRGBA(60, 120, 200, 0))
-    nvgBeginPath(vg)
-    nvgMoveTo(vg, cx + 8, sepY2); nvgLineTo(vg, cx + sepHalfW2, sepY2)
-    nvgStrokeWidth(vg, 1.2); nvgStrokePaint(vg, lineGradR2); nvgStroke(vg)
-    nvgBeginPath(vg)
-    nvgMoveTo(vg, cx, sepY2 - 4); nvgLineTo(vg, cx + 4, sepY2)
-    nvgLineTo(vg, cx, sepY2 + 4); nvgLineTo(vg, cx - 4, sepY2)
-    nvgClosePath(vg)
-    nvgFillColor(vg, nvgRGBA(100, 180, 240, 200)); nvgFill(vg)
-
-    -- 涓诲唴瀹瑰尯鍩? 褰撳墠灞傛暟澶у瓧
-    local contentY = sepY2 + 30
-    local cardW = W - 60
-    local cardH = 200
-    local cardX = 30
-
-    -- 鍗＄墖搴曟澘
-    nvgBeginPath(vg); nvgRoundedRect(vg, cardX, contentY, cardW, cardH, 8)
-    nvgFillColor(vg, nvgRGBA(22, 20, 40, 200)); nvgFill(vg)
-    nvgBeginPath(vg); nvgRoundedRect(vg, cardX, contentY, cardW, cardH, 8)
-    local cardPulse = 0.7 + 0.3 * math.sin(t * 2)
-    nvgStrokeColor(vg, nvgRGBA(80, 160, 240, math.floor(150 * cardPulse)))
-    nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
-
-    -- 褰撳墠灞傛暟
-    local towerMaxReached = (fl > 999)
+    local towerMaxReached = floor > 999
+    local floorText = towerMaxReached and "已达巅峰" or ("第" .. floor .. "层")
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     nvgFontSize(vg, 60)
-    local floorText = towerMaxReached and "宸茶揪宸呭嘲" or ("绗?" .. fl .. " 灞?)
-    nvgFillColor(vg, nvgRGBA(5, 5, 12, 95))
-    nvgText(vg, cx + 2, contentY + 60 + 2, floorText, nil)
-    nvgFillColor(vg, towerMaxReached and nvgRGBA(255, 200, 80, 250) or nvgRGBA(100, 200, 255, 250))
-    nvgText(vg, cx, contentY + 60, floorText, nil)
+    nvgFillColor(vg, towerMaxReached and nvgRGBA(255, 210, 110, 245) or nvgRGBA(120, 220, 255, 245))
+    nvgText(vg, cx, contentY + 64, floorText, nil)
+
     if towerMaxReached then
-        nvgFontSize(vg, 24)
-        nvgFillColor(vg, nvgRGBA(255, 180, 80, 200))
-        nvgText(vg, cx, contentY + 90, "鏈禌瀛ｆ渶楂?99灞傦紝鏁鏈熷緟涓嬭禌瀛?, nil)
+        nvgFontSize(vg, 22)
+        nvgFillColor(vg, nvgRGBA(255, 200, 120, 210))
+        nvgText(vg, cx, contentY + 96, "已达到最高 999 层，后续仅保留挑战记录", nil)
     end
 
-    -- 闅惧害淇℃伅
-    nvgFontSize(vg, 27)
-    DrawWhiteInkText(cx, contentY + 105, "鏁屾柟寮哄害: 脳" .. string.format("%.2f", towerScale))
+    nvgFontSize(vg, 26)
+    DrawWhiteInkText(cx, contentY + 108, "敌方强度: x" .. string.format("%.2f", towerScale))
 
-    -- 鎴樺姏棰勪及
-    local myP = CalcPlayerTotalPower()
-    local ePow, minReq, recReq = CalcStageRequiredPower(towerScale)
-    local pRatio = (ePow > 0) and (myP / ePow) or 99.0
-    local gT, gC = GetPowerGrade(pRatio)
-    nvgFontSize(vg, 25)
+    local myPower = CalcPlayerTotalPower()
+    local enemyPower, minReq, recReq = CalcStageRequiredPower(towerScale)
+    local ratio = enemyPower > 0 and (myPower / enemyPower) or 99
+    local gradeText, gradeColor = GetPowerGrade(ratio)
+
+    nvgFontSize(vg, 24)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, (myP >= minReq) and nvgRGBA(100, 220, 130, 230) or nvgRGBA(255, 90, 90, 230))
-    nvgText(vg, cx - 80, contentY + 130, "鏈€浣?" .. FormatPower(minReq), nil)
-    local recColor = (myP >= recReq) and nvgRGBA(100, 220, 130, 230) or nvgRGBA(255, 200, 80, 230)
-    nvgFillColor(vg, recColor)
-    nvgText(vg, cx + 20, contentY + 130, "鎺ㄨ崘 " .. FormatPower(recReq), nil)
-    nvgFillColor(vg, nvgRGBA(gC[1], gC[2], gC[3], 225))
-    nvgText(vg, cx + 110, contentY + 130, "[" .. gT .. "]", nil)
+    nvgFillColor(vg, myPower >= minReq and nvgRGBA(120, 230, 150, 225) or nvgRGBA(255, 120, 120, 225))
+    nvgText(vg, cx - 110, contentY + 138, "最低 " .. FormatPower(minReq), nil)
+    nvgFillColor(vg, myPower >= recReq and nvgRGBA(120, 230, 150, 225) or nvgRGBA(255, 205, 120, 225))
+    nvgText(vg, cx + 5, contentY + 138, "推荐 " .. FormatPower(recReq), nil)
+    nvgFillColor(vg, nvgRGBA(gradeColor[1], gradeColor[2], gradeColor[3], 230))
+    nvgText(vg, cx + 135, contentY + 138, "[" .. gradeText .. "]", nil)
 
-    -- 鍘嗗彶鏈€楂?
+    nvgFontSize(vg, 24)
+    DrawWhiteInkText(cx, contentY + 172, "历史最高 第" .. (towerState.highestFloor or 0) .. "层")
+
+    local rewardY = contentY + contentH + 18
+    local towerJade = 20 + floor * 7
+    local towerFrag = math.min(12, math.floor(floor / 4) + 1)
     nvgFontSize(vg, 25)
-    DrawWhiteInkText(cx, contentY + 160, "鍘嗗彶鏈€楂? 绗? .. towerState.highestFloor .. "灞?)
+    DrawWhiteInkText(cx, rewardY, "首通奖励: 玉石" .. towerJade .. "  武灵碎片+" .. towerFrag)
 
-    -- 濂栧姳棰勮
-    local rewardY = contentY + cardH + 16
-    nvgFontSize(vg, 27)
-    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    local towerJade = 20 + fl * 7
-    local towerFrag = math.min(12, math.floor(fl / 4) + 1)
-    DrawWhiteInkText(cx, rewardY, "閫氬叧濂栧姳: 铏庣+" .. towerJade .. "  姝︽妧娈嬬墖+" .. towerFrag)
+    local btnY = rewardY + 32
+    local startW = 150
+    local startH = 44
+    local gap = 18
+    local startX = cx - startW - gap / 2
+    local rankX = cx + gap / 2
+    local rankW = 150
+    local startLabel = towerMaxReached and "已满层" or "开始挑战"
 
-    -- 鎸夐挳琛? 鎸戞垬 + 鎺掕姒?
-    local btnY = rewardY + 30
-    local btnH = 44
-    local gap = 16
+    DrawButton(startX, btnY, startW, startH, startLabel, {
+        fillTop = towerMaxReached and nvgRGBA(90, 90, 90, 210) or nvgRGBA(50, 120, 220, 230),
+        fillBottom = towerMaxReached and nvgRGBA(65, 65, 65, 220) or nvgRGBA(24, 80, 180, 235),
+        stroke = towerMaxReached and nvgRGBA(140, 140, 140, 110) or nvgRGBA(150, 220, 255, 140),
+        fontSize = 30,
+    })
+    towerState.startBtnRect = { x = startX, y = btnY, w = startW, h = startH }
 
-    -- 鎸戞垬鎸夐挳
-    local startBtnW = 140
-    local startBtnX = cx - startBtnW - gap / 2
-    local btnPulse = 0.7 + 0.3 * math.sin(t * 2.5)
-    nvgBeginPath(vg); nvgRoundedRect(vg, startBtnX, btnY, startBtnW, btnH, 6)
-    local startGrad
-    if towerMaxReached then
-        startGrad = nvgLinearGradient(vg, startBtnX, btnY, startBtnX, btnY + btnH,
-            nvgRGBA(80, 80, 80, 180), nvgRGBA(60, 60, 60, 200))
-    else
-        startGrad = nvgLinearGradient(vg, startBtnX, btnY, startBtnX, btnY + btnH,
-            nvgRGBA(40, 100, 200, math.floor(220 * btnPulse)),
-            nvgRGBA(20, 60, 160, math.floor(240 * btnPulse)))
-    end
-    nvgFillPaint(vg, startGrad); nvgFill(vg)
-    nvgBeginPath(vg); nvgRoundedRect(vg, startBtnX, btnY, startBtnW, btnH, 6)
-    nvgStrokeColor(vg, towerMaxReached and nvgRGBA(100, 100, 100, 120) or nvgRGBA(120, 200, 255, math.floor(180 * btnPulse)))
-    nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
-    nvgFontSize(vg, 33); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    local startBtnLabel = towerMaxReached and "宸插皝椤? or "鎸? 鎴?
-    nvgFillColor(vg, nvgRGBA(0, 0, 0, 130))
-    nvgText(vg, startBtnX + startBtnW / 2 + 1, btnY + btnH / 2 + 1, startBtnLabel, nil)
-    if towerMaxReached then
-        nvgFillColor(vg, nvgRGBA(180, 180, 180, 200))
-        nvgText(vg, startBtnX + startBtnW / 2, btnY + btnH / 2, startBtnLabel, nil)
-    else
-        DrawWhiteInkText(startBtnX + startBtnW / 2, btnY + btnH / 2, startBtnLabel)
-    end
-    towerState.startBtnRect = { x = startBtnX, y = btnY, w = startBtnW, h = btnH }
+    DrawButton(rankX, btnY, rankW, startH, "排行榜", {
+        fillTop = nvgRGBA(180, 120, 50, 225),
+        fillBottom = nvgRGBA(125, 70, 22, 235),
+        stroke = nvgRGBA(255, 215, 140, 145),
+        fontSize = 30,
+    })
+    towerState.leaderboardBtnRect = { x = rankX, y = btnY, w = rankW, h = startH }
 
-    -- 鎺掕姒滄寜閽?
-    local rankBtnW = 140
-    local rankBtnX = cx + gap / 2
-    nvgBeginPath(vg); nvgRoundedRect(vg, rankBtnX, btnY, rankBtnW, btnH, 6)
-    local rankGrad = nvgLinearGradient(vg, rankBtnX, btnY, rankBtnX, btnY + btnH,
-        nvgRGBA(160, 100, 40, 210), nvgRGBA(120, 60, 20, 230))
-    nvgFillPaint(vg, rankGrad); nvgFill(vg)
-    nvgBeginPath(vg); nvgRoundedRect(vg, rankBtnX, btnY, rankBtnW, btnH, 6)
-    nvgStrokeColor(vg, nvgRGBA(255, 200, 100, 160)); nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
-    nvgFontSize(vg, 30); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, nvgRGBA(0, 0, 0, 130))
-    nvgText(vg, rankBtnX + rankBtnW / 2 + 1, btnY + btnH / 2 + 1, "鎺掕姒?, nil)
-    DrawWhiteInkText(rankBtnX + rankBtnW / 2, btnY + btnH / 2, "鎺掕姒?)
-    towerState.leaderboardBtnRect = { x = rankBtnX, y = btnY, w = rankBtnW, h = btnH }
-
-    -- 鎺掕姒滈潰鏉?(鍙犲姞灞?
     if towerState.showLeaderboard then
         DrawTowerLeaderboardPanel(W, H, t)
     end
 end
 
-
--- 鐖鎺掕姒滈潰鏉?
 function DrawTowerLeaderboardPanel(W, H, t)
-    -- 鏆楀箷
-    nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
-    nvgFillColor(vg, nvgRGBA(0, 0, 0, 160)); nvgFill(vg)
-
+    local cx = W / 2
     local panelW = W - 60
-    local panelH = H * 0.7
+    local panelH = H * 0.72
     local panelX = 30
     local panelY = (H - panelH) / 2
-    local cx = W / 2
 
-    -- 闈㈡澘鑳屾櫙
-    nvgBeginPath(vg); nvgRoundedRect(vg, panelX, panelY, panelW, panelH, 10)
-    nvgFillColor(vg, nvgRGBA(15, 12, 30, 240)); nvgFill(vg)
-    nvgBeginPath(vg); nvgRoundedRect(vg, panelX, panelY, panelW, panelH, 10)
-    nvgStrokeColor(vg, nvgRGBA(100, 160, 240, 120)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
+    nvgBeginPath(vg)
+    nvgRect(vg, 0, 0, W, H)
+    nvgFillColor(vg, nvgRGBA(0, 0, 0, 170))
+    nvgFill(vg)
 
-    -- 鏍囬
-    nvgFontFaceId(vg, GetMainFont())
-    nvgFontSize(vg, 34); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, nvgRGBA(255, 220, 100, 240))
-    nvgText(vg, cx, panelY + 30, "鐖鎺掕姒?, nil)
+    DrawSoftPanel(panelX, panelY, panelW, panelH, 10, nvgRGBA(16, 18, 34, 242), nvgRGBA(110, 170, 240, 140))
 
-    -- 鍏抽棴鎸夐挳
-    local closeBtnW, closeBtnH = 80, 34
-    local closeBtnX = cx - closeBtnW / 2
-    local closeBtnY = panelY + panelH - 50
-    nvgBeginPath(vg); nvgRoundedRect(vg, closeBtnX, closeBtnY, closeBtnW, closeBtnH, 6)
-    nvgFillColor(vg, nvgRGBA(80, 40, 40, 200)); nvgFill(vg)
-    nvgBeginPath(vg); nvgRoundedRect(vg, closeBtnX, closeBtnY, closeBtnW, closeBtnH, 6)
-    nvgStrokeColor(vg, nvgRGBA(200, 100, 100, 140)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-    nvgFontSize(vg, 26); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(cx, closeBtnY + closeBtnH / 2, "鍏抽棴")
-    towerState.leaderboardBackRect = { x = closeBtnX, y = closeBtnY, w = closeBtnW, h = closeBtnH }
+    nvgFontSize(vg, 34)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(255, 225, 130, 240))
+    nvgText(vg, cx, panelY + 30, "爬塔排行榜", nil)
 
-    -- 鍒楄〃鍖哄煙
-    local listY = panelY + 55
-    local listH = closeBtnY - listY - 10
-    local rowH = 32
-    local maxVisible = math.floor(listH / rowH)
+    local closeW, closeH = 84, 36
+    local closeX = cx - closeW / 2
+    local closeY = panelY + panelH - 50
+    DrawButton(closeX, closeY, closeW, closeH, "关闭", {
+        fillTop = nvgRGBA(90, 45, 45, 220),
+        fillBottom = nvgRGBA(60, 25, 25, 225),
+        stroke = nvgRGBA(220, 140, 140, 120),
+        fontSize = 24,
+    })
+    towerState.leaderboardBackRect = { x = closeX, y = closeY, w = closeW, h = closeH }
+
+    local listX = panelX + 16
+    local listY = panelY + 62
+    local listW = panelW - 32
+    local listH = closeY - listY - 12
+    local rowH = 34
+    local maxVisible = math.floor((listH - rowH) / rowH)
 
     if towerState.rankLoading then
-        nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-        nvgFillColor(vg, nvgRGBA(180, 180, 180, 200))
-        nvgText(vg, cx, listY + listH / 2, "鍔犺浇涓?..", nil)
-    elseif #towerState.rankList == 0 then
-        nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-        nvgFillColor(vg, nvgRGBA(150, 150, 150, 200))
-        nvgText(vg, cx, listY + listH / 2, "鏆傛棤鏁版嵁", nil)
-    else
-        -- 琛ㄥご
-        nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-        nvgFillColor(vg, nvgRGBA(160, 180, 220, 180))
-        nvgText(vg, panelX + 16, listY + rowH / 2, "鎺掑悕", nil)
-        nvgText(vg, panelX + 60, listY + rowH / 2, "鐜╁", nil)
-        nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
-        nvgText(vg, panelX + panelW - 16, listY + rowH / 2, "鏈€楂樺眰", nil)
-        listY = listY + rowH
-
-        -- 鍒嗗壊绾?
-        nvgBeginPath(vg)
-        nvgMoveTo(vg, panelX + 12, listY); nvgLineTo(vg, panelX + panelW - 12, listY)
-        nvgStrokeColor(vg, nvgRGBA(80, 120, 180, 80)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-
-        for i = 1, math.min(#towerState.rankList, maxVisible - 1) do
-            local entry = towerState.rankList[i]
-            local ry = listY + (i - 1) * rowH + rowH / 2
-
-            -- 浜ゆ浛琛岃儗鏅?
-            if i % 2 == 0 then
-                nvgBeginPath(vg); nvgRect(vg, panelX + 8, listY + (i - 1) * rowH, panelW - 16, rowH)
-                nvgFillColor(vg, nvgRGBA(40, 50, 80, 60)); nvgFill(vg)
-            end
-
-            -- 鎺掑悕 (鍓?鍚嶉珮浜?
-            nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            if i == 1 then
-                nvgFillColor(vg, nvgRGBA(255, 215, 0, 240))
-            elseif i == 2 then
-                nvgFillColor(vg, nvgRGBA(200, 210, 220, 230))
-            elseif i == 3 then
-                nvgFillColor(vg, nvgRGBA(210, 160, 90, 220))
-            else
-                nvgFillColor(vg, nvgRGBA(180, 180, 180, 200))
-            end
-            nvgText(vg, panelX + 32, ry, tostring(i), nil)
-
-            -- 鐜╁鍚?
-            nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-            nvgFillColor(vg, nvgRGBA(220, 220, 230, 230))
-            local displayName = entry.name or "???"
-            if #displayName > 18 then displayName = string.sub(displayName, 1, 16) .. ".." end
-            nvgText(vg, panelX + 60, ry, displayName, nil)
-
-            -- 灞傛暟
-            nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
-            nvgFillColor(vg, nvgRGBA(100, 200, 255, 240))
-            nvgText(vg, panelX + panelW - 16, ry, "绗? .. (entry.floor or 0) .. "灞?, nil)
-        end
+        nvgFontSize(vg, 24)
+        nvgFillColor(vg, nvgRGBA(210, 210, 210, 220))
+        nvgText(vg, cx, listY + listH / 2, "加载中...", nil)
+        return
     end
 
-    -- 鑷繁鐨勮褰?(搴曢儴)
-    nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, nvgRGBA(180, 220, 255, 180))
-    nvgText(vg, cx, closeBtnY - 16, "鎴戠殑鏈€楂? 绗? .. towerState.highestFloor .. "灞?, nil)
+    if #towerState.rankList == 0 then
+        nvgFontSize(vg, 24)
+        nvgFillColor(vg, nvgRGBA(180, 180, 180, 210))
+        nvgText(vg, cx, listY + listH / 2, "暂无数据", nil)
+        return
+    end
+
+    nvgFontSize(vg, 22)
+    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(180, 205, 240, 200))
+    nvgText(vg, listX, listY + rowH / 2, "排名", nil)
+    nvgText(vg, listX + 56, listY + rowH / 2, "玩家", nil)
+    nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
+    nvgText(vg, listX + listW - 8, listY + rowH / 2, "层数", nil)
+
+    nvgBeginPath(vg)
+    nvgMoveTo(vg, listX, listY + rowH)
+    nvgLineTo(vg, listX + listW, listY + rowH)
+    nvgStrokeColor(vg, nvgRGBA(90, 130, 200, 90))
+    nvgStrokeWidth(vg, 1)
+    nvgStroke(vg)
+
+    for i = 1, math.min(#towerState.rankList, maxVisible) do
+        local entry = towerState.rankList[i]
+        local rowTop = listY + rowH + (i - 1) * rowH
+        local rowCY = rowTop + rowH / 2
+
+        if i % 2 == 0 then
+            nvgBeginPath(vg)
+            nvgRoundedRect(vg, listX - 4, rowTop, listW + 8, rowH, 4)
+            nvgFillColor(vg, nvgRGBA(42, 56, 84, 70))
+            nvgFill(vg)
+        end
+
+        nvgFontSize(vg, 22)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        if i == 1 then
+            nvgFillColor(vg, nvgRGBA(255, 220, 90, 240))
+        elseif i == 2 then
+            nvgFillColor(vg, nvgRGBA(220, 230, 240, 235))
+        elseif i == 3 then
+            nvgFillColor(vg, nvgRGBA(220, 165, 95, 230))
+        else
+            nvgFillColor(vg, nvgRGBA(205, 205, 210, 220))
+        end
+        nvgText(vg, listX + 18, rowCY, tostring(i), nil)
+
+        local displayName = entry.name or "???"
+        if #displayName > 18 then
+            displayName = string.sub(displayName, 1, 16) .. ".."
+        end
+        nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+        nvgFillColor(vg, nvgRGBA(230, 230, 235, 230))
+        nvgText(vg, listX + 56, rowCY, displayName, nil)
+
+        nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
+        nvgFillColor(vg, nvgRGBA(120, 210, 255, 235))
+        nvgText(vg, listX + listW - 8, rowCY, "第" .. (entry.floor or 0) .. "层", nil)
+    end
+
+    nvgFontSize(vg, 22)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(190, 225, 255, 190))
+    nvgText(vg, cx, closeY - 18, "我的最高 第" .. (towerState.highestFloor or 0) .. "层", nil)
 end
 
-
--- ============================================================================
--- 鎺掍綅璧?- 閫夋嫨鐣岄潰
--- ============================================================================
 function DrawRankedSelectScreen()
     if gameState.phase ~= "RANKED_SELECT" then return end
+
     local W = DESIGN_W
     local H = DESIGN_H
     local cx = W / 2
-    local t = gameState.gameTime
-    local tier = GetRankedTier(rankedState.score)
-    local tc = tier.color
+    local tier = GetRankedTier(rankedState.score or 0)
+    local tc = tier.color or { 255, 180, 100 }
 
-    -- 鎺掍綅涓撳睘鑳屾櫙
     DrawBgImage(IMG.rankedSelectBg, W, H, 1143, 2048)
-    nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
-    nvgFillColor(vg, nvgRGBA(15, 10, 5, 60)); nvgFill(vg)
-    local botGrad = nvgLinearGradient(vg, 0, H * 0.7, 0, H,
-        nvgRGBA(0, 0, 0, 0), nvgRGBA(20, 10, 0, 140))
-    nvgBeginPath(vg); nvgRect(vg, 0, H * 0.7, W, H * 0.3)
-    nvgFillPaint(vg, botGrad); nvgFill(vg)
-
+    DrawScreenOverlay(W, H, 150, 160)
     nvgFontFaceId(vg, GetMainFont())
 
-    -- 鍖归厤涓鐩栧眰
     if rankedState.isMatching then
-        nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
-        nvgFillColor(vg, nvgRGBA(5, 5, 12, 130)); nvgFill(vg)
-        -- 鍖归厤鍔ㄧ敾
-        local dots = string.rep(".", math.floor(rankedState.matchAnim * 4) % 4)
+        rankedState.startBtnRect = nil
+        rankedState.rankBtnRect = nil
+        rankedState.backBtnRect = nil
+
+        nvgBeginPath(vg)
+        nvgRect(vg, 0, 0, W, H)
+        nvgFillColor(vg, nvgRGBA(5, 5, 12, 150))
+        nvgFill(vg)
+
+        local dots = string.rep(".", math.floor((rankedState.matchAnim or 0) * 4) % 4)
         nvgFontSize(vg, 36)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-        DrawWhiteInkText(cx, H * 0.35, "姝ｅ湪鍖归厤瀵规墜" .. dots)
-        -- 鏃嬭浆鍦?
-        local angle = rankedState.matchAnim * 6
+        DrawWhiteInkText(cx, H * 0.35, "正在匹配中" .. dots)
+
+        local angle = (rankedState.matchAnim or 0) * 6
         local ringR = 30
         local ringCY = H * 0.5
         for i = 0, 7 do
@@ -628,462 +526,384 @@ function DrawRankedSelectScreen()
             local px = cx + math.cos(a) * ringR
             local py = ringCY + math.sin(a) * ringR
             local alpha = math.floor(255 * (1 - i / 8))
-            nvgBeginPath(vg); nvgCircle(vg, px, py, 4)
-            nvgFillColor(vg, nvgRGBA(255, 200, 80, alpha)); nvgFill(vg)
+            nvgBeginPath(vg)
+            nvgCircle(vg, px, py, 4)
+            nvgFillColor(vg, nvgRGBA(255, 210, 100, alpha))
+            nvgFill(vg)
         end
-        -- 对手信息预览
+
         nvgFontSize(vg, 28)
         if rankedState.matchReady and rankedState.opponentName and rankedState.opponentName ~= "" then
             DrawWhiteInkText(cx, H * 0.65, "对手: " .. rankedState.opponentName)
             nvgFontSize(vg, 24)
-            nvgFillColor(vg, nvgRGBA(255, 200, 100, 200))
-            nvgText(vg, cx, H * 0.7, "战力: " .. FormatPower(rankedState.opponentPower), nil)
+            nvgFillColor(vg, nvgRGBA(255, 210, 120, 210))
+            nvgText(vg, cx, H * 0.7, "战力: " .. FormatPower(rankedState.opponentPower or 0), nil)
         else
             DrawWhiteInkText(cx, H * 0.65, "正在等待另一名玩家")
             nvgFontSize(vg, 24)
-            nvgFillColor(vg, nvgRGBA(255, 200, 100, 200))
-            nvgText(vg, cx, H * 0.7, "服务端确认后自动开战", nil)
+            nvgFillColor(vg, nvgRGBA(255, 210, 120, 210))
+            nvgText(vg, cx, H * 0.7, "服务器确认后自动开战", nil)
         end
         return
     end
 
-    -- 鎺掕姒滃脊绐?
     if rankedState.showLeaderboard then
-        nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
-        nvgFillColor(vg, nvgRGBA(0, 0, 0, 180)); nvgFill(vg)
         local popW = W - 40
         local popH = H - 60
         local popX = 20
         local popY = 30
-        nvgBeginPath(vg); nvgRoundedRect(vg, popX, popY, popW, popH, 10)
-        nvgFillColor(vg, nvgRGBA(20, 18, 35, 240)); nvgFill(vg)
-        nvgBeginPath(vg); nvgRoundedRect(vg, popX, popY, popW, popH, 10)
-        nvgStrokeColor(vg, nvgRGBA(255, 200, 80, 160)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
-        -- 鏍囬
-        nvgFontSize(vg, 34); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-        DrawWhiteInkText(cx, popY + 28, "鎺掍綅鎺掕姒?)
-        -- 鍏抽棴鎸夐挳
-        local closeBtnW, closeBtnH = 80, 34
-        nvgBeginPath(vg); nvgRoundedRect(vg, cx - closeBtnW/2, popY + popH - 46, closeBtnW, closeBtnH, 6)
-        nvgFillColor(vg, nvgRGBA(60, 40, 30, 200)); nvgFill(vg)
-        nvgStrokeColor(vg, nvgRGBA(200, 160, 80, 140)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-        nvgFontSize(vg, 26)
-        DrawWhiteInkText(cx, popY + popH - 29, "鍏抽棴")
-        rankedState.backBtnRect = { x = cx - closeBtnW/2, y = popY + popH - 46, w = closeBtnW, h = closeBtnH }
-        -- 鍒楄〃
+
+        nvgBeginPath(vg)
+        nvgRect(vg, 0, 0, W, H)
+        nvgFillColor(vg, nvgRGBA(0, 0, 0, 185))
+        nvgFill(vg)
+        DrawSoftPanel(popX, popY, popW, popH, 10, nvgRGBA(20, 18, 35, 244), nvgRGBA(255, 200, 100, 160))
+
+        nvgFontSize(vg, 34)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        DrawWhiteInkText(cx, popY + 28, "排位排行榜")
+
+        local closeW, closeH = 84, 36
+        local closeX = cx - closeW / 2
+        local closeY = popY + popH - 46
+        DrawButton(closeX, closeY, closeW, closeH, "关闭", {
+            fillTop = nvgRGBA(85, 50, 35, 220),
+            fillBottom = nvgRGBA(58, 30, 18, 230),
+            stroke = nvgRGBA(220, 180, 110, 130),
+            fontSize = 24,
+        })
+        rankedState.backBtnRect = { x = closeX, y = closeY, w = closeW, h = closeH }
+
         if rankedState.rankLoading and not rankedState.rankLoaded then
             nvgFontSize(vg, 26)
-            DrawWhiteInkText(cx, popY + popH/2, "鍔犺浇涓?..")
+            DrawWhiteInkText(cx, popY + popH / 2, "加载中...")
         elseif #rankedState.rankList == 0 then
             nvgFontSize(vg, 26)
-            DrawWhiteInkText(cx, popY + popH/2, "鏆傛棤鎺掕鏁版嵁")
+            DrawWhiteInkText(cx, popY + popH / 2, "暂无排行榜数据")
         else
+            local offset = 0
+            if rankedState.rankScroll and rankedState.rankScroll.offset then
+                offset = rankedState.rankScroll.offset
+            end
+
             nvgSave(vg)
             nvgScissor(vg, popX + 8, popY + 54, popW - 16, popH - 110)
-            local listY = popY + 72 - rankedState.rankScroll.offset
+
+            local listY = popY + 72 - offset
             for i, entry in ipairs(rankedState.rankList) do
-                local ey = listY + (i - 1) * 36
-                if ey > popY + 54 and ey < popY + popH - 55 then
-                    local eTier = GetRankedTier(entry.score)
-                    nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-                    -- 鎺掑悕
-                    local rankStr = "#" .. i
-                    local rankColor = (i <= 3) and nvgRGBA(255, 200, 60, 240) or nvgRGBA(200, 200, 200, 200)
+                local rowY = listY + (i - 1) * 36
+                if rowY > popY + 54 and rowY < popY + popH - 55 then
+                    local entryTier = GetRankedTier(entry.score or 0)
+                    local name = entry.name or "???"
+                    local rankColor = (i <= 3) and nvgRGBA(255, 210, 80, 240) or nvgRGBA(210, 210, 210, 220)
+
+                    nvgFontSize(vg, 24)
+                    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, rankColor)
-                    nvgText(vg, popX + 16, ey, rankStr, nil)
-                    -- 鍚嶅瓧锛堟牴鎹帓鍚嶅搴﹀姩鎬佸亸绉伙級
-                    local nameX = popX + 70
-                    nvgFillColor(vg, nvgRGBA(220, 220, 220, 230))
-                    nvgText(vg, nameX, ey, entry.name, nil)
-                    -- 娈典綅鍚嶇О
+                    nvgText(vg, popX + 16, rowY, "#" .. i, nil)
+
+                    nvgFillColor(vg, nvgRGBA(230, 230, 235, 230))
+                    nvgText(vg, popX + 72, rowY, name, nil)
+
                     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
-                    nvgFillColor(vg, nvgRGBA(eTier.color[1], eTier.color[2], eTier.color[3], 230))
-                    nvgFontSize(vg, 20)
-                    nvgText(vg, popX + popW - 20, ey, eTier.name .. " " .. tostring(entry.score) .. "鍒?, nil)
+                    nvgFillColor(vg, nvgRGBA(entryTier.color[1], entryTier.color[2], entryTier.color[3], 235))
+                    nvgText(vg, popX + popW - 20, rowY, entryTier.name .. " " .. tostring(entry.score or 0) .. "分", nil)
                 end
             end
+
             nvgRestore(vg)
         end
         return
     end
 
-    -- 椤堕儴杩斿洖鎸夐挳
-    local topY = 14
-    local backW, backH = 100, 38
-    nvgBeginPath(vg); nvgRoundedRect(vg, 14, topY, backW, backH, 6)
-    nvgFillColor(vg, nvgRGBA(15, 12, 30, 200)); nvgFill(vg)
-    nvgStrokeColor(vg, nvgRGBA(200, 160, 60, 140)); nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
-    nvgFontSize(vg, 26); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, nvgRGBA(5, 5, 12, 95))
-    nvgText(vg, 14 + backW/2 + 1, topY + backH/2 + 1, "< 杩斿洖", nil)
-    DrawWhiteInkText(14 + backW/2, topY + backH/2, "< 杩斿洖")
-    rankedState.backBtnRect = { x = 14, y = topY, w = backW, h = backH }
+    local topBar = DrawTopBar(W, "排位赛", nvgRGBA(tc[1], tc[2], tc[3], 240))
+    rankedState.backBtnRect = { x = topBar.x, y = topBar.y, w = topBar.w, h = topBar.h }
 
-    -- 鏍囬
-    local titleCY = topY + backH/2
-    nvgFontSize(vg, 38); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, nvgRGBA(5, 5, 12, 130))
-    nvgText(vg, cx + 2, titleCY + 2, "鎺掍綅璧?, nil)
-    nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 200))
-    nvgText(vg, cx + 1, titleCY + 1, "鎺掍綅璧?, nil)
-    DrawWhiteInkText(cx, titleCY, "鎺掍綅璧?)
-    DrawHelpBtn(DESIGN_W - 14 - 30, topY + (backH - 30) / 2, 30)
+    nvgFontSize(vg, 24)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    DrawWhiteInkText(cx, topBar.centerY + 28, "- 实时匹配 - 赛季积分 -")
 
-    -- 鍓爣棰?
-    nvgFontSize(vg, 27)
-    DrawWhiteInkText(cx, titleCY + 22, "- 姝︾伒瀵瑰喅 - 娈典綅鏀€鍗?-")
-
-    -- 瑁呴グ鍒嗛殧绾?
-    local sepY2 = titleCY + 36
-    local sepHalfW2 = 130
-    local lineGradL2 = nvgLinearGradient(vg, cx - sepHalfW2, sepY2, cx - 8, sepY2,
-        nvgRGBA(tc[1], tc[2], tc[3], 0), nvgRGBA(tc[1], tc[2], tc[3], 160))
-    nvgBeginPath(vg)
-    nvgMoveTo(vg, cx - sepHalfW2, sepY2); nvgLineTo(vg, cx - 8, sepY2)
-    nvgStrokeWidth(vg, 1.2); nvgStrokePaint(vg, lineGradL2); nvgStroke(vg)
-    local lineGradR2 = nvgLinearGradient(vg, cx + 8, sepY2, cx + sepHalfW2, sepY2,
-        nvgRGBA(tc[1], tc[2], tc[3], 160), nvgRGBA(tc[1], tc[2], tc[3], 0))
-    nvgBeginPath(vg)
-    nvgMoveTo(vg, cx + 8, sepY2); nvgLineTo(vg, cx + sepHalfW2, sepY2)
-    nvgStrokeWidth(vg, 1.2); nvgStrokePaint(vg, lineGradR2); nvgStroke(vg)
-    nvgBeginPath(vg)
-    nvgMoveTo(vg, cx, sepY2 - 4); nvgLineTo(vg, cx + 4, sepY2)
-    nvgLineTo(vg, cx, sepY2 + 4); nvgLineTo(vg, cx - 4, sepY2)
-    nvgClosePath(vg)
-    nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 200)); nvgFill(vg)
-
-    -- 娈典綅鍗＄墖
-    local contentY = sepY2 + 25
-    local cardW = W - 60
-    local cardH = 150
     local cardX = 30
-    nvgBeginPath(vg); nvgRoundedRect(vg, cardX, contentY, cardW, cardH, 8)
-    nvgFillColor(vg, nvgRGBA(22, 20, 40, 200)); nvgFill(vg)
-    local cardPulse = 0.7 + 0.3 * math.sin(t * 2)
-    nvgBeginPath(vg); nvgRoundedRect(vg, cardX, contentY, cardW, cardH, 8)
-    nvgStrokeColor(vg, nvgRGBA(tc[1], tc[2], tc[3], math.floor(150 * cardPulse)))
-    nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
+    local cardY = topBar.centerY + 48
+    local cardW = W - 60
+    local cardH = 156
+    DrawSoftPanel(cardX, cardY, cardW, cardH, 10, nvgRGBA(24, 22, 38, 215), nvgRGBA(tc[1], tc[2], tc[3], 150))
 
-    -- 娈典綅澶у浘鏍?
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     nvgFontSize(vg, 56)
-    nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 240))
-    nvgText(vg, cardX + 50, contentY + 55, tier.icon, nil)
+    nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 245))
+    nvgText(vg, cardX + 52, cardY + 54, tier.icon or "*", nil)
 
-    -- 娈典綅鍚嶇О
-    nvgFontSize(vg, 38)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 240))
-    nvgText(vg, cardX + 85, contentY + 40, tier.name, nil)
+    nvgFontSize(vg, 38)
+    nvgText(vg, cardX + 92, cardY + 42, tier.name or "段位", nil)
 
-    -- 绉垎
     nvgFontSize(vg, 28)
-    nvgFillColor(vg, nvgRGBA(220, 220, 220, 220))
-    nvgText(vg, cardX + 85, contentY + 68, "绉垎: " .. rankedState.score, nil)
+    nvgFillColor(vg, nvgRGBA(225, 225, 225, 225))
+    nvgText(vg, cardX + 92, cardY + 72, "积分: " .. (rankedState.score or 0), nil)
 
-    -- 涓嬩竴娈典綅杩涘害
     local nextTierIdx = math.min(#RANKED_TIERS, tier.index + 1)
     local nextTier = RANKED_TIERS[nextTierIdx]
     if tier.index < #RANKED_TIERS then
-        local progress = (rankedState.score - tier.minScore) / (nextTier.minScore - tier.minScore)
+        local denom = nextTier.minScore - tier.minScore
+        local progress = denom > 0 and ((rankedState.score - tier.minScore) / denom) or 1
         progress = math.max(0, math.min(1, progress))
+
         nvgFontSize(vg, 22)
-        nvgFillColor(vg, nvgRGBA(180, 180, 180, 180))
-        nvgText(vg, cardX + 85, contentY + 92, "璺? .. nextTier.name .. ": " .. (nextTier.minScore - rankedState.score) .. "鍒?, nil)
-        -- 杩涘害鏉?
-        local barX = cardX + 85
-        local barY = contentY + 106
-        local barW = cardW - 120
+        nvgFillColor(vg, nvgRGBA(200, 200, 200, 190))
+        nvgText(vg, cardX + 92, cardY + 98, "距离 " .. nextTier.name .. ": " .. (nextTier.minScore - rankedState.score) .. "分", nil)
+
+        local barX = cardX + 92
+        local barY = cardY + 112
+        local barW = cardW - 132
         local barH = 8
-        nvgBeginPath(vg); nvgRoundedRect(vg, barX, barY, barW, barH, 4)
-        nvgFillColor(vg, nvgRGBA(40, 40, 50, 200)); nvgFill(vg)
+        nvgBeginPath(vg)
+        nvgRoundedRect(vg, barX, barY, barW, barH, 4)
+        nvgFillColor(vg, nvgRGBA(48, 48, 58, 200))
+        nvgFill(vg)
         if progress > 0 then
-            nvgBeginPath(vg); nvgRoundedRect(vg, barX, barY, barW * progress, barH, 4)
-            nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 220)); nvgFill(vg)
+            nvgBeginPath(vg)
+            nvgRoundedRect(vg, barX, barY, barW * progress, barH, 4)
+            nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 220))
+            nvgFill(vg)
         end
     else
         nvgFontSize(vg, 22)
-        nvgFillColor(vg, nvgRGBA(255, 200, 80, 200))
-        nvgText(vg, cardX + 85, contentY + 92, "宸茶揪鏈€楂樻浣?", nil)
+        nvgFillColor(vg, nvgRGBA(255, 210, 120, 210))
+        nvgText(vg, cardX + 92, cardY + 98, "已达最高段位", nil)
     end
 
-    -- 鎴樼哗缁熻
+    local totalGames = (rankedState.wins or 0) + (rankedState.losses or 0)
+    local winRate = totalGames > 0 and math.floor((rankedState.wins or 0) / totalGames * 100) or 0
     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
     nvgFontSize(vg, 24)
-    nvgFillColor(vg, nvgRGBA(100, 220, 130, 220))
-    nvgText(vg, cardX + cardW - 15, contentY + 40, rankedState.wins .. "鑳?, nil)
-    nvgFillColor(vg, nvgRGBA(255, 100, 100, 220))
-    nvgText(vg, cardX + cardW - 15, contentY + 65, rankedState.losses .. "璐?, nil)
-    local winRate = (rankedState.wins + rankedState.losses > 0)
-        and math.floor(rankedState.wins / (rankedState.wins + rankedState.losses) * 100) or 0
-    nvgFillColor(vg, nvgRGBA(200, 200, 200, 200))
-    nvgText(vg, cardX + cardW - 15, contentY + 90, "鑳滅巼" .. winRate .. "%", nil)
-    nvgFillColor(vg, nvgRGBA(255, 220, 100, 200))
-    nvgFontSize(vg, 22)
-    nvgText(vg, cardX + cardW - 15, contentY + 115, "鏈€楂? .. rankedState.highestScore .. "鍒?, nil)
+    nvgFillColor(vg, nvgRGBA(120, 225, 145, 225))
+    nvgText(vg, cardX + cardW - 16, cardY + 40, (rankedState.wins or 0) .. "胜", nil)
+    nvgFillColor(vg, nvgRGBA(255, 120, 120, 225))
+    nvgText(vg, cardX + cardW - 16, cardY + 66, (rankedState.losses or 0) .. "负", nil)
+    nvgFillColor(vg, nvgRGBA(220, 220, 220, 220))
+    nvgText(vg, cardX + cardW - 16, cardY + 92, "胜率 " .. winRate .. "%", nil)
+    nvgFillColor(vg, nvgRGBA(255, 225, 120, 220))
+    nvgText(vg, cardX + cardW - 16, cardY + 118, "最高 " .. (rankedState.highestScore or 0) .. "分", nil)
 
-    -- 鎴戠殑鎴樺姏
+    local powerY = cardY + cardH + 18
     local myPower = CalcPlayerTotalPower()
-    local powerY = contentY + cardH + 14
-    nvgFontSize(vg, 26); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(cx, powerY, "褰撳墠鎴樺姏: " .. FormatPower(myPower))
+    nvgFontSize(vg, 26)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    DrawWhiteInkText(cx, powerY, "当前战力: " .. FormatPower(myPower))
 
-    -- 鎸夐挳鍖哄煙
-    local btnY = powerY + 30
-    -- 寮€濮嬪尮閰嶆寜閽?
-    local startBtnW = 160
-    local startBtnH = 44
-    local startBtnX = cx - startBtnW / 2
-    local btnPulse = 0.7 + 0.3 * math.sin(t * 2.5)
-    nvgBeginPath(vg); nvgRoundedRect(vg, startBtnX, btnY, startBtnW, startBtnH, 6)
-    local startGrad = nvgLinearGradient(vg, startBtnX, btnY, startBtnX, btnY + startBtnH,
-        nvgRGBA(200, 150, 30, math.floor(220 * btnPulse)),
-        nvgRGBA(160, 100, 10, math.floor(240 * btnPulse)))
-    nvgFillPaint(vg, startGrad); nvgFill(vg)
-    nvgBeginPath(vg); nvgRoundedRect(vg, startBtnX, btnY, startBtnW, startBtnH, 6)
-    nvgStrokeColor(vg, nvgRGBA(255, 230, 120, math.floor(180 * btnPulse)))
-    nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
-    nvgFontSize(vg, 33); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, nvgRGBA(5, 5, 12, 120))
-    nvgText(vg, cx + 1, btnY + startBtnH / 2 + 1, "寮€濮嬪尮閰?, nil)
-    DrawWhiteInkText(cx, btnY + startBtnH / 2, "寮€濮嬪尮閰?)
-    rankedState.startBtnRect = { x = startBtnX, y = btnY, w = startBtnW, h = startBtnH }
+    local startW = 160
+    local startH = 44
+    local startX = cx - startW / 2
+    local startY = powerY + 32
+    DrawButton(startX, startY, startW, startH, "开始匹配", {
+        fillTop = nvgRGBA(220, 165, 40, 230),
+        fillBottom = nvgRGBA(168, 108, 18, 235),
+        stroke = nvgRGBA(255, 232, 150, 145),
+        fontSize = 30,
+    })
+    rankedState.startBtnRect = { x = startX, y = startY, w = startW, h = startH }
 
-    -- 鎺掕姒滄寜閽?
-    local rankBtnW = 100
-    local rankBtnH = 36
-    local rankBtnX = cx - rankBtnW / 2
-    local rankBtnY = btnY + startBtnH + 12
-    nvgBeginPath(vg); nvgRoundedRect(vg, rankBtnX, rankBtnY, rankBtnW, rankBtnH, 6)
-    nvgFillColor(vg, nvgRGBA(30, 28, 50, 200)); nvgFill(vg)
-    nvgBeginPath(vg); nvgRoundedRect(vg, rankBtnX, rankBtnY, rankBtnW, rankBtnH, 6)
-    nvgStrokeColor(vg, nvgRGBA(180, 150, 80, 140)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-    nvgFontSize(vg, 26); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(cx, rankBtnY + rankBtnH / 2, "鎺掕姒?)
-    rankedState.rankBtnRect = { x = rankBtnX, y = rankBtnY, w = rankBtnW, h = rankBtnH }
+    local rankW = 110
+    local rankH = 38
+    local rankX = cx - rankW / 2
+    local rankY = startY + startH + 12
+    DrawButton(rankX, rankY, rankW, rankH, "排行榜", {
+        fillTop = nvgRGBA(48, 46, 66, 220),
+        fillBottom = nvgRGBA(28, 26, 40, 230),
+        stroke = nvgRGBA(195, 165, 110, 120),
+        fontSize = 24,
+    })
+    rankedState.rankBtnRect = { x = rankX, y = rankY, w = rankW, h = rankH }
 end
 
-
--- ============================================================================
--- 30s鎵撴々 - 閫夊皢鐣岄潰
--- ============================================================================
 function DrawDummySelectScreen()
     if gameState.phase ~= "DUMMY_SELECT" then return end
+ 
     local W = DESIGN_W
     local H = DESIGN_H
     local cx = W / 2
-    local t = menuAnimTimer or 0
+    local leftW = 220
+    local rightX = leftW + 8
+    local scrollY = dummyState.scrollY or 0
 
     DrawCombatBg(W, H)
+    DrawScreenOverlay(W, H, 150, 140)
     nvgFontFaceId(vg, GetMainFont())
 
-    -- 妯睆甯冨眬: 宸︿晶=宸查€夋鐏?寮€濮嬫寜閽? 鍙充晶=姝︾伒閫夋嫨缃戞牸
-    local leftW = 220  -- 宸︽爮瀹藉害
-    local rightX = leftW + 8
+    local topBar = DrawTopBar(leftW, "30s 木桩挑战", nvgRGBA(255, 140, 110, 240))
+    dummyState.backBtnRect = { x = topBar.x, y = topBar.y, w = topBar.w, h = topBar.h }
 
-    -- 椤堕儴鏍? 杩斿洖 + 鏍囬
-    local topY = 8
-    local backW, backH = 80, 32
-    local backX, backY = 10, topY
-    nvgBeginPath(vg); nvgRoundedRect(vg, backX, backY, backW, backH, 6)
-    nvgFillColor(vg, nvgRGBA(30, 35, 50, 220)); nvgFill(vg)
-    nvgStrokeColor(vg, nvgRGBA(90, 45, 55, 160)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
-    nvgFontSize(vg, 22)
-    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(backX + backW / 2, backY + backH / 2, "< 杩斿洖")
-    dummyState.backBtnRect = { x = backX, y = backY, w = backW, h = backH }
-
-    nvgFontSize(vg, 30)
-    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, nvgRGBA(255, 100, 80, 240))
-    nvgText(vg, cx, topY + backH / 2, "30s 鎵撴々鎸戞垬", nil)
-
-    -- 宸︿晶: 宸查€夋鐏甸瑙堝尯 (绾靛悜鎺掑垪)
-    local selStartY = topY + backH + 10
+    local titleY = topBar.centerY + 22
     nvgFontSize(vg, 18)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(leftW / 2, selStartY, "閫夋嫨鏈€澶?鍚嶆鐏?)
-    selStartY = selStartY + 16
+    DrawWhiteInkText(leftW / 2, titleY, "选择出战武灵（最多4名）")
 
-    local selSlotW = 46
-    local selSlotH = 62
-    local selGap = 6
-    local selCardW = selSlotW - 6
-    local selCardH = selCardW / CARD_RATIO
-    local totalSelW = 4 * selSlotW + 3 * selGap
-    local selStartX = (leftW - totalSelW) / 2
+    local slotY = titleY + 18
+    local slotW = 46
+    local slotH = 62
+    local slotGap = 6
+    local totalSlotW = 4 * slotW + 3 * slotGap
+    local slotX = (leftW - totalSlotW) / 2
+
     for i = 1, 4 do
-        local sx2 = selStartX + (i - 1) * (selSlotW + selGap)
-        nvgBeginPath(vg); nvgRoundedRect(vg, sx2, selStartY, selSlotW, selSlotH, 4)
+        local x = slotX + (i - 1) * (slotW + slotGap)
+        DrawSoftPanel(x, slotY, slotW, slotH, 4, nvgRGBA(25, 28, 40, 205), nvgRGBA(90, 80, 70, 80))
         if dummyState.selected[i] then
-            local card = HERO_CARDS[dummyState.selected[i]]
-            local qc = QUALITY_COLORS[card.quality]
-            nvgFillColor(vg, nvgRGBA(qc[1], qc[2], qc[3], 40)); nvgFill(vg)
-            DrawInventoryCard(sx2 + 3, selStartY + 3, selCardW, selCardH, card,
-                playerHeroes[dummyState.selected[i]] and playerHeroes[dummyState.selected[i]].constellation or 0, false, true)
+            local cardId = dummyState.selected[i]
+            local card = HERO_CARDS[cardId]
+            DrawInventoryCard(
+                x + 3,
+                slotY + 3,
+                slotW - 6,
+                (slotW - 6) / CARD_RATIO,
+                card,
+                playerHeroes[cardId] and playerHeroes[cardId].constellation or 0,
+                false,
+                true
+            )
         else
-            nvgFillColor(vg, nvgRGBA(20, 22, 35, 180)); nvgFill(vg)
-            nvgBeginPath(vg); nvgRoundedRect(vg, sx2, selStartY, selSlotW, selSlotH, 4)
-            nvgStrokeColor(vg, nvgRGBA(80, 75, 60, 80)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
             nvgFontSize(vg, 24)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            DrawWhiteInkText(sx2 + selSlotW / 2, selStartY + selSlotH / 2, "+")
+            nvgFillColor(vg, nvgRGBA(230, 220, 200, 120))
+            nvgText(vg, x + slotW / 2, slotY + slotH / 2, "+", nil)
         end
     end
 
-    -- 寮€濮嬫寜閽?(宸︿晶搴曢儴)
     local startW = 180
-    local startH = 38
+    local startH = 40
     local startX = (leftW - startW) / 2
-    local startY = selStartY + selSlotH + 12
+    local startY = slotY + slotH + 14
     local canStart = #dummyState.selected >= 1
-    nvgBeginPath(vg); nvgRoundedRect(vg, startX, startY, startW, startH, 8)
-    if canStart then
-        local sp = 0.85 + 0.15 * math.sin(t * 4)
-        local startGrad = nvgLinearGradient(vg, startX, startY, startX, startY + startH,
-            nvgRGBA(220, 60, 40, math.floor(230 * sp)),
-            nvgRGBA(160, 30, 20, math.floor(230 * sp)))
-        nvgFillPaint(vg, startGrad); nvgFill(vg)
-    else
-        nvgFillColor(vg, nvgRGBA(40, 38, 35, 200)); nvgFill(vg)
-    end
-    nvgFontSize(vg, 24)
-    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, nvgRGBA(255, 240, 210, canStart and 240 or 100))
-    nvgText(vg, startX + startW / 2, startY + startH / 2, "寮€濮嬫寫鎴?(" .. #dummyState.selected .. "/4)", nil)
+    DrawButton(startX, startY, startW, startH, "开始测试(" .. #dummyState.selected .. "/4)", {
+        fillTop = canStart and nvgRGBA(225, 80, 60, 230) or nvgRGBA(80, 80, 80, 200),
+        fillBottom = canStart and nvgRGBA(160, 35, 25, 235) or nvgRGBA(60, 60, 60, 210),
+        stroke = canStart and nvgRGBA(255, 180, 150, 140) or nvgRGBA(140, 140, 140, 80),
+        textColor = canStart and nvgRGBA(255, 240, 220, 240) or nvgRGBA(210, 210, 210, 120),
+        fontSize = 24,
+    })
     dummyState.startBtnRect = canStart and { x = startX, y = startY, w = startW, h = startH } or nil
 
-    -- 鍙充晶: 姝︾伒閫夋嫨缃戞牸锛堝凡鎷ユ湁鐨勬鐏碉紝鏀寔鎷栨嫿婊氬姩锛?
-    local gridY = topY + backH + 6
+    local gridY = topBar.y + topBar.h + 8
     local gridH = H - gridY - 8
     dummyState.gridH = gridH
+    dummyState.cardRects = {}
+
     nvgSave(vg)
     nvgScissor(vg, rightX, gridY, W - rightX, gridH)
 
-    dummyState.cardRects = {}
     local gridW = W - rightX - 12
-    local cols = 6  -- 妯睆瀹藉害鏇村ぇ锛岀敤6鍒?
-    local cardW2 = math.floor((gridW - (cols - 1) * 6) / cols)
-    local cardImgW = cardW2 - 6
-    local cardImgH = cardImgW / CARD_RATIO
-    local cardH2 = math.floor(cardImgH + 22)
-    local scrollY = dummyState.scrollY
+    local cols = 6
+    local cellW = math.floor((gridW - (cols - 1) * 6) / cols)
+    local cardImgW = cellW - 6
+    local cellH = math.floor(cardImgW / CARD_RATIO + 22)
     local cardIdx = 0
+
     for ci = 1, #HERO_CARDS do
         if playerHeroes[ci] and playerHeroes[ci].owned then
             local col = cardIdx % cols
             local row = math.floor(cardIdx / cols)
-            local cxp = rightX + 4 + col * (cardW2 + 6)
-            local cyp = gridY + row * (cardH2 + 6) - scrollY
+            local x = rightX + 4 + col * (cellW + 6)
+            local y = gridY + row * (cellH + 6) - scrollY
             cardIdx = cardIdx + 1
 
-            local isSelected = false
-            for _, si in ipairs(dummyState.selected) do
-                if si == ci then isSelected = true; break end
+            local selected = false
+            for _, chosen in ipairs(dummyState.selected) do
+                if chosen == ci then
+                    selected = true
+                    break
+                end
             end
 
-            if cyp + cardH2 >= gridY and cyp <= gridY + gridH then
-                local card = HERO_CARDS[ci]
+            if y + cellH >= gridY and y <= gridY + gridH then
+                DrawInventoryCard(x, y, cellW, cellH, HERO_CARDS[ci], playerHeroes[ci].constellation, false)
+                if selected then
+                    nvgBeginPath(vg)
+                    nvgRoundedRect(vg, x, y, cellW, cellH, 4)
+                    nvgStrokeColor(vg, nvgRGBA(90, 235, 130, 220))
+                    nvgStrokeWidth(vg, 2)
+                    nvgStroke(vg)
 
-                DrawInventoryCard(cxp, cyp, cardW2, cardH2, card,
-                    playerHeroes[ci].constellation, false)
-
-                if isSelected then
-                    nvgBeginPath(vg); nvgRoundedRect(vg, cxp, cyp, cardW2, cardH2, 4)
-                    nvgStrokeColor(vg, nvgRGBA(80, 220, 100, 200))
-                    nvgStrokeWidth(vg, 2); nvgStroke(vg)
-
-                    nvgFontFaceId(vg, GetMainFont())
-                    nvgFontSize(vg, 18)
-                    nvgFillColor(vg, nvgRGBA(80, 255, 120, 240))
+                    nvgFontSize(vg, 16)
                     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
-                    nvgText(vg, cxp + cardW2 - 3, cyp + 2, "鉁?, nil)
+                    nvgFillColor(vg, nvgRGBA(90, 255, 150, 240))
+                    nvgText(vg, x + cellW - 4, y + 3, "已选", nil)
                 end
-
-                dummyState.cardRects[ci] = { x = cxp, y = cyp, w = cardW2, h = cardH2 }
+                dummyState.cardRects[ci] = { x = x, y = y, w = cellW, h = cellH }
             end
         end
     end
+
     local totalRows = math.ceil(cardIdx / cols)
-    dummyState.contentH = totalRows * (cardH2 + 6) - 6
+    dummyState.contentH = math.max(0, totalRows * (cellH + 6) - 6)
     nvgRestore(vg)
 end
 
-
--- ============================================================================
--- 30s鎵撴々 - 缁撴灉鐣岄潰
--- ============================================================================
 function DrawDummyResultScreen()
     if gameState.phase ~= "DUMMY_RESULT" then return end
+
     local W = DESIGN_W
     local H = DESIGN_H
     local cx = W / 2
     local t = menuAnimTimer or 0
 
     DrawCombatBg(W, H)
+    DrawScreenOverlay(W, H, 150, 150)
     nvgFontFaceId(vg, GetMainFont())
-
-    -- 妯睆甯冨眬: 涓婂崐=鏍囬+浼ゅ+DPS, 涓嬪崐=姝︾伒+鎸夐挳 (姘村钩鍏呰冻锛屽瀭鐩寸揣鍑?
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
 
-    -- 鏍囬
     nvgFontSize(vg, 36)
-    nvgFillColor(vg, nvgRGBA(255, 100, 80, 240))
-    nvgText(vg, cx, 40, "鎸戞垬缁撴潫!", nil)
+    nvgFillColor(vg, nvgRGBA(255, 120, 90, 240))
+    nvgText(vg, cx, 40, "挑战完成!", nil)
 
-    -- 鎬讳激瀹虫爣绛?
     nvgFontSize(vg, 24)
-    DrawWhiteInkText(cx, 72, "30绉掑唴绱浼ゅ")
+    DrawWhiteInkText(cx, 72, "30秒总伤害统计")
 
-    -- 浼ゅ鏁板瓧锛堝ぇ瀛楋級
+    local totalDamage = math.floor(dummyState.totalDamage or 0)
+    local pulse = 0.9 + 0.1 * math.sin(t * 3)
     nvgFontSize(vg, 52)
-    local dmgPulse = 0.9 + 0.1 * math.sin(t * 3)
-    nvgFillColor(vg, nvgRGBA(255, 200, 60, math.floor(240 * dmgPulse)))
-    nvgText(vg, cx, 115, tostring(math.floor(dummyState.totalDamage)), nil)
+    nvgFillColor(vg, nvgRGBA(255, 210, 80, math.floor(240 * pulse)))
+    nvgText(vg, cx, 115, tostring(totalDamage), nil)
 
-    -- DPS
-    local dps = dummyState.totalDamage / 30
+    local dps = (dummyState.totalDamage or 0) / 30
     nvgFontSize(vg, 26)
-    nvgFillColor(vg, nvgRGBA(130, 200, 255, 220))
+    nvgFillColor(vg, nvgRGBA(140, 205, 255, 225))
     nvgText(vg, cx, 150, string.format("DPS: %.0f", dps), nil)
 
-    -- 鍙傛垬姝︾伒
     nvgFontSize(vg, 22)
-    DrawWhiteInkText(cx, 180, "鍙傛垬姝︾伒")
+    DrawWhiteInkText(cx, 180, "出战阵容")
 
-    local cardW3 = 65
-    local resCardImgW = cardW3 - 6
-    local resCardImgH = resCardImgW / CARD_RATIO
-    local cardH3 = math.floor(resCardImgH + 22)
-    local gap3 = 10
-    local selCount = #dummyState.selected
-    local totalW3 = selCount * cardW3 + (selCount - 1) * gap3
-    local sx3 = cx - totalW3 / 2
-    for i, ci in ipairs(dummyState.selected) do
-        local card = HERO_CARDS[ci]
-        local px = sx3 + (i - 1) * (cardW3 + gap3)
-        local py = 195
-        DrawInventoryCard(px, py, cardW3, cardH3, card,
-            playerHeroes[ci] and playerHeroes[ci].constellation or 0, false)
+    local cardW = 65
+    local gap = 10
+    local count = #dummyState.selected
+    local totalW = count * cardW + math.max(0, count - 1) * gap
+    local startX = cx - totalW / 2
+
+    for i, cardId in ipairs(dummyState.selected) do
+        local card = HERO_CARDS[cardId]
+        local x = startX + (i - 1) * (cardW + gap)
+        DrawInventoryCard(
+            x,
+            195,
+            cardW,
+            math.floor((cardW - 6) / CARD_RATIO + 22),
+            card,
+            playerHeroes[cardId] and playerHeroes[cardId].constellation or 0,
+            false
+        )
     end
 
-    -- 杩斿洖鎸夐挳
     local btnW = 180
-    local btnH = 40
+    local btnH = 42
     local btnX = cx - btnW / 2
-    local btnY = H - 60
-    nvgBeginPath(vg); nvgRoundedRect(vg, btnX, btnY, btnW, btnH, 8)
-    local btnGrad = nvgLinearGradient(vg, btnX, btnY, btnX, btnY + btnH,
-        nvgRGBA(200, 160, 60, 220), nvgRGBA(160, 110, 30, 220))
-    nvgFillPaint(vg, btnGrad); nvgFill(vg)
-    nvgFontSize(vg, 26)
-    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, nvgRGBA(40, 20, 0, 240))
-    nvgText(vg, cx, btnY + btnH / 2, "杩斿洖涓昏彍鍗?, nil)
+    local btnY = H - 62
+    DrawButton(btnX, btnY, btnW, btnH, "返回选择界面", {
+        fillTop = nvgRGBA(210, 170, 70, 225),
+        fillBottom = nvgRGBA(155, 110, 35, 230),
+        stroke = nvgRGBA(255, 220, 150, 135),
+        textColor = nvgRGBA(70, 30, 0, 240),
+        shadowColor = nvgRGBA(255, 240, 220, 40),
+        fontSize = 24,
+    })
     dummyState.resultBackRect = { x = btnX, y = btnY, w = btnW, h = btnH }
 end
-
-
--- ============================================================================
--- 寮€鍙戣€呮垬鍦虹紪杈戝櫒
--- ============================================================================

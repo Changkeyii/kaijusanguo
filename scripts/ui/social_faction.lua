@@ -1,7 +1,7 @@
 -- ui/social_faction.lua - 涓夊浗姝︾伒褰?(浠?social.lua 鎷嗗垎)
 function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
     local sv = factionUI.subView
-    -- 瀛愯鍥捐繑鍥炴寜閽?
+    -- 瀛愯鍥捐繑鍥炴寜閽?"
     local sbW, sbH = 80, 32
     local sbX, sbY = pad, bodyTop + 4
     nvgBeginPath(vg); nvgRoundedRect(vg, sbX, sbY, sbW, sbH, 6)
@@ -30,7 +30,7 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
         nvgFillColor(vg, nvgRGBA(20, 20, 30, 210)); nvgFill(vg)
         nvgStrokeColor(vg, nvgRGBA(80, 140, 220, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
-        -- 澶х瓑绾ф暟瀛?
+        -- 澶х瓑绾ф暟瀛?"
         nvgFontSize(vg, 48); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(100, 200, 255, 255))
         nvgText(vg, cx, panelTop + 40, "Lv." .. lvInfo.level, nil)
@@ -40,7 +40,7 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
         nvgFontSize(vg, 16); nvgFillColor(vg, nvgRGBA(255, 220, 140, 220))
         nvgText(vg, cx, panelTop + 70, lvNames[lvInfo.level] or "鏈煡", nil)
 
-        -- 缁忛獙杩涘害鏉?
+        -- 缁忛獙杩涘害鏉?"
         local barX = pad + 20
         local barW = panelW - 40
         local barY = panelTop + 95
@@ -88,7 +88,7 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
         nvgFillColor(vg, nvgRGBA(255, 220, 140, 220))
         nvgText(vg, cx, panelTop + cardH + 44, "闃佃惀璧勯噾: " .. CloudManager.GetFactionFunds() .. " 铏庣", nil)
 
-        -- 闃佃惀鎺掕姒滄寜閽?
+        -- 闃佃惀鎺掕姒滄寜閽?"
         local rankBtnW, rankBtnH = 160, 38
         local rankBtnX = cx - rankBtnW / 2
         local rankBtnY = panelTop + cardH + 72
@@ -97,7 +97,7 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
         nvgStrokeColor(vg, nvgRGBA(140, 120, 220, 180)); nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
         nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(200, 180, 255, 240))
-        nvgText(vg, cx, rankBtnY + rankBtnH / 2, "闃佃惀绛夌骇鎺掕姒?, nil)
+        nvgText(vg, cx, rankBtnY + rankBtnH / 2, "闃佃惀绛夌骇鎺掕姒?", nil)
         menuBtnRects.factionRankBtn = { x = rankBtnX, y = rankBtnY, w = rankBtnW, h = rankBtnH }
 
     elseif sv == "donate" then
@@ -208,13 +208,13 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
         nvgTextBox(vg, pad + 16, panelTop + 42, panelW - 32, dispAnn, nil)
 
         if canEdit then
-            -- 缂栬緫鍖?
+            -- 缂栬緫鍖?"
             local editY = panelTop + 110
             nvgFillColor(vg, nvgRGBA(160, 150, 130, 200))
             nvgFontSize(vg, 14)
             nvgText(vg, pad + 16, editY, "缂栬緫鏂板叕鍛?(200瀛楀唴):", nil)
 
-            -- 杈撳叆妗?
+            -- 杈撳叆妗?"
             local inputY = editY + 22
             local inputH = 36
             nvgBeginPath(vg); nvgRoundedRect(vg, pad + 12, inputY, panelW - 24, inputH, 6)
@@ -246,7 +246,7 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
         else
             nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
             nvgFillColor(vg, nvgRGBA(160, 150, 140, 180))
-            nvgText(vg, cx, panelTop + 130, "鍓洘涓诲強浠ヤ笂鍙紪杈戝叕鍛?, nil)
+            nvgText(vg, cx, panelTop + 130, "鍓洘涓诲強浠ヤ笂鍙紪杈戝叕鍛?", nil)
         end
 
     elseif sv == "contrib" then
@@ -316,7 +316,7 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
             for i, e in ipairs(cList) do
                 local ry = baseY2 + 10 + (i - 1) * rowH2
                 local isMe = (e.uid == myUid)
-                -- 琛岃儗鏅?
+                -- 琛岃儗鏅?"
                 if i <= 3 then
                     nvgBeginPath(vg); nvgRoundedRect(vg, pad + 6, ry + 2, panelW - 12, rowH2 - 4, 6)
                     nvgFillColor(vg, nvgRGBA(255, 215, 80, 15 + (4 - i) * 8)); nvgFill(vg)
@@ -346,13 +346,13 @@ function DrawFactionSubView(W, H, bodyTop, pad, cx, info)
                     nvgFillColor(vg, nvgRGBA(255, 235, 175, 230))
                 else nvgFillColor(vg, nvgRGBA(210, 200, 180, 220)) end
                 nvgText(vg, pad + 54, ry + rowH2 / 2, (e.name or "?") .. (isMe and " (鎴?" or ""), nil)
-                -- 璐＄尞鍊?
+                -- 璐＄尞鍊?"
                 nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
                 if i <= 3 then
                     nvgFillColor(vg, nvgRGBA(255, 200, 80, 240))
                 else nvgFillColor(vg, nvgRGBA(220, 180, 120, 210)) end
                 nvgText(vg, pad + panelW - 16, ry + rowH2 / 2, FormatPower(e.amount or 0), nil)
-                -- 鍒嗛殧绾?
+                -- 鍒嗛殧绾?"
                 if i < cCount then
                     nvgBeginPath(vg); nvgMoveTo(vg, pad + 16, ry + rowH2); nvgLineTo(vg, pad + panelW - 16, ry + rowH2)
                     nvgStrokeColor(vg, nvgRGBA(100, 80, 40, 30)); nvgStrokeWidth(vg, 0.5); nvgStroke(vg)
@@ -374,7 +374,7 @@ function DrawFactionScreen()
     DrawSocialBg(W, H)
     nvgFontFaceId(vg, GetMainFont())
 
-    -- 姣忓抚娓呴櫎鎵€鏈夐樀钀?tab 鍐呯殑鎸夐挳 rect锛岄槻姝㈠垏鎹?tab 鏃舵棫鎸夐挳娈嬬暀瀵艰嚧鐐瑰嚮绌块€?
+    -- 姣忓抚娓呴櫎鎵€鏈夐樀钀?tab 鍐呯殑鎸夐挳 rect锛岄槻姝㈠垏鎹?tab 鏃舵棫鎸夐挳娈嬬暀瀵艰嚧鐐瑰嚮绌块€?"
     local factionRectPrefixes = {
         "factionRename", "factionLeave", "factionFeat_",
         "factionKick_", "factionSetRole_", "factionRoleOption_", "factionRolePopupBg",
@@ -444,12 +444,12 @@ function DrawFactionScreen()
         local bodyTop = tabY + tabH + 10
 
         if factionUI.tab == "info" then
-            -- 鐩熶富棣栨鎵撳紑淇℃伅椤垫椂锛屽悗鍙伴獙璇佹垚鍛樻槸鍚﹀凡绂诲紑锛堣嚜鍔ㄦ竻鐞哻amp_meta锛?
+            -- 鐩熶富棣栨鎵撳紑淇℃伅椤垫椂锛屽悗鍙伴獙璇佹垚鍛樻槸鍚﹀凡绂诲紑锛堣嚜鍔ㄦ竻鐞哻amp_meta锛?"
             if info.role == "leader" and not factionUI.memberValidated then
                 factionUI.memberValidated = true
                 CloudManager.GetFactionMembers(function(_) end)  -- 瑙﹀彂鍐呴儴娓呯悊閫昏緫
             end
-            -- 寮傛鏌ヨ鐩熶富鏄电О (浠呮煡涓€娆?
+            -- 寮傛鏌ヨ鐩熶富鏄电О (浠呮煡涓€娆?"
             if info.meta and info.meta.leaderId and not factionUI.leaderNickLoaded then
                 factionUI.leaderNickLoaded = true
                 factionUI.leaderNickname = nil
@@ -507,12 +507,12 @@ function DrawFactionScreen()
             local infoLines = {
                 { "闃佃惀绛夌骇", "Lv." .. lvInfo.level .. " (" .. buffDisplay .. ")" },
                 { "鎴戠殑鑱屼綅", CloudManager.GetRoleName(info.role) or "鎴愬憳" },
-                { "鎴愬憳鏁?, info.meta and tostring(info.meta.memberCount or 0) .. "/" .. tostring(info.meta.maxMembers or 20) or "?" },
+                { "鎴愬憳鏁?", info.meta and tostring(info.meta.memberCount or 0) .. "/" .. tostring(info.meta.maxMembers or 20) or "?" },
                 { "闃佃惀璧勯噾", tostring(CloudManager.GetFactionFunds()) .. " 铏庣" },
                 { "鐩熶富", leaderDisplay },
             }
             if info.meta and info.meta.desc and #info.meta.desc > 0 then
-                table.insert(infoLines, { "绠€浠?, info.meta.desc })
+                table.insert(infoLines, { "绠€浠?", info.meta.desc })
             end
             for j, line in ipairs(infoLines) do
                 local ly = cardY + 14 + (j - 1) * 30
@@ -522,7 +522,7 @@ function DrawFactionScreen()
                 nvgText(vg, pad + 110, ly, line[2], nil)
             end
 
-            -- 缁忛獙鏉?(绱ц创淇℃伅琛屼笅鏂?
+            -- 缁忛獙鏉?(绱ц创淇℃伅琛屼笅鏂?"
             local expBarY = cardY + 14 + #infoLines * 30 + 4
             local expBarX = pad + 16
             local expBarW = W - pad * 2 - 32
@@ -556,7 +556,7 @@ function DrawFactionScreen()
                 annY = annY + 22
             end
 
-            -- 閫€鍑洪樀钀ユ寜閽?
+            -- 閫€鍑洪樀钀ユ寜閽?"
             local leaveW, leaveH = 160, 42
             local leaveX = cx - leaveW / 2
             local leaveY = annY + 10
@@ -565,7 +565,7 @@ function DrawFactionScreen()
             nvgStrokeColor(vg, nvgRGBA(200, 60, 60, 150)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
             nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 200, 200, 255))
-            nvgText(vg, cx, leaveY + leaveH / 2, info.role == "leader" and "瑙ｆ暎闃佃惀" or "閫€鍑洪樀钀?, nil)
+            nvgText(vg, cx, leaveY + leaveH / 2, info.role == "leader" and "瑙ｆ暎闃佃惀" or "閫€鍑洪樀钀?", nil)
             menuBtnRects.factionLeave = { x = leaveX, y = leaveY, w = leaveW, h = leaveH }
 
             -- ======== 闃佃惀鍔熻兘鍏ュ彛缃戞牸 ========
@@ -579,14 +579,14 @@ function DrawFactionScreen()
             local features = {
                 { id = "manage",   icon = "馃憫", label = "鎴愬憳绠＄悊", ready = true },
                 { id = "chat",     icon = "馃挰", label = "闃佃惀鑱婂ぉ", ready = true },
-                { id = "upgrade",  icon = "猬?, label = "闃佃惀鍗囩骇", ready = true },
+                { id = "upgrade",  icon = "猬?", label = "闃佃惀鍗囩骇", ready = true },
                 { id = "donate",   icon = "馃挵", label = "闃佃惀鎹愮尞", ready = true },
-                { id = "signIn",   icon = "馃搮", label = hasSignedIn and "宸茬鍒? or "姣忔棩绛惧埌", ready = true, done = hasSignedIn },
+                { id = "signIn",   icon = "馃搮", label = hasSignedIn and "宸茬鍒?" or "姣忔棩绛惧埌", ready = true, done = hasSignedIn },
                 { id = "announce", icon = "馃摙", label = "闃佃惀鍏憡", ready = true },
                 { id = "rank",     icon = "馃弳", label = "闃佃惀鎺掕", ready = true },
                 { id = "contrib",  icon = "馃搳", label = "鎴愬憳璐＄尞", ready = true },
                 { id = "shop",     icon = "馃彧", label = "闃佃惀鍟嗗簵" },
-                { id = "war",      icon = "鈿?, label = "闃佃惀鎴樹簤" },
+                { id = "war",      icon = "鈿?", label = "闃佃惀鎴樹簤" },
                 { id = "task",     icon = "馃搵", label = "闃佃惀浠诲姟" },
             }
             local cols = 4
@@ -626,13 +626,13 @@ function DrawFactionScreen()
                     nvgFillColor(vg, nvgRGBA(220, 230, 240, 240))
                 else nvgFillColor(vg, nvgRGBA(180, 175, 160, 200)) end
                 nvgText(vg, fx + fBtnW / 2, fy + fBtnH / 2 + 16, feat.label, nil)
-                -- "寰呭紑鍙?瑙掓爣锛堜粎鏈氨缁殑鍔熻兘锛?
+                -- "寰呭紑鍙?瑙掓爣锛堜粎鏈氨缁殑鍔熻兘锛?"
                 if not feat.ready then
                     nvgFontSize(vg, 10); nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
                     nvgFillColor(vg, nvgRGBA(255, 120, 60, 180))
-                    nvgText(vg, fx + fBtnW - 4, fy + 3, "寰呭紑鍙?, nil)
+                    nvgText(vg, fx + fBtnW - 4, fy + 3, "寰呭紑鍙?", nil)
                 end
-                -- 娉ㄥ唽鐐瑰嚮鍖?
+                -- 娉ㄥ唽鐐瑰嚮鍖?"
                 menuBtnRects["factionFeat_" .. feat.id] = { x = fx, y = fy, w = fBtnW, h = fBtnH }
             end
             end -- subView else
@@ -661,7 +661,7 @@ function DrawFactionScreen()
 
                 -- 鏍囬
                 nvgFontSize(vg, 26); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-                DrawWhiteInkText(cx, rpY + 30, "闃佃惀绛夌骇鎺掕姒?)
+                DrawWhiteInkText(cx, rpY + 30, "闃佃惀绛夌骇鎺掕姒?")
 
                 -- 鎺掕鍒楄〃
                 local listTop = rpY + 58
@@ -683,7 +683,7 @@ function DrawFactionScreen()
                     nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(140, 130, 160, 180))
                     nvgText(vg, rpX + 12, listTop, "鎺掑悕", nil)
-                    nvgText(vg, rpX + 52, listTop, "闃佃惀鍚?, nil)
+                    nvgText(vg, rpX + 52, listTop, "闃佃惀鍚?", nil)
                     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgText(vg, rpX + rpW - 120, listTop, "绛夌骇", nil)
                     nvgText(vg, rpX + rpW - 45, listTop, "鍔犳垚", nil)
@@ -695,7 +695,7 @@ function DrawFactionScreen()
                         local ry = listTop + (i - 1) * rowH
                         local isMe = (r.campId == myCampId)
 
-                        -- 琛岃儗鏅?
+                        -- 琛岃儗鏅?"
                         if isMe then
                             nvgBeginPath(vg); nvgRoundedRect(vg, rpX + 6, ry, rpW - 12, rowH - 2, 4)
                             nvgFillColor(vg, nvgRGBA(80, 100, 50, 120)); nvgFill(vg)
@@ -717,7 +717,7 @@ function DrawFactionScreen()
                         nvgFillColor(vg, rankColor)
                         nvgText(vg, rpX + 28, ry + rowH / 2, tostring(i), nil)
 
-                        -- 闃佃惀鍚?
+                        -- 闃佃惀鍚?"
                         nvgFontSize(vg, 15); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                         nvgFillColor(vg, isMe and nvgRGBA(200, 255, 160, 255) or nvgRGBA(240, 235, 220, 240))
                         local dispName = r.name or "???"
@@ -859,7 +859,7 @@ function DrawFactionScreen()
                 if factionUI.rolePopup then
                     local rp = factionUI.rolePopup
                     local roleList = { "vice_leader", "strategist", "vanguard", "diplomat", "elite", "member" }
-                    local roleNames = { vice_leader="鍓洘涓?, strategist="鍐涘笀", vanguard="鍏堥攱瀹?, diplomat="澶栦氦瀹?, elite="绮捐嫳", member="鎴愬憳" }
+                    local roleNames = { vice_leader="鍓洘涓?", strategist="鍐涘笀", vanguard="鍏堥攱瀹?", diplomat="澶栦氦瀹?", elite="绮捐嫳", member="鎴愬憳" }
                     local popW, popItemH = 140, 36
                     local popH = #roleList * popItemH + 40
                     local popX = (W - popW) / 2
@@ -896,7 +896,7 @@ function DrawFactionScreen()
             end
 
         elseif factionUI.tab == "apply" then
-            -- 鍏ラ槦鐢宠 (鍓洘涓讳互涓婂彲瑙?
+            -- 鍏ラ槦鐢宠 (鍓洘涓讳互涓婂彲瑙?"
             if not factionUI.applyLoaded and not factionUI.applyLoading then
                 factionUI.applyLoading = true
                 CloudManager.CheckFactionApplications(function(apps)
@@ -951,7 +951,7 @@ function DrawFactionScreen()
             nvgFillColor(vg, nvgRGBA(15, 15, 20, 200)); nvgFill(vg)
             nvgStrokeColor(vg, nvgRGBA(60, 55, 50, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
-            -- 棣栨杩涘叆鑱婂ぉtab绔嬪嵆鎷夊彇涓€娆?
+            -- 棣栨杩涘叆鑱婂ぉtab绔嬪嵆鎷夊彇涓€娆?"
             if not factionUI.chatPolled then
                 factionUI.chatPolled = true
                 CloudManager.PollFactionChat()
@@ -970,7 +970,7 @@ function DrawFactionScreen()
             for i = startIdx, #msgs do
                 local msg = msgs[i]
                 local my = bodyTop + (i - startIdx) * msgH + 4
-                -- 澶村儚 (鍙偣鍑?
+                -- 澶村儚 (鍙偣鍑?"
                 local fcAvX = pad + 8
                 local fcAvY = my
                 local fcAvIdx = msg.av or 1
@@ -1033,7 +1033,7 @@ function DrawFactionScreen()
                 nvgBeginPath(vg); nvgRoundedRect(vg, ppX, ppY, ppW, ppH, 8)
                 nvgFillColor(vg, nvgRGBA(40, 35, 55, 245)); nvgFill(vg)
                 nvgStrokeColor(vg, nvgRGBA(100, 160, 240, 200)); nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
-                -- 寮圭獥鍐呭ご鍍?
+                -- 寮圭獥鍐呭ご鍍?"
                 local ppAvS2 = 32
                 local ppAvX2 = ppX + 8
                 local ppAvY2 = ppY + (ppH - ppAvS2) / 2
@@ -1080,7 +1080,7 @@ function DrawFactionScreen()
                     nvgStrokeColor(vg, nvgRGBA(100, 220, 140, 180)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
                     nvgFontSize(vg, 13); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(100, 240, 140, 255))
-                    nvgText(vg, addBtnX2 + addBtnW2 / 2, addBtnY2 + addBtnH2 / 2, "+ 鍔犲ソ鍙?, nil)
+                    nvgText(vg, addBtnX2 + addBtnW2 / 2, addBtnY2 + addBtnH2 / 2, "+ 鍔犲ソ鍙?", nil)
                     menuBtnRects.factionChatAddFriend = { x = addBtnX2, y = addBtnY2, w = addBtnW2, h = addBtnH2, uid = pp.uid, name = pp.name }
                 end
                 menuBtnRects.factionChatPopupArea = { x = ppX, y = ppY, w = ppW, h = ppH }
@@ -1092,11 +1092,11 @@ function DrawFactionScreen()
                 menuBtnRects.factionChatPopupArea = nil
             end
 
-            -- 杈撳叆鏍?
+            -- 杈撳叆鏍?"
             local inputY = bodyTop + chatAreaH + 6
             local sendW = 60
             local inputW2 = W - pad * 2 - sendW - 6
-            -- 杈撳叆妗?
+            -- 杈撳叆妗?"
             nvgBeginPath(vg); nvgRoundedRect(vg, pad, inputY, inputW2, 40, 6)
             nvgFillColor(vg, nvgRGBA(20, 20, 28, 220)); nvgFill(vg)
             local chatActive = (factionUI.inputTarget == "chat")
@@ -1111,14 +1111,14 @@ function DrawFactionScreen()
                 nvgText(vg, pad + 10, inputY + 20, "杈撳叆娑堟伅...", nil)
             end
             menuBtnRects.factionChatInput = { x = pad, y = inputY, w = inputW2, h = 40 }
-            -- 鍙戦€佹寜閽?
+            -- 鍙戦€佹寜閽?"
             local sendX = pad + inputW2 + 6
             nvgBeginPath(vg); nvgRoundedRect(vg, sendX, inputY, sendW, 40, 6)
             nvgFillColor(vg, nvgRGBA(50, 90, 140, 220)); nvgFill(vg)
             nvgStrokeColor(vg, nvgRGBA(100, 160, 240, 160)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
             nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(200, 230, 255, 255))
-            nvgText(vg, sendX + sendW / 2, inputY + 20, "鍙戦€?, nil)
+            nvgText(vg, sendX + sendW / 2, inputY + 20, "鍙戦€?", nil)
             menuBtnRects.factionChatSend = { x = sendX, y = inputY, w = sendW, h = 40 }
         end
 
@@ -1142,7 +1142,7 @@ function DrawFactionScreen()
         end
         local bodyTop = tabY + tabH + 10
 
-        -- 妫€鏌ョ敵璇风姸鎬?
+        -- 妫€鏌ョ敵璇风姸鎬?"
         if factionUI.applyStatus == "pending" then
             nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
             nvgFillColor(vg, nvgRGBA(255, 200, 80, 200))
@@ -1154,7 +1154,7 @@ function DrawFactionScreen()
             nvgFillColor(vg, nvgRGBA(50, 50, 70, 200)); nvgFill(vg)
             nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(200, 200, 220, 255))
-            nvgText(vg, cx, refreshY + refreshH / 2, "鍒锋柊鐘舵€?, nil)
+            nvgText(vg, cx, refreshY + refreshH / 2, "鍒锋柊鐘舵€?", nil)
             menuBtnRects.factionRefreshApply = { x = refreshX, y = refreshY, w = refreshW, h = refreshH }
             bodyTop = refreshY + refreshH + 12
         end
@@ -1183,7 +1183,7 @@ function DrawFactionScreen()
                     nvgBeginPath(vg); nvgRoundedRect(vg, pad, cy, W - pad * 2, cardH, 10)
                     nvgFillColor(vg, nvgRGBA(25, 20, 15, 210)); nvgFill(vg)
                     nvgStrokeColor(vg, nvgRGBA(100, 75, 40, 130)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-                    -- 闃佃惀鍚?
+                    -- 闃佃惀鍚?"
                     nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
                     nvgFillColor(vg, nvgRGBA(255, 220, 120, 240))
                     nvgText(vg, pad + 14, cy + 10, fac.name or "?", nil)
@@ -1203,7 +1203,7 @@ function DrawFactionScreen()
                         nvgStrokeColor(vg, nvgRGBA(80, 80, 70, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
                         nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                         nvgFillColor(vg, nvgRGBA(160, 160, 140, 180))
-                        nvgText(vg, applyBtnX + applyBtnW / 2, applyBtnY + applyBtnH / 2, "宸茬敵璇?, nil)
+                        nvgText(vg, applyBtnX + applyBtnW / 2, applyBtnY + applyBtnH / 2, "宸茬敵璇?", nil)
                     else
                         nvgFillColor(vg, nvgRGBA(60, 90, 40, 220)); nvgFill(vg)
                         nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
@@ -1216,7 +1216,7 @@ function DrawFactionScreen()
                 if #factionUI.factions == 0 then
                     nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(150, 150, 150, 180))
-                    nvgText(vg, cx, bodyTop + 80, "鏆傛棤闃佃惀锛屾潵鍒涘缓绗竴涓惂锛?, nil)
+                    nvgText(vg, cx, bodyTop + 80, "鏆傛棤闃佃惀锛屾潵鍒涘缓绗竴涓惂锛?", nil)
                 end
             end
 
@@ -1296,7 +1296,7 @@ function DrawFactionScreen()
         nvgText(vg, cx, rpY + 26, "淇敼闃佃惀鍚嶇О", nil)
         nvgFontSize(vg, 13); nvgFillColor(vg, nvgRGBA(255, 200, 100, 180))
         nvgText(vg, cx, rpY + 46, "璐圭敤: 1000 铏庣", nil)
-        -- 杈撳叆妗?
+        -- 杈撳叆妗?"
         local riX, riY, riW, riH = rpX + 20, rpY + 60, rpW - 40, 36
         nvgBeginPath(vg); nvgRoundedRect(vg, riX, riY, riW, riH, 6)
         nvgFillColor(vg, nvgRGBA(10, 10, 15, 200)); nvgFill(vg)
@@ -1360,6 +1360,6 @@ end
 -- 濂藉弸鐣岄潰 (瀹屾暣瀹炵幇)
 -- ===========================
 -- ============================================================================
--- 浜ゆ槗琛岀晫闈?
+-- 浜ゆ槗琛岀晫闈?"
 -- ============================================================================
 
