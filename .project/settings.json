@@ -26,8 +26,7 @@
       "persistent_world": {
         "enabled": true
       },
-      "max_players": 100,
-      "background_match": false
+      "max_players": 100
     }
   }
 }

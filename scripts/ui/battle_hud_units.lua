@@ -1,10 +1,10 @@
--- ui/battle_hud_units.lua - 三国武灵录 (从 battle_hud.lua 拆分)
+-- ui/battle_hud_units.lua - 涓夊浗姝︾伒褰?(浠?battle_hud.lua 鎷嗗垎)
 -- ============================================================================
--- 战斗单位渲染
+-- 鎴樻枟鍗曚綅娓叉煋
 -- ============================================================================
 
 function DrawBattleUnits()
-    -- 战区分割线 (淡墨, 横屏: 垂直中线)
+    -- 鎴樺尯鍒嗗壊绾?(娣″ⅷ, 妯睆: 鍨傜洿涓嚎)
     nvgBeginPath(vg)
     local lineGrad = nvgLinearGradient(vg, BATTLE_ZONE.centerX, BATTLE_ZONE.top + 30,
         BATTLE_ZONE.centerX, BATTLE_ZONE.bottom - 30,
@@ -14,10 +14,10 @@ function DrawBattleUnits()
     nvgStrokePaint(vg, lineGrad)
     nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
-    -- 云 (底层)
+    -- 浜?(搴曞眰)
     for _, u in ipairs(playerUnits) do if u.alive then DrawUnitCloud(u) end end
     for _, u in ipairs(enemyUnits) do if u.alive then DrawUnitCloud(u) end end
-    -- 角色 (上层)
+    -- 瑙掕壊 (涓婂眰)
     for _, u in ipairs(playerUnits) do if u.alive then DrawUnitSprite(u) end end
     for _, u in ipairs(enemyUnits) do if u.alive then DrawUnitSprite(u) end end
 end
@@ -53,32 +53,32 @@ function DrawUnitSprite(u)
     local bob = math.sin(u.animTimer) * 2.5
     local px, py = u.x, u.y + bob
 
-    -- === 序列帧动画：行走摇摆 + 攻击放大 + 受伤抖动 ===
-    local animAngle = 0       -- 旋转角度(弧度)
-    local animScaleX = 1.0    -- X缩放
-    local animScaleY = 1.0    -- Y缩放
-    local shakeX, shakeY = 0, 0  -- 抖动偏移
+    -- === 搴忓垪甯у姩鐢伙細琛岃蛋鎽囨憜 + 鏀诲嚮鏀惧ぇ + 鍙椾激鎶栧姩 ===
+    local animAngle = 0       -- 鏃嬭浆瑙掑害(寮у害)
+    local animScaleX = 1.0    -- X缂╂斁
+    local animScaleY = 1.0    -- Y缂╂斁
+    local shakeX, shakeY = 0, 0  -- 鎶栧姩鍋忕Щ
 
-    -- 行走摇摆动画：左右轻微倾斜模拟跑步
+    -- 琛岃蛋鎽囨憜鍔ㄧ敾锛氬乏鍙宠交寰€炬枩妯℃嫙璺戞
     local walkCycle = math.sin(u.animTimer * 4)
-    animAngle = walkCycle * 0.12  -- ±7度摇摆
-    -- 模拟脚步弹跳
+    animAngle = walkCycle * 0.12  -- 卤7搴︽憞鎽?
+    -- 妯℃嫙鑴氭寮硅烦
     local stepBounce = math.abs(math.sin(u.animTimer * 4))
-    animScaleY = 1.0 + stepBounce * 0.06  -- 轻微纵向拉伸
-    animScaleX = 1.0 - stepBounce * 0.03  -- 对应横向压缩
+    animScaleY = 1.0 + stepBounce * 0.06  -- 杞诲井绾靛悜鎷変几
+    animScaleX = 1.0 - stepBounce * 0.03  -- 瀵瑰簲妯悜鍘嬬缉
 
-    -- 攻击动画：攻击瞬间短暂放大+前倾
+    -- 鏀诲嚮鍔ㄧ敾锛氭敾鍑荤灛闂寸煭鏆傛斁澶?鍓嶅€?
     if u.atkAnimTimer and u.atkAnimTimer > 0 then
         local atkT = u.atkAnimTimer
         local atkPulse = math.sin(atkT * 12) * math.max(0, 1 - atkT * 3)
         animScaleX = animScaleX + atkPulse * 0.2
         animScaleY = animScaleY + atkPulse * 0.15
-        -- 攻击前倾
+        -- 鏀诲嚮鍓嶅€?
         local leanDir = u.isPlayer and -1 or 1
         animAngle = animAngle + leanDir * math.max(0, 0.3 - atkT) * 0.5
     end
 
-    -- 受伤抖动
+    -- 鍙椾激鎶栧姩
     if u.flashTimer > 0 then
         shakeX = math.sin(u.flashTimer * 60) * 2
         shakeY = math.cos(u.flashTimer * 45) * 1
@@ -92,7 +92,7 @@ function DrawUnitSprite(u)
         if u.flashTimer > 0 then alpha = 0.4 + 0.6 * math.sin(u.flashTimer * 40) end
         if u.stealthing then alpha = alpha * 0.45 end
         nvgSave(vg); nvgGlobalAlpha(vg, alpha)
-        -- 应用旋转和缩放变换
+        -- 搴旂敤鏃嬭浆鍜岀缉鏀惧彉鎹?
         nvgTranslate(vg, drawX, drawY)
         nvgRotate(vg, animAngle)
         nvgScale(vg, animScaleX, animScaleY)
@@ -102,7 +102,7 @@ function DrawUnitSprite(u)
         nvgFillPaint(vg, imgPat); nvgFill(vg)
         nvgRestore(vg)
     else
-        -- 无精灵图时用彩色圆圈 + 兵种标记
+        -- 鏃犵簿鐏靛浘鏃剁敤褰╄壊鍦嗗湀 + 鍏电鏍囪
         local ucId = uc and uc.id or 1
         local r = sz * 0.4
         local alpha = u.stealthing and 120 or 200
@@ -131,7 +131,7 @@ function DrawUnitSprite(u)
             nvgFillColor(vg, u.isPlayer and nvgRGBA(100, 180, 255, alpha) or nvgRGBA(200, 60, 60, alpha))
         end
         nvgFill(vg)
-        -- 兵种首字标记
+        -- 鍏电棣栧瓧鏍囪
         if uc and uc.name then
             nvgFontSize(vg, sz * 0.45)
             nvgFontFace(vg, "sans")
@@ -141,7 +141,7 @@ function DrawUnitSprite(u)
         nvgRestore(vg)
     end
 
-    -- 噩梦骑兵冲锋拖尾特效
+    -- 鍣╂ⅵ楠戝叺鍐查攱鎷栧熬鐗规晥
     if uc and uc.id == 9 then
         local trailAlpha = math.floor(80 + 40 * math.sin(u.animTimer * 2))
         nvgBeginPath(vg)
@@ -152,24 +152,24 @@ function DrawUnitSprite(u)
         nvgFill(vg)
     end
 
-    -- 讨伐巨兽光环特效
+    -- 璁ㄤ紣宸ㄥ吔鍏夌幆鐗规晥
     if uc and uc.id == 10 then
         nvgBeginPath(vg); nvgCircle(vg, px, py, sz * 0.55)
         nvgStrokeColor(vg, u.isPlayer and nvgRGBA(180, 100, 255, 60) or nvgRGBA(200, 60, 60, 60))
         nvgStrokeWidth(vg, 2); nvgStroke(vg)
     end
 
-    -- 腐灵祭司攻速光环标记（绿色小箭头）
+    -- 鑵愮伒绁徃鏀婚€熷厜鐜爣璁帮紙缁胯壊灏忕澶达級
     if u.healerAura then
         nvgBeginPath(vg)
         nvgMoveTo(vg, px - 4, py - sz * 0.5 - 2)
         nvgLineTo(vg, px, py - sz * 0.5 - 7)
         nvgLineTo(vg, px + 4, py - sz * 0.5 - 2)
         nvgFillColor(vg, nvgRGBA(80, 255, 120, 160)); nvgFill(vg)
-        u.healerAura = false  -- 每帧重置
+        u.healerAura = false  -- 姣忓抚閲嶇疆
     end
 
-    -- 自爆亡魂脉冲特效
+    -- 鑷垎浜￠瓊鑴夊啿鐗规晥
     if uc and uc.id == 13 then
         local pulse = 0.5 + 0.5 * math.sin(u.animTimer * 6)
         local pulseA = math.floor(40 + 60 * pulse)
@@ -177,7 +177,7 @@ function DrawUnitSprite(u)
         nvgFillColor(vg, nvgRGBA(255, 200, 50, pulseA)); nvgFill(vg)
     end
 
-    -- 傀儡操师操控丝线特效
+    -- 鍌€鍎℃搷甯堟搷鎺т笣绾跨壒鏁?
     if uc and uc.id == 14 and not u.isPuppet then
         nvgStrokeColor(vg, nvgRGBA(180, 100, 255, 80))
         nvgStrokeWidth(vg, 1)
@@ -189,16 +189,16 @@ function DrawUnitSprite(u)
         nvgStroke(vg)
     end
 
-    -- 霜骨冰巫霜冻光环
+    -- 闇滈鍐板帆闇滃喕鍏夌幆
     if uc and uc.id == 15 then
         nvgBeginPath(vg); nvgCircle(vg, px, py, sz * 0.6)
         nvgStrokeColor(vg, nvgRGBA(100, 220, 255, 60 + math.floor(30 * math.sin(u.animTimer * 3))))
         nvgStrokeWidth(vg, 2); nvgStroke(vg)
     end
 
-    -- 腐蝇虫群震动偏移（小型抖动）
+    -- 鑵愯潎铏兢闇囧姩鍋忕Щ锛堝皬鍨嬫姈鍔級
     if uc and (uc.id == 16 or u.isSwarmling) then
-        -- 额外小蜂翅膀闪烁
+        -- 棰濆灏忚渹缈呰唨闂儊
         local wingA = math.floor(80 + 60 * math.sin(u.animTimer * 12))
         nvgBeginPath(vg)
         nvgEllipse(vg, px - sz * 0.25, py - sz * 0.15, sz * 0.12, sz * 0.08)
@@ -206,7 +206,7 @@ function DrawUnitSprite(u)
         nvgFillColor(vg, nvgRGBA(255, 240, 200, wingA)); nvgFill(vg)
     end
 
-    -- 区域减速冰冻标记
+    -- 鍖哄煙鍑忛€熷啺鍐绘爣璁?
     if u.isZoneSlowed then
         nvgBeginPath(vg); nvgCircle(vg, px, py, sz * 0.55)
         nvgFillColor(vg, nvgRGBA(100, 200, 255, 50)); nvgFill(vg)
@@ -218,17 +218,17 @@ function DrawUnitSprite(u)
     local hpBarW = sz * 0.8
     DrawHP(px, hpBarY, hpBarW, 3.0 * uScale, u.hp / u.maxHp, u.isPlayer)
 
-    -- === 兵种克制标识 (战争版) ===
+    -- === 鍏电鍏嬪埗鏍囪瘑 (鎴樹簤鐗? ===
     if u.troopType and rawget(_G, "TROOP_TYPES") then
         local tt = TROOP_TYPES[u.troopType]
         if tt then
             local badgeSz = 9 * uScale
             local bx = px - hpBarW / 2 - badgeSz - 1
             local by = hpBarY - 1
-            -- 兵种背景圆
+            -- 鍏电鑳屾櫙鍦?
             nvgBeginPath(vg); nvgCircle(vg, bx, by + badgeSz * 0.4, badgeSz * 0.65)
             nvgFillColor(vg, nvgRGBA(tt.color[1], tt.color[2], tt.color[3], 160)); nvgFill(vg)
-            -- 兵种首字
+            -- 鍏电棣栧瓧
             nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, badgeSz * 1.1)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 255, 255, 230))
@@ -252,7 +252,7 @@ end
 
 
 -- ============================================================================
--- 粒子渲染 (设计坐标)
+-- 绮掑瓙娓叉煋 (璁捐鍧愭爣)
 -- ============================================================================
 
 function DrawParticles()
@@ -268,7 +268,7 @@ function DrawParticles()
 end
 
 
---- 更新并绘制远程弹道特效
+--- 鏇存柊骞剁粯鍒惰繙绋嬪脊閬撶壒鏁?
 function UpdateAndDrawProjectiles(dt)
     local i = 1
     while i <= #projectiles do
@@ -277,15 +277,15 @@ function UpdateAndDrawProjectiles(dt)
         if p.timer >= p.maxTime then
             table.remove(projectiles, i)
         else
-            -- 线性插值当前位置
+            -- 绾挎€ф彃鍊煎綋鍓嶄綅缃?
             local t = p.timer / p.maxTime
             local cx = p.sx + (p.tx - p.sx) * t
             local cy = p.sy + (p.ty - p.sy) * t
             local c = p.color
-            -- 弹道头部光点
+            -- 寮归亾澶撮儴鍏夌偣
             nvgBeginPath(vg); nvgCircle(vg, cx, cy, 3)
             nvgFillColor(vg, nvgRGBA(c[1], c[2], c[3], 240)); nvgFill(vg)
-            -- 弹道尾迹线
+            -- 寮归亾灏捐抗绾?
             local tailT = math.max(0, t - 0.4)
             local tailX = p.sx + (p.tx - p.sx) * tailT
             local tailY = p.sy + (p.ty - p.sy) * tailT
@@ -294,7 +294,7 @@ function UpdateAndDrawProjectiles(dt)
             nvgLineTo(vg, cx, cy)
             nvgStrokeColor(vg, nvgRGBA(c[1], c[2], c[3], math.floor(160 * (1 - t))))
             nvgStrokeWidth(vg, 2); nvgStroke(vg)
-            -- 外发光
+            -- 澶栧彂鍏?
             nvgBeginPath(vg); nvgCircle(vg, cx, cy, 6)
             nvgFillColor(vg, nvgRGBA(c[1], c[2], c[3], 40)); nvgFill(vg)
             i = i + 1
@@ -304,24 +304,24 @@ end
 
 
 -- ============================================================================
--- HUD (暗黑地牢风)
+-- HUD (鏆楅粦鍦扮墷椋?
 -- ============================================================================
 
 function DrawHUD()
     if fontId < 0 then return end
 
-    -- 应用HUD偏移量
+    -- 搴旂敤HUD鍋忕Щ閲?
     local hOfsX = gameSettings.hudOffsetX or 0
     local hOfsY = gameSettings.hudOffsetY or 0
 
-    -- ======== 精简顶部信息条 (军资/击杀/兵力) ========
+    -- ======== 绮剧畝椤堕儴淇℃伅鏉?(鍐涜祫/鍑绘潃/鍏靛姏) ========
     local hudH = 22
     local hudBg = nvgLinearGradient(vg, 0, 2 + hOfsY, 0, hudH + 2 + hOfsY,
         nvgRGBA(30, 25, 16, 190), nvgRGBA(20, 16, 10, 200))
     nvgBeginPath(vg); nvgRoundedRect(vg, 4 + hOfsX, 2 + hOfsY, DESIGN_W - 8, hudH, 4)
     nvgFillPaint(vg, hudBg); nvgFill(vg)
 
-    -- 装饰线
+    -- 瑁呴グ绾?
     local topLine = nvgLinearGradient(vg, 60 + hOfsX, 3 + hOfsY, DESIGN_W - 60 + hOfsX, 3 + hOfsY,
         nvgRGBA(200, 165, 80, 0), nvgRGBA(200, 165, 80, 50))
     nvgBeginPath(vg)
@@ -331,25 +331,25 @@ function DrawHUD()
     nvgFontFaceId(vg, GetMainFont())
     local midY = 13 + hOfsY
 
-    -- 军资
+    -- 鍐涜祫
     nvgFontSize(vg, 20)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(16 + hOfsX, midY, "军资")
+    DrawWhiteInkText(16 + hOfsX, midY, "Gold")
     nvgFontSize(vg, 22)
     DrawWhiteInkText(50 + hOfsX, midY, tostring(gameState.gold))
 
-    -- 击杀
+    -- 鍑绘潃
     nvgFontSize(vg, 20)
-    DrawWhiteInkText(120 + hOfsX, midY, "斩")
+    DrawWhiteInkText(120 + hOfsX, midY, "KO")
     nvgFontSize(vg, 22)
     DrawWhiteInkText(140 + hOfsX, midY, tostring(gameState.totalKills))
 
-    -- 兵力 (右侧)
+    -- 鍏靛姏 (鍙充晶)
     nvgFontSize(vg, 16)
     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(DESIGN_W - 12 + hOfsX, midY, "我:" .. #playerUnits .. " 敌:" .. #enemyUnits)
+    DrawWhiteInkText(DESIGN_W - 12 + hOfsX, midY, "Ally " .. #playerUnits .. " Enemy " .. #enemyUnits)
 
-    -- ======== FIGHT 阶段倒计时 (正上方居中) ========
+    -- ======== FIGHT 闃舵鍊掕鏃?(姝ｄ笂鏂瑰眳涓? ========
     if gameState.battlePhase == "FIGHT" then
         local t = gameState.gameTime
         local remainSec
@@ -362,14 +362,14 @@ function DrawHUD()
 
         local timerStr
         if isDummyBattle and dummyState.prepPhase then
-            timerStr = "准备中"
+            timerStr = "Ready"
         elseif isDummyBattle then
             timerStr = string.format("%ds", remainSec)
         else
             timerStr = string.format("%d:%02d", math.floor(remainSec / 60), remainSec % 60)
         end
 
-        -- 倒计时背景胶囊
+        -- 鍊掕鏃惰儗鏅兌鍥?
         local timerW = 72
         local timerH = 20
         local timerX = DESIGN_W / 2 - timerW / 2 + hOfsX
@@ -392,7 +392,7 @@ end
 
 
 -- ============================================================================
--- 基地血条 (贴在临界线旁边, 战场内显示)
+-- 鍩哄湴琛€鏉?(璐村湪涓寸晫绾挎梺杈? 鎴樺満鍐呮樉绀?
 -- ============================================================================
 
 function DrawBaseHPBars()
@@ -405,26 +405,26 @@ function DrawBaseHPBars()
 
     nvgFontFaceId(vg, GetMainFont())
 
-    -- ======== 敌方基地血条 (横屏: 右侧临界线旁) ========
+    -- ======== 鏁屾柟鍩哄湴琛€鏉?(妯睆: 鍙充晶涓寸晫绾挎梺) ========
     local eBarX = bz.enemyLine - barW - 20
     local eBarY = bz.top + 10
 
-    -- 半透明底板
+    -- 鍗婇€忔槑搴曟澘
     nvgBeginPath(vg); nvgRoundedRect(vg, eBarX - 28, eBarY - 8, barW + 56, 16, 4)
     nvgFillColor(vg, nvgRGBA(15, 8, 5, 160)); nvgFill(vg)
 
-    -- 标签
+    -- 鏍囩
     nvgFontSize(vg, 20)
     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(eBarX - 6, eBarY, "敌")
+    DrawWhiteInkText(eBarX - 6, eBarY, "Enemy")
 
-    -- 血量条背景
+    -- 琛€閲忔潯鑳屾櫙
     nvgBeginPath(vg); nvgRoundedRect(vg, eBarX, eBarY - barH / 2, barW, barH, 3)
     nvgFillColor(vg, nvgRGBA(40, 15, 10, 200)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(160, 80, 60, 50))
     nvgStrokeWidth(vg, 0.4); nvgStroke(vg)
 
-    -- 血量条填充
+    -- 琛€閲忔潯濉厖
     local eMax = gameState.enemyBaseMax or BASE_HP_MAX
     local eRatio = math.max(0, gameState.enemyBaseHP / eMax)
     if eRatio > 0 then
@@ -433,36 +433,36 @@ function DrawBaseHPBars()
             nvgRGBA(180, 40, 25, 220), nvgRGBA(255, 90, 50, 240))
         nvgBeginPath(vg); nvgRoundedRect(vg, eBarX, eBarY - barH / 2, fillW, barH, 3)
         nvgFillPaint(vg, eGrad); nvgFill(vg)
-        -- 高光
+        -- 楂樺厜
         nvgBeginPath(vg); nvgRoundedRect(vg, eBarX, eBarY - barH / 2, fillW, barH * 0.35, 2)
         nvgFillColor(vg, nvgRGBA(255, 200, 180, 30)); nvgFill(vg)
     end
 
-    -- 血量数字
+    -- 琛€閲忔暟瀛?
     nvgFontSize(vg, 16)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
     DrawWhiteInkText(eBarX + barW + 6, eBarY, gameState.enemyBaseHP .. "/" .. eMax)
 
-    -- ======== 玩家基地血条 (横屏: 左侧临界线旁) ========
+    -- ======== 鐜╁鍩哄湴琛€鏉?(妯睆: 宸︿晶涓寸晫绾挎梺) ========
     local pBarX = bz.playerLine + 20
     local pBarY = bz.top + 10
 
-    -- 半透明底板
+    -- 鍗婇€忔槑搴曟澘
     nvgBeginPath(vg); nvgRoundedRect(vg, pBarX - 28, pBarY - 8, barW + 56, 16, 4)
     nvgFillColor(vg, nvgRGBA(5, 10, 15, 160)); nvgFill(vg)
 
-    -- 标签
+    -- 鏍囩
     nvgFontSize(vg, 20)
     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(pBarX - 6, pBarY, "我")
+    DrawWhiteInkText(pBarX - 6, pBarY, "Player")
 
-    -- 血量条背景
+    -- 琛€閲忔潯鑳屾櫙
     nvgBeginPath(vg); nvgRoundedRect(vg, pBarX, pBarY - barH / 2, barW, barH, 3)
     nvgFillColor(vg, nvgRGBA(10, 20, 35, 200)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(60, 130, 170, 50))
     nvgStrokeWidth(vg, 0.4); nvgStroke(vg)
 
-    -- 血量条填充
+    -- 琛€閲忔潯濉厖
     local pMax = gameState.playerBaseMax or BASE_HP_MAX
     local pRatio = math.max(0, gameState.playerBaseHP / pMax)
     if pRatio > 0 then
@@ -471,21 +471,21 @@ function DrawBaseHPBars()
             nvgRGBA(35, 150, 190, 220), nvgRGBA(70, 220, 180, 240))
         nvgBeginPath(vg); nvgRoundedRect(vg, pBarX, pBarY - barH / 2, fillW, barH, 3)
         nvgFillPaint(vg, pGrad); nvgFill(vg)
-        -- 高光
+        -- 楂樺厜
         nvgBeginPath(vg); nvgRoundedRect(vg, pBarX, pBarY - barH / 2, fillW, barH * 0.35, 2)
         nvgFillColor(vg, nvgRGBA(200, 255, 255, 30)); nvgFill(vg)
     end
 
-    -- 血量数字
+    -- 琛€閲忔暟瀛?
     nvgFontSize(vg, 16)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
     DrawWhiteInkText(pBarX + barW + 6, pBarY, gameState.playerBaseHP .. "/" .. pMax)
 
-    -- ======== 血量低警告 ========
+    -- ======== 琛€閲忎綆璀﹀憡 ========
     local warningThreshold = math.floor((gameState.playerBaseMax or BASE_HP_MAX) * 0.15)
     if gameState.playerBaseHP <= warningThreshold and gameState.phase == "BATTLE" then
         local pulse = 0.5 + 0.5 * math.sin(gameState.gameTime * 6)
-        -- 玩家血条闪红边框
+        -- 鐜╁琛€鏉￠棯绾㈣竟妗?
         nvgBeginPath(vg); nvgRoundedRect(vg, pBarX - 1, pBarY - barH / 2 - 1, barW + 2, barH + 2, 4)
         nvgStrokeColor(vg, nvgRGBA(255, 60, 40, math.floor(80 + 120 * pulse)))
         nvgStrokeWidth(vg, 1.2); nvgStroke(vg)

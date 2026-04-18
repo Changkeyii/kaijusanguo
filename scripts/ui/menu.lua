@@ -1,10 +1,10 @@
 -- ============================================================================
--- ui/menu.lua - 涓夊浗姝︾伒褰?"
+-- ui/menu.lua - 婵炴垶鎸搁ˇ顖毭瑰Δ鈧～銏ゆ晜閸欍儳瑙﹂悷?"
 -- ============================================================================
 
 
 -- ============================================================================
--- 棣栭〉鑿滃崟 (鏆楅摐NanoVG椋庢牸 + 妯″潡涓嬭浇/璁ㄤ紣)
+-- 婵☆偓绲鹃悧鐘诲Υ婢舵劖鍤曟繝濠傚暙缁€?(闂佸搫妫欓〃濠囧箺閹槆noVG婵＄偛顑呯€涒晠鎮?+ 濠碘槅鍨埀顒冩珪閸嬨儱鈽夐幘鎰佸創婵?闁荤姳闄嶉崝瀣?
 -- ============================================================================
 
 function DrawMenuScreen()
@@ -15,16 +15,16 @@ function DrawMenuScreen()
     local cx = W / 2
     local t = menuAnimTimer
 
-    -- 1. 缁熶竴鑿滃崟鑳屾櫙
+    -- 1. 缂傚倷鑳堕崰宥囩博閹绢喗鍤曟繝濠傚暙缁€瀣煠閸愬弶婀版繛?
     DrawMenuBg(W, H)
 
     nvgFontFaceId(vg, GetMainFont())
 
     -- ===========================
-    -- 閫氱敤: 渚ф爮鎸夐挳缁樺埗鍑芥暟
+    -- 闂備緡鍋呭銊╁极? 婵炴挻鐨滈崟顓炵効闂佸湱顭堥ˇ鐢稿箰瀹曞洨纾兼俊顖氭惈閻撴垿鏌涢幋锝呅撻柡?
     -- ===========================
     local function DrawSideBtn(bx, by, bw, bh, label, colors, bPulse, showGlow, iconImg)
-        -- 绾浘鏍?鏂囧瓧锛屾棤浠讳綍鑳屾櫙
+        -- 缂備胶铏庨崹鏉棵瑰鈧?闂佸搫鍊稿ú銈夋偤瑜旈弫宥囦沪閻愵剨楠忔繛瀵稿Ь椤斿﹦绱炲澶嬪殑閻忕偟鍋撻悵?
         if iconImg and IsImageReady(iconImg) then
             local iconSize = math.floor(math.min(bw * 0.65, bh * 0.55))
             local iconX = bx + (bw - iconSize) / 2
@@ -32,7 +32,7 @@ function DrawMenuScreen()
             local pat = nvgImagePattern(vg, iconX, iconY, iconSize, iconSize, 0, iconImg, 1.0)
             nvgBeginPath(vg); nvgRect(vg, iconX, iconY, iconSize, iconSize)
             nvgFillPaint(vg, pat); nvgFill(vg)
-            -- 鏂囧瓧
+            -- 闂佸搫鍊稿ú銈夋偤?
             nvgFontFaceId(vg, GetMainFont())
             nvgFontSize(vg, 14)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_BOTTOM)
@@ -46,7 +46,7 @@ function DrawMenuScreen()
     end
 
     -- ===========================
-    -- 2. 涓ぎ瑙掕壊灞曠ず鍖?(妯睆: 椤堕儴鍒板簳鏍忎箣闂?"
+    -- 2. 婵炴垶鎼╅崢濂稿Φ鎼达絾鍠嗛柟鐑樻礀椤ュ繘鎮橀悙瀛樼闁靛洦宀稿畷?(濠碘槅鍨兼禍婊堟儓? 婵＄偑鍊曢悥濂稿磿閹绢喖绀嗛柡澶庢硶娣囨椽鏌″鍛缂佺媴缍佸?"
     -- ===========================
     local centerAreaTop = 4
     local bottomBarH = 72
@@ -56,57 +56,57 @@ function DrawMenuScreen()
 
 
     -- ===========================
-    -- 4. 宸︿晶鏍?(绔栨帓鍔熻兘鎸夐挳, 妯睆閫傞厤, 鏀寔婊氬姩)
+    -- 4. 閻庡綊娼荤紓姘跺疾閸洖鍐€?(缂備焦姊归悧妤冩暜閹捐绀夐柣鏃囶嚙閸樻挳鏌熺粙娆炬█闁? 濠碘槅鍨兼禍婊堟儓閸℃稒鐒婚柛宀€鍋涚敮? 闂佽　鍋撴い鏍ㄧ☉閻︻喗绻濇繝鍐濠?
     -- ===========================
     local sideBtnW = 72
     local sideBtnH = 58
     local sideGap = 4
     local sideX = 4
-    local leftEndY = bottomBarY - 4       -- 搴曢儴鐣欏嚭闂磋窛
+    local leftEndY = bottomBarY - 4       -- 闁圭厧鐡ㄥú鐔煎磿閹绢喗鍋╂繛鍡楃箰濮ｅ姊婚崒婊庢缂?
     local leftStartY = centerAreaTop + 4
     local leftViewH = leftEndY - leftStartY
 
-    -- 宸︿晶鎸夐挳閰嶇疆 (甯﹀浘鏍?"
+    -- 閻庡綊娼荤紓姘跺疾閸洖绠板鑸靛姈鐏忥箓姊洪弶璺ㄐら柣?(闁汇埄鍨界粻鎴澝瑰鈧?"
     local leftButtons = {
-        { label = "阵营",     key = "faction",    colors = {70, 55, 30},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[8] },
-        { label = "好友",     key = "friends",    colors = {40, 65, 70},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[9] },
-        { label = "交易行",   key = "trade",      colors = {75, 55, 35},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[14] },
-        { label = "编队",     key = "formation",  colors = {65, 50, 55},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[15] },
-        { label = "邮件",     key = "mailBox",    colors = {45, 45, 70},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[10] },
-        { label = "武灵录",   key = "codex",      colors = {60, 45, 80},  mod = moduleState.heroes,    icon = IMG.menuIcons and IMG.menuIcons[1] },
-        { label = "兵甲",     key = "equip",      colors = {50, 60, 80},  mod = moduleState.equipment, icon = IMG.menuIcons and IMG.menuIcons[2] },
-        { label = "兵甲图录", key = "equipCodex", colors = {45, 55, 75},  mod = moduleState.equipment, icon = IMG.menuIcons and IMG.menuIcons[3] },
-        { label = "武技",     key = "skillCodex", colors = {55, 40, 75},  mod = moduleState.skills,    icon = IMG.menuIcons and IMG.menuIcons[4] },
-        { label = "天命赐福", key = "welfare",    colors = {80, 50, 40},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[5] },
-        { label = "每日任务", key = "progress",   colors = {50, 65, 50},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[6] },
+        { label = "Faction",      key = "faction",    colors = {70, 55, 30},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[8] },
+        { label = "Friends",      key = "friends",    colors = {40, 65, 70},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[9] },
+        { label = "Trade",        key = "trade",      colors = {75, 55, 35},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[14] },
+        { label = "Formation",    key = "formation",  colors = {65, 50, 55},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[15] },
+        { label = "Mail",         key = "mailBox",    colors = {45, 45, 70},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[10] },
+        { label = "Codex",        key = "codex",      colors = {60, 45, 80},  mod = moduleState.heroes,    icon = IMG.menuIcons and IMG.menuIcons[1] },
+        { label = "Equip",        key = "equip",      colors = {50, 60, 80},  mod = moduleState.equipment, icon = IMG.menuIcons and IMG.menuIcons[2] },
+        { label = "Equip Codex",  key = "equipCodex", colors = {45, 55, 75},  mod = moduleState.equipment, icon = IMG.menuIcons and IMG.menuIcons[3] },
+        { label = "Skill Codex",  key = "skillCodex", colors = {55, 40, 75},  mod = moduleState.skills,    icon = IMG.menuIcons and IMG.menuIcons[4] },
+        { label = "Welfare",      key = "welfare",    colors = {80, 50, 40},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[5] },
+        { label = "Progress",     key = "progress",   colors = {50, 65, 50},  mod = nil,                   icon = IMG.menuIcons and IMG.menuIcons[6] },
     }
 
-    -- 璁＄畻鍐呭鎬婚珮搴?"
+    -- 闁荤姳绶ょ槐鏇㈡偩婵犳艾绀冮柛娑卞弾閸熷洭鏌熼鈧…鐑芥偟椤旇姤鍎?"
     local leftContentH = #leftButtons * sideBtnH + (#leftButtons - 1) * sideGap
     local leftMaxScroll = math.max(0, leftContentH - leftViewH)
 
-    -- 鏇存柊婊氬姩鐘舵€佺殑鍏冧俊鎭?(渚涙嫋鎷戒氦浜掍娇鐢?"
+    -- 闂佸搫娲ら悺銊╁蓟婵犲偆鐓ユ慨姗嗗墮琚熼梺缁橆焾閸╂牠鍩€椤戣儻鍏屾繛鍫熷灴瀹曟宕樿缁诲棝鏌?(婵炴挻纰嶇粙鎺斺偓姘儔楠炲繘骞嬮幒鎾虫敪婵炲瓨绮嶇敮濠冪箾閸ヮ剚鍋?"
     leftSidebarScroll.contentH = leftContentH
     leftSidebarScroll.viewH = leftViewH
     leftSidebarScroll.areaRect = { x = 0, y = leftStartY, w = sideBtnW + sideX * 2, h = leftViewH }
 
-    -- 闄愬埗婊氬姩鑼冨洿
+    -- 闂傚倸瀚崝鏇㈠春濡も偓椤劌顫濋鈧闂佽偐鍘ч崯顐⒚?
     leftSidebarScroll.y = math.max(0, math.min(leftSidebarScroll.y, leftMaxScroll))
     local scrollOff = leftSidebarScroll.y
 
-    -- 寮€鍚鍓尯鍩?"
+    -- 閻庢鍠掗崑鎾绘煕濮樼厧鐏ユい銉ユ瀹曟粓顢旈崟顐︽闂?"
     nvgSave(vg)
     nvgScissor(vg, 0, leftStartY, sideBtnW + sideX * 2 + 4, leftViewH)
 
     local leftRects = {}
     for i, lb in ipairs(leftButtons) do
         local by = leftStartY + (i - 1) * (sideBtnH + sideGap) - scrollOff
-        -- 浠呮覆鏌撳彲瑙佽寖鍥村唴鐨勬寜閽?"
+        -- 婵炲濮撮幊蹇曟啺閸℃稑钃熼柟鎯у暱鐠佹煡鎮峰▎搴㈢グ閻庡灚鐗犲畷鍫曞级閹存繃鏆ラ梺姹囧妼鐎氼厾鈧灚绮撻弻?"
         if by + sideBtnH > leftStartY - 10 and by < leftEndY + 10 then
             local bPulse = 0.85 + 0.15 * math.sin(t * 2.0 + i)
             DrawSideBtn(sideX, by, sideBtnW, sideBtnH, lb.label, lb.colors, bPulse, false, lb.icon)
 
-            -- 妯″潡鏈氨缁伄缃?"
+            -- 濠碘槅鍨埀顒冩珪閸嬨儵鏌￠崼顐＄盎婵ǜ鍔庣槐鎺楊敂閸粎纾跨紓?"
             if lb.mod and not lb.mod.ready then
                 nvgBeginPath(vg); nvgRoundedRect(vg, sideX, by, sideBtnW, sideBtnH, 8)
                 nvgFillColor(vg, nvgRGBA(10, 12, 20, 140)); nvgFill(vg)
@@ -119,7 +119,7 @@ function DrawMenuScreen()
         menuBtnRects[lb.key] = leftRects[i]
     end
 
-    -- 宸︿晶绾㈢偣 (鎸?key 鏌ユ壘锛屽湪瑁佸壀鍖哄煙鍐呯粯鍒?"
+    -- 閻庡綊娼荤紓姘跺疾閸撲胶妫柕蹇嬪灩娴?(闂?key 闂佸搫琚崕鍙夌珶濮椻偓閺佸秶浠﹂懞銉ㄥ惈闁荤喍妞掔粈浣圭珶閳ь剟鏌涢弽褎鎯堥柣鎾寸懇瀹曟﹢宕ㄩ婊冪闂?"
     local function DrawKeyRedDot(key)
         local r = menuBtnRects[key]
         if r then DrawRedDot(r.x + r.w - 6, r.y + 6, 6) end
@@ -127,7 +127,7 @@ function DrawMenuScreen()
     if HasEquipRedDot() then DrawKeyRedDot("equip") end
     if HasSkillRedDot() then DrawKeyRedDot("skillCodex") end
     if HasProgressRedDot() then DrawKeyRedDot("progress") end
-    -- 閭欢绾㈢偣
+    -- 闂備緡鍙庨崰鏇炩枎閵忋垻妫柕蹇嬪灩娴?
     local hasUnreadMail = false
     for _, md in ipairs(welfareState.mailDefs) do
         if not welfareState.mail.claimed[md.id] then hasUnreadMail = true; break end
@@ -140,9 +140,9 @@ function DrawMenuScreen()
         end
     end
     if hasUnreadMail then DrawKeyRedDot("mailBox") end
-    -- 濂藉弸璇锋眰绾㈢偣 (瀹氭椂杞, 棣栨5绉掑悗妫€鏌? 涔嬪悗姣?0绉?"
+    -- 婵犻潧鍊藉Λ鍕嚕閸濄儲瀚氶梺鍨儑濠€瀵哥磼娣囧崬鐏柛?(闁诲氦顫夌喊宥咁渻閸屾稒濮滄い鏃€顑欓崵? 婵☆偓绲鹃悧妤咁敃?缂備礁顦扮敮鎺楀箖濡も偓铻為柍褜鍓熷? 婵炴垶鏌ㄩ鍛村箖濡も偓琚?0缂?"
     local now = os.time()
-    local friendCheckInterval = friendsUI.pendingReqChecked and 30 or 5  -- 棣栨5绉? 涔嬪悗30绉?"
+    local friendCheckInterval = friendsUI.pendingReqChecked and 30 or 5  -- 婵☆偓绲鹃悧妤咁敃?缂? 婵炴垶鏌ㄩ鍛村箖?0缂?"
     if now - friendsUI.lastReqCheckTime >= friendCheckInterval
        and rawget(_G, "CloudManager")
        and CloudManager.CheckIncomingRequests then
@@ -153,7 +153,7 @@ function DrawMenuScreen()
         end)
     end
     if friendsUI.pendingReqCount > 0 then DrawKeyRedDot("friends") end
-    -- 闃佃惀鐢宠绾㈢偣 (浠呯洘涓?鍓洘涓? 瀹氭椂杞, 棣栨5绉掑悗妫€鏌?"
+    -- 闂傚倸鍟╃徊濠氬箚閳ь剟鏌ｉ姀鐘垫瀮妞ゆ洦鍓涢惀顏堝閵忕姳鍖?(婵炲濮撮幊鎰哄Ο鑽も枖?闂佸憡鎼╅崹鍐裁哄Ο鑽も枖? 闁诲氦顫夌喊宥咁渻閸屾稒濮滄い鏃€顑欓崵? 婵☆偓绲鹃悧妤咁敃?缂備礁顦扮敮鎺楀箖濡も偓铻為柍褜鍓熷?"
     do
         local fInfo = rawget(_G, "CloudManager") and CloudManager.GetFactionInfo and CloudManager.GetFactionInfo()
         if fInfo and (fInfo.role == "leader" or fInfo.role == "vice_leader") then
@@ -171,38 +171,38 @@ function DrawMenuScreen()
         end
     end
 
-    -- 缁撴潫瑁佸壀
+    -- 缂傚倷鐒﹂幐璇差焽椤愩倖鍟戝ù锝囶焾椤?
     nvgRestore(vg)
 
-    -- 婊氬姩绠ご鎻愮ず (褰撳唴瀹硅秴鍑哄彲瑙佸尯鍩熸椂锛屽湪渚ф爮澶栦晶鏄剧ず鍔ㄦ€佺澶?"
+    -- 濠电姴锕ラ懝鐐叏閳哄啰涓嶆い鎾跺亼娴犲牓鏌熺紒妯哄闁?(閻熸粎澧楅幐鎼佸船鐎电硶鍋撻崷顓ф敯缂佸鎸冲畷娆撳传閸曨偉顔夐柣鐔哥懁缁€浣轰焊椤栫偛鏄ラ柣鏂挎啞椤ρ囨煥濞戞瀚版繝鈧鍛懝鐟滃酣鎮ラ钘夌窞闁哄稄闄勫▍鐘绘煛閸曨偄鈷旈柕鍥ㄥ哺瀹曟繈濡搁敂鐟颁壕濞达絼璀﹂崬鎻掝熆?"
     if leftMaxScroll > 0 then
         local arrowX = sideX + sideBtnW / 2
-        local arrowBob = math.sin(t * 3.0) * 4  -- 涓婁笅娴姩鍔ㄧ敾
-        -- 涓婄澶?(鍙悜涓婃粴鍔ㄦ椂鏄剧ず)
+        local arrowBob = math.sin(t * 3.0) * 4  -- 婵炴垶鎸搁敃锝囩箔閸涱劶褰掝敊閻撳巩妤呮煕閺傝濡块柡?
+        -- 婵炴垶鎸搁敃锕傤敊閸曨剙绶?(闂佸憡鐟崹浼村箖濠婂嫮鈻斿┑鐘插暟濞夊﹪鏌涢弬璇插婵＄偛鍊垮浼村礈瑜嬫禒?
         if scrollOff > 2 then
             local upY = leftStartY - 14 + arrowBob
             local arrowA = math.min(200, math.floor(scrollOff / leftMaxScroll * 200 + 60))
             nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 200, 100, arrowA))
-            nvgText(vg, arrowX, upY, "鈻?", nil)
+            nvgText(vg, arrowX, upY, "闂?", nil)
         end
-        -- 涓嬬澶?(鍙悜涓嬫粴鍔ㄦ椂鏄剧ず)
+        -- 婵炴垶鎸搁鍥敊閸曨剙绶?(闂佸憡鐟崹浼村箖濠婂嫮鈻旈悗锝庡亞濞夊﹪鏌涢弬璇插婵＄偛鍊垮浼村礈瑜嬫禒?
         if scrollOff < leftMaxScroll - 2 then
             local downY = leftEndY + 4 - arrowBob
             local arrowA = math.min(200, math.floor((1 - scrollOff / leftMaxScroll) * 200 + 60))
             nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 200, 100, arrowA))
-            nvgText(vg, arrowX, downY, "鈻?", nil)
+            nvgText(vg, arrowX, downY, "闂?", nil)
         end
     end
 
-    --[=[ 宸茬Щ闄ゅ彸渚ф爮 (鎺掍綅/鐖/璁ㄤ紣/鍓湰/鎺㈢储)
-    -- 鍙充晶鎸戞垬妯″紡宸插叏閮ㄥ垹闄? 30s鎵撴々涔熷凡绉婚櫎
+    --[=[ 閻庤鐡曠亸娆庣昂闂傚倸瀚ㄩ崐鏇°亹閸涘﹦鐟圭憸搴ㄦ偉?(闂佸湱鍎ょ敮濠勭礊?闂佺粯鐗崜娆撱€?闁荤姳闄嶉崝瀣?闂佸憡鎼╅崹鍗烇耿?闂佽浜介崹濠氬磼?
+    -- 闂佸憡鐟ラ崢鏍疾閸洖绠伴柟瀵稿仜閻忔稒淇婇妞诲亾瀹曞洨顢呴悗鐟版啞瑜板啴宕ｈ箛娑欑劸闁靛鍎遍悘鈺呮⒒? 30s闂佺懓鐏氶幐濠氬Υ閸涱喚鈻曢柣鏂垮槻閸ゆ帞绱掓径濠庣吋婵?
     --]=]
 
-    -- 30s 鎵撴々鎸夐挳 (鍙充笂瑙掑皬鎸夐挳)
+    -- 30s 闂佺懓鐏氶幐濠氬Υ閸涙潙绠板鑸靛姈鐏?(闂佸憡鐟ラ崢鏍箔閸屾粍鍠嗛柟鐑樺灩濮ｅ牓鏌熺粙娆炬█闁?
     do
         local dummyBtnW = 70
         local dummyBtnH = 36
@@ -221,7 +221,7 @@ function DrawMenuScreen()
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         DrawWhiteInkText(dummyBtnX + dummyBtnW / 2, dummyBtnY + dummyBtnH / 2, "30s")
         dummyState.btnRect = { x = dummyBtnX, y = dummyBtnY, w = dummyBtnW, h = dummyBtnH }
-        -- 30s鎵撴々 鎴樻枟妯″潡鏈氨缁伄缃?"
+        -- 30s闂佺懓鐏氶幐濠氬Υ?闂佺懓鐡ㄨ摫闁哄鍠庤灒闁炽儴娅曢崑銉╂煛閸偂绨绘慨妯稿妿缁辨帡顢旈崼婊呯？缂?"
         if not moduleState.battle.ready then
             nvgBeginPath(vg); nvgRoundedRect(vg, dummyBtnX, dummyBtnY, dummyBtnW, dummyBtnH, 6)
             nvgFillColor(vg, nvgRGBA(80, 60, 30, 160)); nvgFill(vg)
@@ -229,38 +229,38 @@ function DrawMenuScreen()
     end
 
     -- ===========================
-    -- 5.5 鍙充晶鍗疯酱闈㈡澘 (鍥剧墖绱犳潗 + 鎸夐挳鍙犲姞)
+    -- 5.5 闂佸憡鐟ラ崢鏍疾閸洖纭€闁汇値鍨堕崣锟犳⒒閸稑鐏繝?(闂佹悶鍎辨晶鑺ユ櫠閺嶎偅顫曢柣妯挎珪缂?+ 闂佸湱顭堥ˇ鐢稿箰閹惰棄鐭楅柣妯诲絻椤?
     -- ===========================
     do
-        -- 闈㈡澘灏哄鍜屼綅缃?(绱犳潗鍘熷姣斾緥 429:768 鈮?9:16)
-        local rpH = H * 0.88            -- 闈㈡澘楂樺害鍗犲睆骞?8%
-        local rpW = rpH * (600 / 804)   -- 鍔犲鍚庣礌鏉愭瘮渚?600:804
-        local rpX = W - rpW - 12        -- 鍙充晶鐣欒竟璺?"
-        local rpY = (H - rpH) / 2       -- 鍨傜洿灞呬腑
+        -- 闂傚倸鐗勯崹鍝勵熆濡棿鐒婇柛婵嗗閸ょ喖鏌涘鍐殭缂傚秴鎳愮槐?(缂備浇浜慨闈涱焽濡ゅ懎鍌ㄩ柣鏂款殠濞兼鎱ㄩ敐鍡樼叄缂?429:768 闂?9:16)
+        local rpH = H * 0.88            -- 闂傚倸鐗勯崹鍝勵熆濡椿娈楁俊顖氭惈椤斿﹪鏌涘Δ鍐ㄐ㈤柣顐㈡閻?8%
+        local rpW = rpH * (600 / 804)   -- 闂佸憡姊绘慨鎾敊閺冨牆瑙﹂幖杈剧悼椤﹂亶鏌℃径瀣闁伙富鍠楃粭?600:804
+        local rpX = W - rpW - 12        -- 闂佸憡鐟ラ崢鏍疾閸洘鍋╂繛鍡樺笧閻濆爼鎮?"
+        local rpY = (H - rpH) / 2       -- 闂佹悶鍔岄崐璇裁虹捄銊ゆ勃闁告侗鍓濋崢?
 
-        -- 缁樺埗鍗疯酱闈㈡澘鍥剧墖
+        -- 缂傚倷鐒﹂敋闁糕晜顨婂畷锟犳偪椤栫偛褰欓梻鍌氱墑閸ㄥ搫顭垮鈧畷鍫曞礈瑜嶉。?
         if IMG.scrollPanel and IsImageReady(IMG.scrollPanel) then
             local pat = nvgImagePattern(vg, rpX, rpY, rpW, rpH, 0, IMG.scrollPanel, 1.0)
             nvgBeginPath(vg); nvgRect(vg, rpX, rpY, rpW, rpH)
             nvgFillPaint(vg, pat); nvgFill(vg)
         end
 
-        -- 闈㈡澘鍐呮寜閽厤缃?"
+        -- 闂傚倸鐗勯崹鍝勵熆濮椻偓瀹曟﹢宕ㄩ鑲╂▎闂備胶鐡旈崳锝夊储閵堝洨纾?"
         local rpBtns = {
-            { label = "涔变笘寰侀€?", key = "rpBattle",    primary = true },
-            { label = "瑙掕壊鍏绘垚", key = "rpCodex",     primary = false },
-            { label = "璁剧疆",     key = "rpSettings",  primary = false },
-            { label = "閫€鍑?",     key = "rpExit",      primary = false },
+            { label = "Battle",   key = "rpBattle",   primary = true },
+            { label = "Codex",    key = "rpCodex",    primary = false },
+            { label = "Settings", key = "rpSettings", primary = false },
+            { label = "Exit",     key = "rpExit",     primary = false },
         }
 
-        -- 鎸夐挳甯冨眬 (鍦ㄥ嵎杞村唴閮ㄥ尯鍩熷眳涓帓鍒?"
-        local innerX = rpX + rpW * 0.12   -- 鍗疯酱鍐呰竟璺?"
-        local innerW = rpW * 0.76         -- 鎸夐挳鍙敤瀹藉害
+        -- 闂佸湱顭堥ˇ鐢稿箰瀹曞洦鏆滈柛鎰╁妿濠€?(闂侀潻璐熼崝灞界暤鎼淬垺濮滈柡澶嬪灥閺佸爼姊洪鍝勫閻忓浚鍨跺畷娲偄妞嬪孩鐙楁繛鎴炴惄閸樼晫鏁幘璇茬?"
+        local innerX = rpX + rpW * 0.12   -- 闂佸憡顨堥弻澶愭煀闁秴绀冮柛娑欏閻濆爼鎮?"
+        local innerW = rpW * 0.76         -- 闂佸湱顭堥ˇ鐢稿箰閹惰棄鐭楁い鏍ㄧ矋閺嗗繘鎮楃涵鍛棄閻?
         local rpBtnW = innerW
-        local rpBtnH = rpH * 0.09         -- 鎸夐挳楂樺害
-        local rpBtnGap = rpH * 0.04       -- 鎸夐挳闂磋窛
+        local rpBtnH = rpH * 0.09         -- 闂佸湱顭堥ˇ鐢稿箰閾忣偒娈楁俊顖氭惈椤?
+        local rpBtnGap = rpH * 0.04       -- 闂佸湱顭堥ˇ鐢稿箰閹惰姤鈷掔痪鎯ь儑閻?
         local totalBtnH = #rpBtns * rpBtnH + (#rpBtns - 1) * rpBtnGap
-        local rpBtnStartY = rpY + (rpH - totalBtnH) / 2  -- 鍦ㄩ潰鏉垮唴鍨傜洿灞呬腑
+        local rpBtnStartY = rpY + (rpH - totalBtnH) / 2  -- 闂侀潻璐熼崝鎴濐焽娴兼潙绾ч柛顭戝枛閺佸爼鏌涢妸銉モ偓璇裁虹捄銊ゆ勃闁告侗鍓濋崢?
         local rpBtnX = innerX
 
         for i, rb in ipairs(rpBtns) do
@@ -268,7 +268,7 @@ function DrawMenuScreen()
             local isPrimary = rb.primary
             local bPulse = isPrimary and (0.7 + 0.3 * math.sin(t * 2.5)) or 1.0
 
-            -- 鎸夐挳鍥剧墖绱犳潗鑳屾櫙
+            -- 闂佸湱顭堥ˇ鐢稿箰閹惰棄鐐婇柛鎾楀喚鏆紓浣戒含婵潧顭囧Δ鍛殑閻忕偟鍋撻悵?
             local btnImg = isPrimary and IMG.btnMenuPrimary or IMG.btnMenuNormal
             if btnImg and IsImageReady(btnImg) then
                 local btnAlpha = isPrimary and bPulse or 1.0
@@ -276,13 +276,13 @@ function DrawMenuScreen()
                 nvgBeginPath(vg); nvgRoundedRect(vg, rpBtnX, by, rpBtnW, rpBtnH, 6)
                 nvgFillPaint(vg, btnPat); nvgFill(vg)
             else
-                -- 绱犳潗鏈氨缁椂鍥為€€绾壊
+                -- 缂備浇浜慨闈涱焽濡ゅ懎瀚夋い蹇撳閻ㄦ垹绱撴笟鍥︾凹婵＄偛鍊垮畷鍫曟倷鐞涒€充壕闁逞屽墰閻ヮ亪顢涘┑鍡╂
                 nvgBeginPath(vg); nvgRoundedRect(vg, rpBtnX, by, rpBtnW, rpBtnH, 6)
                 nvgFillColor(vg, isPrimary and nvgRGBA(160, 40, 20, 200) or nvgRGBA(120, 95, 60, 200))
                 nvgFill(vg)
             end
 
-            -- 涓绘寜閽鍙戝厜
+            -- 婵炴垶鎸剧划顖溾偓鍨矒閺岋箓顢欑喊杈ㄢ枎闂佸憡鐟﹂崹鐢稿储?
             if isPrimary then
                 local glow = nvgRadialGradient(vg,
                     rpBtnX + rpBtnW / 2, by + rpBtnH / 2,
@@ -293,14 +293,14 @@ function DrawMenuScreen()
                 nvgFillPaint(vg, glow); nvgFill(vg)
             end
 
-            -- 鎸夐挳鏂囧瓧
+            -- 闂佸湱顭堥ˇ鐢稿箰閹惰棄妫橀柛銉戝懏鎲?
             nvgFontFaceId(vg, GetMainFont())
             nvgFontSize(vg, isPrimary and 22 or 19)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            -- 鏂囧瓧闃村奖
+            -- 闂佸搫鍊稿ú銈夋偤瑜斿濂稿级閹存繍娈?
             nvgFillColor(vg, nvgRGBA(0, 0, 0, 60))
             nvgText(vg, rpBtnX + rpBtnW / 2 + 1, by + rpBtnH / 2 + 1, rb.label, nil)
-            -- 鏂囧瓧姝ｄ綋
+            -- 闂佸搫鍊稿ú銈夋偤瑜嶉～銏ゆ晲閸曨厾歇
             if isPrimary then
                 DrawWhiteInkText(rpBtnX + rpBtnW / 2, by + rpBtnH / 2, rb.label)
             else
@@ -308,20 +308,20 @@ function DrawMenuScreen()
                 nvgText(vg, rpBtnX + rpBtnW / 2, by + rpBtnH / 2, rb.label, nil)
             end
 
-            -- 瀛樺偍鎸夐挳鐐瑰嚮鍖哄煙
+            -- 闁诲孩绋掗敋闁稿绉归獮鎰緞閹邦厼鍞夐梺缁樺姉閹虫捇宕甸鈧畷鐘诲传閸曨厼骞?
             menuBtnRects[rb.key] = { x = rpBtnX, y = by, w = rpBtnW, h = rpBtnH }
         end
     end
 
     -- ===========================
-    -- 6. 搴曢儴鎿嶄綔鏍?(妯帓5鎸夐挳, 浠垮弬鑰冨浘)
+    -- 6. 闁圭厧鐡ㄥú鐔煎磿閹绢喖绠肩€广儱瀚粙濠囨煛?(濠碘槅鍨兼禍婵堟暜?闂佸湱顭堥ˇ鐢稿箰? 婵炲濮撮悘婵嗩嚕椤掑嫭鍤€闁告劑鍔嶇粋?
     -- ===========================
-    -- 搴曟爮鑳屾櫙 (鍥介鏆栬壊妯潯)
+    -- 闁圭厧鐡ㄥú姗€鎮ラ鈧幊妤冧沪閻愵剛褰?(闂佹悶鍎扮划娆撍夐幘璇叉辈闁哄稁鍓欓ˉ蹇斾繆椤栵絼绨兼繛?
     local barBgGrad = nvgLinearGradient(vg, 0, bottomBarY - 8, 0, bottomBarY + bottomBarH,
         nvgRGBA(120, 80, 40, 0), nvgRGBA(90, 55, 25, 180))
     nvgBeginPath(vg); nvgRect(vg, 0, bottomBarY - 8, W, bottomBarH + 16)
     nvgFillPaint(vg, barBgGrad); nvgFill(vg)
-    -- 椤堕儴閲戣壊鍒嗛殧绾?"
+    -- 婵＄偑鍊曢悥濂稿磿閹绢喗鐓傞柟杈剧到椤ュ繘鏌涢幒鎴烆棦婵炲爜鍛／?"
     local sepGradL = nvgLinearGradient(vg, 0, bottomBarY - 2, W, bottomBarY - 2,
         nvgRGBA(255, 200, 80, 0), nvgRGBA(255, 200, 80, 150))
     nvgBeginPath(vg); nvgMoveTo(vg, 0, bottomBarY - 2); nvgLineTo(vg, cx, bottomBarY - 2)
@@ -331,21 +331,21 @@ function DrawMenuScreen()
     nvgBeginPath(vg); nvgMoveTo(vg, cx, bottomBarY - 2); nvgLineTo(vg, W, bottomBarY - 2)
     nvgStrokeWidth(vg, 1.5); nvgStrokePaint(vg, sepGradR); nvgStroke(vg)
 
-    -- 搴曟爮鎸夐挳閰嶇疆 (6涓? 甯﹀浘鏍? 妯睆閫傞厤)
+    -- 闁圭厧鐡ㄥú姗€鎮ラ鈧獮鎰緞閹邦厼鍞夐梻浣规緲缁夊爼鎮?(6婵? 闁汇埄鍨界粻鎴澝瑰鈧? 濠碘槅鍨兼禍婊堟儓閸℃稒鐒婚柛宀€鍋涚敮?
     local botBtnCount = 6
-    local botPad = 80  -- 宸︿晶鐣欏嚭渚ф爮绌洪棿
+    local botPad = 80  -- 閻庡綊娼荤紓姘跺疾閸洘鍋╂繛鍡楃箰濮ｅ銆掑鈧崟顓炵効缂備礁鏈钘壩?
     local botTotalW = W - botPad - 10
     local botBtnW = (botTotalW - (botBtnCount - 1) * 6) / botBtnCount
     local botBtnH = 62
     local botBtnY = bottomBarY + (bottomBarH - botBtnH) / 2
 
     local bottomButtons = {
-        { label = "璁剧疆",     key = "settings",  colors = {40, 35, 55},  primary = false, mod = nil, icon = IMG.menuIcons and IMG.menuIcons[13] },
-        { label = "鎴樹护",     key = "battlepass", colors = {120, 70, 30}, primary = false, mod = nil, icon = IMG.dragonPortal },
-        { label = "鎴樺姏姒?",   key = "powerRank",  colors = {35, 40, 65},  primary = false, mod = nil, icon = IMG.menuIcons and IMG.menuIcons[12] },
-        { label = "鍏电鍙敜", key = "gachaSeal",  colors = {80, 50, 130}, primary = false, mod = nil, icon = IMG.sealItem1 },
-        { label = "姝︽妧鍙敜", key = "gachaSkill", colors = {50, 100, 80}, primary = false, mod = moduleState.skills, icon = IMG.menuIcons and IMG.menuIcons[4] },
-        { label = "涔变笘寰侀€?", key = "battle",     colors = {180, 45, 25}, primary = true,  mod = moduleState.battle, icon = IMG.abyssTicket },
+        { label = "Settings",    key = "settings",   colors = {40, 35, 55},  primary = false, mod = nil,                icon = IMG.menuIcons and IMG.menuIcons[13] },
+        { label = "Battle Pass", key = "battlepass", colors = {120, 70, 30}, primary = false, mod = nil,                icon = IMG.dragonPortal },
+        { label = "Rankings",    key = "powerRank",  colors = {35, 40, 65},  primary = false, mod = nil,                icon = IMG.menuIcons and IMG.menuIcons[12] },
+        { label = "Seal Gacha",  key = "gachaSeal",  colors = {80, 50, 130}, primary = false, mod = nil,                icon = IMG.sealItem1 },
+        { label = "Skill Gacha", key = "gachaSkill", colors = {50, 100, 80}, primary = false, mod = moduleState.skills, icon = IMG.menuIcons and IMG.menuIcons[4] },
+        { label = "Battle",      key = "battle",     colors = {180, 45, 25}, primary = true,  mod = moduleState.battle, icon = IMG.abyssTicket },
     }
 
     local pulse = 0.7 + 0.3 * math.sin(t * 2.5)
@@ -355,7 +355,7 @@ function DrawMenuScreen()
         local isPrimary = bb.primary
         local bPulse = isPrimary and pulse or (0.85 + 0.15 * math.sin(t * 2.0 + i))
 
-        -- 绾浘鏍?鏂囧瓧锛屾棤浠讳綍鑳屾櫙 (妯睆閫傞厤)
+        -- 缂備胶铏庨崹鏉棵瑰鈧?闂佸搫鍊稿ú銈夋偤瑜旈弫宥囦沪閻愵剨楠忔繛瀵稿Ь椤斿﹦绱炲澶嬪殑閻忕偟鍋撻悵?(濠碘槅鍨兼禍婊堟儓閸℃稒鐒婚柛宀€鍋涚敮?
         local hasIcon = bb.icon and IsImageReady(bb.icon)
         if hasIcon then
             local iconSize
@@ -369,7 +369,7 @@ function DrawMenuScreen()
             local pat = nvgImagePattern(vg, iconX, iconY, iconSize, iconSize, 0, bb.icon, 1.0)
             nvgBeginPath(vg); nvgRect(vg, iconX, iconY, iconSize, iconSize)
             nvgFillPaint(vg, pat); nvgFill(vg)
-            -- 鏂囧瓧
+            -- 闂佸搫鍊稿ú銈夋偤?
             nvgFontFaceId(vg, GetMainFont())
             nvgFontSize(vg, isPrimary and 16 or 15)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_BOTTOM)
@@ -382,9 +382,9 @@ function DrawMenuScreen()
             DrawWhiteInkText(bx + botBtnW / 2, by + botBtnH / 2, bb.label)
         end
 
-        -- 瀛樺偍鐐瑰嚮鍖哄煙
+        -- 闁诲孩绋掗敋闁稿绉归幃娆撴偡閺夋寧鐦栭梺鍛婄墪閹碱偊鎮?
         local rect = { x = bx, y = by, w = botBtnW, h = botBtnH }
-        -- 妯″潡鏈氨缁伄缃?(閫氱敤)
+        -- 濠碘槅鍨埀顒冩珪閸嬨儵鏌￠崼顐＄盎婵ǜ鍔庣槐鎺楊敂閸粎纾跨紓?(闂備緡鍋呭銊╁极?
         if bb.mod and not bb.mod.ready then
             nvgBeginPath(vg); nvgRoundedRect(vg, bx, by, botBtnW, botBtnH, 8)
             nvgFillColor(vg, nvgRGBA(10, 12, 20, 140)); nvgFill(vg)
@@ -398,7 +398,7 @@ function DrawMenuScreen()
             menuBtnRects.gachaSeal = rect
         elseif bb.key == "gachaSkill" then
             menuBtnRects.gachaSkill = rect
-            -- 姝︽妧纰庣墖绾㈢偣
+            -- 濠殿喗绻愰梽鍕繆瑜忛崰濠冩償閿濆拋鏆紓浣峰嫎閸ㄥ宕?
             local hasComposable = false
             for _, cnt in pairs(skillFragments) do
                 if cnt >= SKILL_FRAG_EXCHANGE then hasComposable = true; break end
@@ -406,7 +406,7 @@ function DrawMenuScreen()
             if hasComposable then DrawRedDot(bx + botBtnW - 6, by + 6, 6) end
         elseif bb.key == "battlepass" then
             menuBtnRects.battlepass = rect
-            -- 鎴樹护绾㈢偣
+            -- 闂佺懓鐡ㄧ湁闁硅翰鍊楅惀顏堝閵忕姳鍖?
             if HasBattlePassRedDot() then DrawRedDot(bx + botBtnW - 6, by + 6, 6) end
         elseif bb.key == "powerRank" then
             menuBtnRects.powerRank = rect
@@ -418,28 +418,28 @@ function DrawMenuScreen()
     menuBtnRects.editor = nil
 
     -- ===========================
-    -- 6.5 涓栫晫鑱婂ぉ (搴曟爮涓婃柟, 姝ｄ腑)
+    -- 6.5 婵炴垶鎸婚悧婊堝疾椤愶附鍤傚┑鐘插€舵禍?(闁圭厧鐡ㄥú姗€鎮ラ鐣屸枖濠电姴鍟悡? 濠殿喗绻愮徊濂告嚈?
     -- ===========================
     do
         local msgs = CloudManager.GetWorldChatMessages()
         worldChatUI.miniAnim = (worldChatUI.miniAnim or 0) + (1.0 / 60.0)
 
         if not worldChatUI.expanded then
-            -- 鈹€鈹€ 灏忕獥妯″紡: 鏄剧ず鏈€鏂颁竴鏉℃秷鎭?鈹€鈹€
+            -- 闂佸啿鍘滈崑鎾绘煃閸忓浜?闁诲繐绻愮换鎺楁偘閵夈儙鐔煎灳瀹曞洨顢? 闂佸搫瀚晶浠嬪Φ濮樿泛瀚夐柍褜鍓熷顒侊紣娴ｄ警浼囬梺鍝勵槴閸撴繄绮旈悜钘夌畳?闂佸啿鍘滈崑鎾绘煃閸忓浜?
             local miniW = math.min(W * 0.6, 340)
             local miniH = 32
             local miniX = (W - miniW) / 2
             local miniY = bottomBarY - miniH - 6
-            -- 鍗婇€忔槑鑳屾櫙 (鏆栬壊)
+            -- 闂佸憡顨呴敃顏堝焵椤掆偓缁绘垵危閹达附鍤勯悘鐐靛亾閻?(闂佸搫妫欓悧鐐寸珶?
             nvgBeginPath(vg); nvgRoundedRect(vg, miniX, miniY, miniW, miniH, 6)
             nvgFillColor(vg, nvgRGBA(220, 200, 160, 180)); nvgFill(vg)
             nvgStrokeColor(vg, nvgRGBA(180, 140, 60, 120)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
-            -- 棰戦亾鏍囩
+            -- 婵☆偆澧楅崹鎸庣妤ｅ啫鍐€闁搞儮鏅╅崝?
             nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 13)
             nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(160, 80, 20, 220))
-            nvgText(vg, miniX + 8, miniY + miniH / 2, "銆愪笘鐣屻€?", nil)
-            -- 鏈€鏂版秷鎭唴瀹?"
+            nvgText(vg, miniX + 8, miniY + miniH / 2, "闂侀潧妫欓崝鎺旂箔濮椻偓閹墽浠﹂悜鈺佷壕?", nil)
+            -- 闂佸搫鐗冮崑鎾绘煛閸屾粌顣肩紒澶屽厴楠炰線顢涘顒佹殽闁?"
             if #msgs > 0 then
                 local last = msgs[#msgs]
                 local displayText = (last.name or "?") .. ": " .. (last.text or "")
@@ -450,34 +450,34 @@ function DrawMenuScreen()
                 nvgText(vg, miniX + 58, miniY + miniH / 2, displayText, nil)
             else
                 nvgFontSize(vg, 13); nvgFillColor(vg, nvgRGBA(120, 90, 50, 150))
-                nvgText(vg, miniX + 58, miniY + miniH / 2, "鐐瑰嚮鎵撳紑涓栫晫鑱婂ぉ...", nil)
+                nvgText(vg, miniX + 58, miniY + miniH / 2, "闂佺粯鍔楅幊鎾诲吹椤曗偓楠炲秹骞樺畷鍥╋紱婵炴垶鎸婚悧婊堝疾椤愶附鍤傚┑鐘插€舵禍?..", nil)
             end
             menuBtnRects.worldChatMini = { x = miniX, y = miniY, w = miniW, h = miniH }
         else
-            -- 鈹€鈹€ 灞曞紑妯″紡: 澶ц亰澶╃獥鍙?鈹€鈹€
+            -- 闂佸啿鍘滈崑鎾绘煃閸忓浜?闁诲繒鍋炲ú鏍閹存惊鐔煎灳瀹曞洨顢? 婵犮垹鐖㈤崱鏇炴瀳婵犮垹鐏堥弲婵嬫偘閵夆晛鐭?闂佸啿鍘滈崑鎾绘煃閸忓浜?
             local chatW = math.min(W * 0.88, 460)
             local chatH = math.min(H * 0.55, 420)
             local chatX = (W - chatW) / 2
             local chatY = (H - chatH) / 2
 
-            -- 閬僵
+            -- 闂備緡鍓﹂崰姘跺磽?
             nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
             nvgFillColor(vg, nvgRGBA(0, 0, 0, 120)); nvgFill(vg)
 
-            -- 绐楀彛鑳屾櫙 (鏆栬壊鍗疯酱)
+            -- 缂備焦鍔栭〃鍛般亹濞戙垺鍤勯悘鐐靛亾閻?(闂佸搫妫欓悧鐐寸珶婵犲洤纭€闁汇値鍨堕崣?
             nvgBeginPath(vg); nvgRoundedRect(vg, chatX, chatY, chatW, chatH, 12)
             nvgFillColor(vg, nvgRGBA(235, 215, 175, 240)); nvgFill(vg)
             nvgStrokeColor(vg, nvgRGBA(180, 140, 60, 180)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
 
-            -- 鏍囬鏍?(鏆栬壊娣辨)
+            -- 闂佸搫绉村ú顓€傛禒瀣唨?(闂佸搫妫欓悧鐐寸珶婵犲伋搴㈡綇椤垶顥?
             local titleH2 = 36
             nvgBeginPath(vg); nvgRoundedRect(vg, chatX, chatY, chatW, titleH2, 12)
             nvgFillColor(vg, nvgRGBA(140, 90, 40, 220)); nvgFill(vg)
             nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 20)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 240, 200, 240))
-            nvgText(vg, chatX + chatW / 2, chatY + titleH2 / 2, "涓栫晫鑱婂ぉ", nil)
-            -- 鍏抽棴鎸夐挳
+            nvgText(vg, chatX + chatW / 2, chatY + titleH2 / 2, "Chat", nil)
+            -- 闂佺绻戞繛濠偽涢幘顔肩濠㈣埖鍔栫亸?
             local closeBtnS = 28
             local closeBtnX = chatX + chatW - closeBtnS - 4
             local closeBtnY2 = chatY + (titleH2 - closeBtnS) / 2
@@ -486,17 +486,17 @@ function DrawMenuScreen()
             nvgText(vg, closeBtnX + closeBtnS / 2, closeBtnY2 + closeBtnS / 2, "X", nil)
             menuBtnRects.worldChatClose = { x = closeBtnX, y = closeBtnY2, w = closeBtnS, h = closeBtnS }
 
-            -- 娑堟伅鍖哄煙
+            -- 濠电偞鍨甸悧濠冨閸涙潙绀岄柛婵嗗閸?
             local msgAreaY = chatY + titleH2 + 4
             local inputH = 40
             local msgAreaH = chatH - titleH2 - inputH - 12
             nvgSave(vg)
             nvgScissor(vg, chatX + 4, msgAreaY, chatW - 8, msgAreaH)
 
-            local avS = 24  -- 澶村儚灏哄
-            local lineH = avS + 6  -- 姣忔潯娑堟伅琛岄珮
+            local avS = 24  -- 婵犮垼鍩栧娆撳磿濮樺彉鐒婇柛婵嗗閸?
+            local lineH = avS + 6  -- 濠殿噯绲界换鎴濐焽椤栨埃妲堥柛顐ゅ枍缁辨牠鎮跺☉妯肩劯闁?
             local maxVisible = math.floor(msgAreaH / lineH)
-            -- 鑷姩婊氬埌搴?"
+            -- 闂佺厧顨庢禍婊勬叏閳轰緡鐓ユ慨姗嗗墮閻撳倿骞?"
             if #msgs ~= worldChatUI.lastMsgCount then
                 worldChatUI.lastMsgCount = #msgs
                 worldChatUI.scrollOffset = math.max(0, #msgs - maxVisible)
@@ -509,7 +509,7 @@ function DrawMenuScreen()
                 local m = msgs[i]
                 local row = i - startIdx
                 local my2 = msgAreaY + row * lineH + 3
-                -- 澶村儚 (鍙偣鍑?"
+                -- 婵犮垼鍩栧娆撳磿?(闂佸憡鐟崹鎶藉磻閿濆绀?"
                 local avX = chatX + 8
                 local avY = my2
                 local avIdx = m.av or 1
@@ -520,7 +520,7 @@ function DrawMenuScreen()
                     local cellH2 = imgH2 / AVATAR_ROWS
                     local sx2 = avData.col * cellW2
                     local sy2 = avData.row * cellH2
-                    -- 澶村儚搴曟
+                    -- 婵犮垼鍩栧娆撳磿濮橆厽鍎熼柡鍥╁櫏閺€?
                     nvgBeginPath(vg); nvgRoundedRect(vg, avX - 1, avY - 1, avS + 2, avS + 2, 4)
                     nvgFillColor(vg, nvgRGBA(180, 150, 100, 150)); nvgFill(vg)
                     nvgStrokeColor(vg, nvgRGBA(160, 120, 60, 150)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
@@ -530,32 +530,32 @@ function DrawMenuScreen()
                     nvgBeginPath(vg); nvgRoundedRect(vg, avX, avY, avS, avS, 3)
                     nvgFillPaint(vg, pat2); nvgFill(vg)
                 else
-                    -- 鏃犲ご鍍忓浘鏃剁敾榛樿鑹插潡
+                    -- 闂佸搫鍟版慨鎾Φ閺冨牆纾介煫鍥ㄦ尰缁傚牓鏌￠崘銊ヮ暢闁轰胶鍋撻—鈧俊顖涱儥閸氬洭鏌ょ憴鍕祷婵?
                     nvgBeginPath(vg); nvgRoundedRect(vg, avX, avY, avS, avS, 3)
                     nvgFillColor(vg, nvgRGBA(180, 150, 100, 200)); nvgFill(vg)
                 end
-                -- 璁板綍澶村儚鐐瑰嚮鍖哄煙
+                -- 闁荤姳鐒﹀妯肩礊瀹ュ棗绶為柡澶嬪灥閸撳ジ鏌ｉ幇顔藉殌闁搞値鍣ｅ畷鐘诲传閸曨厼骞?
                 if m.uid and m.uid > 0 then
                     worldChatUI._avatarRects[#worldChatUI._avatarRects + 1] = {
                         x = avX, y = avY, w = avS, h = avS,
                         uid = m.uid, name = m.name or "???", av = avIdx,
                     }
                 end
-                -- 鍚嶅瓧
+                -- 闂佸憡鑹剧粔鎾偤?
                 local textX = avX + avS + 6
                 nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 13)
                 nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
                 nvgFillColor(vg, nvgRGBA(140, 70, 20, 220))
                 local nameOnlyStr = m.name or "???"
                 nvgText(vg, textX, my2, nameOnlyStr, nil)
-                -- 鍐呭 (绗簩琛?"
+                -- 闂佸憡鍔曢幊搴敊?(缂備焦顨忛崗娑氳姳閳哄啯鍋?"
                 nvgFontSize(vg, 14)
                 nvgFillColor(vg, nvgRGBA(60, 40, 20, 220))
                 nvgText(vg, textX, my2 + 14, m.text or "", nil)
             end
             nvgRestore(vg)
 
-            -- 鐜╁淇℃伅寮圭獥锛堢偣鍑诲ご鍍忓脊鍑猴細澶村儚 + 鍚嶅瓧 + 娣诲姞濂藉弸鎸夐挳锛?"
+            -- 闂佺粯澹曢弲娑㈩敊瀹ュ棛鈹嶉柍鈺佸暕缁辨牜鈧鍠栧﹢閬嶆偘閵夆晜鏅柛顐犲灩娴狀垶鏌涢幋锝庡殭闁靛洦妫冨畷鎾圭疀閹剧懓澧鹃梺鍛婂灩鐏忋劎妲愰悧鍫濈窞闁哄鍨甸崜?+ 闂佸憡鑹剧粔鎾偤?+ 濠电儑缍€椤曆勬叏閻愬闄勯柦妯侯槸閸戠娀鏌熺粙娆炬█闁瑰憡濞婇弫?"
             if worldChatUI.namePopup then
                 local pp = worldChatUI.namePopup
                 local ppW, ppH = 160, 60
@@ -563,11 +563,11 @@ function DrawMenuScreen()
                 local ppY = pp.y - 4
                 if ppY + ppH > chatY + chatH - 50 then ppY = pp.y - ppH - 4 end
                 if ppY < chatY + titleH2 then ppY = chatY + titleH2 + 4 end
-                -- 寮圭獥鑳屾櫙 (鏆栬壊)
+                -- 閻庢鍠栧﹢閬嶆偘閵夆晜鍤勯悘鐐靛亾閻?(闂佸搫妫欓悧鐐寸珶?
                 nvgBeginPath(vg); nvgRoundedRect(vg, ppX, ppY, ppW, ppH, 8)
                 nvgFillColor(vg, nvgRGBA(240, 225, 190, 245)); nvgFill(vg)
                 nvgStrokeColor(vg, nvgRGBA(180, 140, 60, 200)); nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
-                -- 寮圭獥鍐呭ご鍍?"
+                -- 閻庢鍠栧﹢閬嶆偘閵夆晛绀冮柛娑卞幑娴犲牓鏌?"
                 local ppAvS = 32
                 local ppAvX = ppX + 8
                 local ppAvY = ppY + (ppH - ppAvS) / 2
@@ -588,13 +588,13 @@ function DrawMenuScreen()
                     nvgBeginPath(vg); nvgRoundedRect(vg, ppAvX, ppAvY, ppAvS, ppAvS, 3)
                     nvgFillPaint(vg, pat3); nvgFill(vg)
                 end
-                -- 鍚嶅瓧
+                -- 闂佸憡鑹剧粔鎾偤?
                 local ppTxtX = ppAvX + ppAvS + 8
                 nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 15)
                 nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(80, 40, 10, 240))
                 nvgText(vg, ppTxtX, ppY + ppH / 2 - 8, pp.name or "???", nil)
-                -- 娣诲姞濂藉弸鎸夐挳
+                -- 濠电儑缍€椤曆勬叏閻愬闄勯柦妯侯槸閸戠娀鏌熺粙娆炬█闁?
                 local addBtnW, addBtnH = 70, 22
                 local addBtnX = ppTxtX
                 local addBtnY = ppY + ppH / 2 + 6
@@ -603,21 +603,21 @@ function DrawMenuScreen()
                 if isMe then
                     nvgFontSize(vg, 12); nvgFillColor(vg, nvgRGBA(120, 90, 50, 180))
                     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-                    nvgText(vg, addBtnX, addBtnY + addBtnH / 2, "锛堣嚜宸憋級", nil)
+                    nvgText(vg, addBtnX, addBtnY + addBtnH / 2, "You", nil)
                 elseif isFriend then
                     nvgFontSize(vg, 12); nvgFillColor(vg, nvgRGBA(40, 130, 60, 200))
                     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-                    nvgText(vg, addBtnX, addBtnY + addBtnH / 2, "宸叉槸濂藉弸", nil)
+                    nvgText(vg, addBtnX, addBtnY + addBtnH / 2, "Friend", nil)
                 else
                     nvgBeginPath(vg); nvgRoundedRect(vg, addBtnX, addBtnY, addBtnW, addBtnH, 4)
                     nvgFillColor(vg, nvgRGBA(40, 100, 60, 220)); nvgFill(vg)
                     nvgStrokeColor(vg, nvgRGBA(100, 220, 140, 180)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
                     nvgFontSize(vg, 13); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(100, 240, 140, 255))
-                    nvgText(vg, addBtnX + addBtnW / 2, addBtnY + addBtnH / 2, "+ 鍔犲ソ鍙?", nil)
+                    nvgText(vg, addBtnX + addBtnW / 2, addBtnY + addBtnH / 2, "+ 闂佸憡姊绘慨鎾Χ娴犲鐭?", nil)
                     menuBtnRects.worldChatAddFriend = { x = addBtnX, y = addBtnY, w = addBtnW, h = addBtnH, uid = pp.uid, name = pp.name }
                 end
-                -- 鏁翠釜寮圭獥鍖哄煙锛堢偣鍑诲閮ㄥ叧闂敤锛?"
+                -- 闂佽桨鑳剁换婵嬫煂濠婂喚鍤曢柛锔诲幘瀹曞爼鏌涢弽褎鎯堥柣鎾寸懇閺佸秹宕奸姀鐘卞寲闂佸憡鍨奸褔藝婵犳碍鐒鹃柕濞垮劚瑜扮娀姊婚崒銈呭箻闁轰降鍊濋弫?"
                 menuBtnRects.worldChatPopupArea = { x = ppX, y = ppY, w = ppW, h = ppH }
                 if not menuBtnRects.worldChatAddFriend or isMe or isFriend then
                     menuBtnRects.worldChatAddFriend = nil
@@ -627,44 +627,44 @@ function DrawMenuScreen()
                 menuBtnRects.worldChatPopupArea = nil
             end
 
-            -- 杈撳叆鍖哄煙
+            -- 闁哄鐗婇幐鎼佸矗閸℃稑绀岄柛婵嗗閸?
             local inputY = chatY + chatH - inputH - 4
             local sendBtnW = 56
             local inputW = chatW - sendBtnW - 20
-            -- 杈撳叆妗嗚儗鏅?(鏆栬壊)
+            -- 闁哄鐗婇幐鎼佸矗閸℃娴栭柛鈩冭壘閸撳綊鏌?(闂佸搫妫欓悧鐐寸珶?
             nvgBeginPath(vg); nvgRoundedRect(vg, chatX + 8, inputY, inputW, inputH - 4, 6)
             nvgFillColor(vg, nvgRGBA(255, 245, 225, 220)); nvgFill(vg)
             nvgStrokeColor(vg, nvgRGBA(180, 140, 60, 120)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
-            -- 杈撳叆妗嗘枃瀛?"
+            -- 闁哄鐗婇幐鎼佸矗閸℃娴栭柛鈩兩戦悗顕€鎮?"
             nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             if worldChatUI.chatInput and #worldChatUI.chatInput > 0 then
                 nvgFillColor(vg, nvgRGBA(50, 30, 10, 230))
                 nvgText(vg, chatX + 14, inputY + (inputH - 4) / 2, worldChatUI.chatInput, nil)
             else
                 nvgFillColor(vg, nvgRGBA(150, 120, 80, 150))
-                nvgText(vg, chatX + 14, inputY + (inputH - 4) / 2, "杈撳叆娑堟伅...", nil)
+                nvgText(vg, chatX + 14, inputY + (inputH - 4) / 2, "闁哄鐗婇幐鎼佸矗閸℃せ妲堥柛顐ゅ枍缁?..", nil)
             end
             menuBtnRects.worldChatInput = { x = chatX + 8, y = inputY, w = inputW, h = inputH - 4 }
-            -- 鍙戦€佹寜閽?"
+            -- 闂佸憡鐟﹂崹鍧楀焵椤戣法鍔嶉悗鍨矒閺?"
             local sendX = chatX + chatW - sendBtnW - 8
             nvgBeginPath(vg); nvgRoundedRect(vg, sendX, inputY, sendBtnW, inputH - 4, 6)
             nvgFillColor(vg, nvgRGBA(160, 90, 30, 220)); nvgFill(vg)
             nvgFontSize(vg, 17); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 245, 220, 240))
-            nvgText(vg, sendX + sendBtnW / 2, inputY + (inputH - 4) / 2, "鍙戦€?", nil)
+            nvgText(vg, sendX + sendBtnW / 2, inputY + (inputH - 4) / 2, "闂佸憡鐟﹂崹鍧楀焵?", nil)
             menuBtnRects.worldChatSend = { x = sendX, y = inputY, w = sendBtnW, h = inputH - 4 }
         end
     end
 
     -- ===========================
-    -- 7. 宸︿笂瑙掔帺瀹堕潰鏉?(妯睆閫傞厤)
+    -- 7. 閻庡綊娼荤紓姘辩箔閸屾粍鍠嗛柟鐑樻煥鐠愮喖鎮楅悷鎵煟婵為棿鍗冲?(濠碘槅鍨兼禍婊堟儓閸℃稒鐒婚柛宀€鍋涚敮?
     -- ===========================
     local panelW = 200
     local panelH = 70
     local panelX = 6
     local panelY = 4
 
-    -- 闈㈡澘鑳屾櫙 (鍥介鏆栬壊鍗疯酱)
+    -- 闂傚倸鐗勯崹鍝勵熆濮椻偓閹虫浠﹂悙顒傚讲 (闂佹悶鍎扮划娆撍夐幘璇叉辈闁哄稁鍓欓ˉ蹇涙煕濡ゅ啯鐒块梺?
     nvgBeginPath(vg); nvgRoundedRect(vg, panelX + 3, panelY + 3, panelW, panelH, 8)
     nvgFillColor(vg, nvgRGBA(60, 40, 20, 50)); nvgFill(vg)
     local panelGrad = nvgLinearGradient(vg, panelX, panelY, panelX, panelY + panelH,
@@ -673,7 +673,7 @@ function DrawMenuScreen()
     nvgFillPaint(vg, panelGrad); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(180, 140, 60, 180)); nvgStrokeWidth(vg, 2.5); nvgStroke(vg)
 
-    -- 澶村儚 (妯睆缂╁皬)
+    -- 婵犮垼鍩栧娆撳磿?(濠碘槅鍨兼禍婊堟儓閸℃瑧纾介柍杞拌兌濮?
     local avatarSize = 40
     local avatarX = panelX + 6
     local avatarY = panelY + (panelH - avatarSize) / 2
@@ -694,7 +694,7 @@ function DrawMenuScreen()
         nvgFillPaint(vg, pat); nvgFill(vg)
     end
 
-    -- 鏂囧瓧淇℃伅 (涓夎绱у噾: 鍚嶅瓧 / 瀹樿亴 / 鎴樺姏)
+    -- 闂佸搫鍊稿ú銈夋偤瑜庣粚閬嶅焺閸愌呯 (婵炴垶鎸搁ˇ鎶姐€侀幋鐘愁潟鐟滃秹宕? 闂佸憡鑹剧粔鎾偤?/ 闁诲氦顫夐…鍫熺?/ 闂佺懓鐡ㄩ敋濠?
     local infoX = avatarX + avatarSize + 6
     local infoTopY = panelY + 8
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
@@ -721,19 +721,19 @@ function DrawMenuScreen()
     nvgFillColor(vg, nvgRGBA(180, 60, 50, 220))
     nvgText(vg, infoX, infoTopY + 18, rankName, nil)
 
-    -- 鎴樺姏 (绗笁琛? 鍦ㄥ悕瀛?瀹樿亴涓嬫柟)
+    -- 闂佺懓鐡ㄩ敋濠?(缂備焦顨忛崗娑氱箔娴ｇ儤鍋? 闂侀潻璐熼崝宀勫箖閺囩姭鍋?闁诲氦顫夐…鍫熺鐎涙鈻旈悗锝庡亝閻?
     local totalPwr = CalcPlayerTotalPower()
     nvgFontSize(vg, 14)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
     local statX = infoX
     local statY = infoTopY + 34
     nvgFillColor(vg, nvgRGBA(255, 240, 210, 120))
-    nvgText(vg, statX + 0.5, statY + 0.5, "鎴樺姏 " .. FormatPower(totalPwr), nil)
+    nvgText(vg, statX + 0.5, statY + 0.5, "闂佺懓鐡ㄩ敋濠?" .. FormatPower(totalPwr), nil)
     nvgFillColor(vg, nvgRGBA(80, 50, 20, 230))
-    nvgText(vg, statX, statY, "鎴樺姏 " .. FormatPower(totalPwr), nil)
+    nvgText(vg, statX, statY, "闂佺懓鐡ㄩ敋濠?" .. FormatPower(totalPwr), nil)
 
-    -- 鎴樺姏 "?" 鎸夐挳
-    local pwrTextW = nvgTextBounds(vg, 0, 0, "鎴樺姏 " .. FormatPower(totalPwr), nil)
+    -- 闂佺懓鐡ㄩ敋濠?"?" 闂佸湱顭堥ˇ鐢稿箰?
+    local pwrTextW = nvgTextBounds(vg, 0, 0, "闂佺懓鐡ㄩ敋濠?" .. FormatPower(totalPwr), nil)
     local qBtnX = statX + pwrTextW + 4
     local qBtnY = statY - 1
     local qBtnS = 14
@@ -748,7 +748,7 @@ function DrawMenuScreen()
     playerDetailBtnRect = { x = panelX, y = panelY, w = panelW, h = panelH }
 
     -- ===========================
-    -- 8. 鍙充笂瑙掕檸绗︽樉绀?+ 骞垮憡
+    -- 8. 闂佸憡鐟ラ崢鏍箔閸屾粍鍠嗛柟鐑樻礃椤庢绱掑Δ瀣婵☆垰顦辩划?+ 濡ょ姷鍋涢悘婵嬪箟?
     -- ===========================
     local jadeBoxW = 160
     local jadeBoxH = 28
@@ -763,12 +763,12 @@ function DrawMenuScreen()
 
     nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 17)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(jadeBoxX + 5, jadeBoxY + jadeBoxH / 2, "铏庣")
+    DrawWhiteInkText(jadeBoxX + 5, jadeBoxY + jadeBoxH / 2, "Jade")
     nvgFontSize(vg, 17)
     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
     DrawWhiteInkText(jadeBoxX + jadeBoxW - 32, jadeBoxY + jadeBoxH / 2, FormatJade(playerInfo.jade))
 
-    -- 骞垮憡 (+)
+    -- 濡ょ姷鍋涢悘婵嬪箟?(+)
     local adBtnW = 30
     local adBtnH = 22
     local adBtnX = jadeBoxX + jadeBoxW - adBtnW - 3
@@ -783,13 +783,13 @@ function DrawMenuScreen()
     DrawWhiteInkText(adBtnX + adBtnW/2, adBtnY + adBtnH/2, "+")
     local adPad = 6
     adRects.jade = { x = adBtnX - adPad, y = adBtnY - adPad, w = adBtnW + adPad*2, h = adBtnH + adPad*2 }
-    -- 骞垮憡鎻愮ず
+    -- 濡ょ姷鍋涢悘婵嬪箟閿熺姴绠甸柟閭﹀枔娴?
     nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
     nvgFillColor(vg, nvgRGBA(180, 50, 30, math.floor(160 * adPulse)))
-    nvgText(vg, jadeBoxX + jadeBoxW / 2, jadeBoxY + jadeBoxH + 1, "+2000铏庣", nil)
+    nvgText(vg, jadeBoxX + jadeBoxW / 2, jadeBoxY + jadeBoxH + 1, "+2000 Jade", nil)
 
     -- ===========================
-    -- 9. 涓嬭浇鎸夐挳 + 涓嬭浇闈㈡澘
+    -- 9. 婵炴垶鎸搁鍫澝归崶顒€绠板鑸靛姈鐏?+ 婵炴垶鎸搁鍫澝归崶顒侇棃闁靛繆鍓濈欢?
     -- ===========================
     local allModulesReady = moduleState.equipment.ready and moduleState.heroes.ready
         and moduleState.skills.ready and moduleState.battle.ready
@@ -818,7 +818,7 @@ function DrawMenuScreen()
         end
         nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-        DrawWhiteInkText(dlBtnX + dlBtnW/2, dlBtnY + (dlBtnH - miniBarH)/2, "涓嬭浇" .. totalPct .. "%")
+        DrawWhiteInkText(dlBtnX + dlBtnW/2, dlBtnY + (dlBtnH - miniBarH)/2, "Sync " .. totalPct .. "%")
         downloadUI.btnRect = { x = dlBtnX, y = dlBtnY, w = dlBtnW, h = dlBtnH }
 
         if downloadUI.panelOpen then
@@ -832,12 +832,12 @@ function DrawMenuScreen()
             downloadUI.panelRect = { x = panX, y = panY, w = panW, h = panH }
             nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 20)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
-            DrawWhiteInkText(panX + panW/2, panY + 6, "璧勬簮涓嬭浇杩涘害")
+            DrawWhiteInkText(panX + panW/2, panY + 6, "Module Sync")
             local modules = {
-                { name = "鍏电敳", mod = moduleState.equipment },
-                { name = "姝︾伒", mod = moduleState.heroes },
-                { name = "姝︽妧", mod = moduleState.skills },
-                { name = "鎴樻枟", mod = moduleState.battle },
+                { name = "Equip", mod = moduleState.equipment },
+                { name = "Heroes", mod = moduleState.heroes },
+                { name = "Skills", mod = moduleState.skills },
+                { name = "Battle", mod = moduleState.battle },
             }
             local rowH = 22; local rowStartY2 = panY + 24
             local barX2 = panX + 46; local barW2 = panW - 58; local barH2 = 7
@@ -866,7 +866,7 @@ function DrawMenuScreen()
     end
 
     -- ===========================
-    -- 10. 婕傛诞绮掑瓙 (閲戣壊闂槦)
+    -- 10. 濠电姵娲栭崐鍦嫚閻愰潧鍨濋柟鐑樺灩閹?(闂備礁寮堕崹鍏肩珶婵犲洦鈷掓い蹇撴噺琚?
     -- ===========================
     for i = 1, 6 do
         local px = W * (0.15 + 0.7 * ((i * 137 + math.floor(t * 18)) % 100) / 100)
@@ -885,14 +885,14 @@ end
 
 
 -- ============================================================================
--- 鎸夐挳浣嶇疆璋冩暣妯″紡 (鎴樻枟鍦烘櫙瀹炴椂棰勮, 璁捐鍧愭爣)
+-- 闂佸湱顭堥ˇ鐢稿箰閾忣偅濯寸€广儱娲ㄩ弸鍌炴偣鐎ｎ亜鏆為柡鍡到铻ｉ柍銉ョ－绾偓 (闂佺懓鐡ㄨ摫闁哄鍠栧畷鐑芥倻濡崵褰查柣搴℃贡閸嬬偛顪冮崒娑崇矗闁告洦鍣? 闁荤姳鐒﹀畷姗€顢橀幖浣搁敜闁归偊鍘鹃崹?
 -- ============================================================================
 function DrawBtnAdjustMode()
     local W = DESIGN_W
     local H = DESIGN_H
     local t = menuAnimTimer
 
-    -- 1. 缁樺埗鎴樻枟鑳屾櫙
+    -- 1. 缂傚倷鐒﹂敋闁糕晜顨婇獮瀣熺紒妯间憾闂佺厧鍟块張顒€鈻?
     if IsImageReady(IMG.bg) then
         local p = nvgImagePattern(vg, 0, 0, W, H, 0, IMG.bg, 1.0)
         nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
@@ -903,19 +903,19 @@ function DrawBtnAdjustMode()
         DrawSpinner(W / 2, H / 2, 20)
     end
 
-    -- 鍗婇€忔槑閬僵璁╂寜閽洿娓呮櫚
+    -- 闂佸憡顨呴敃顏堝焵椤掆偓缁绘垵危閹达附鐒兼い鏃€鍎抽崗濠囨偣娴ｅ弶娅嗛悗鍨矒閺岋箓顢欓懞銉у嚱濠电偞鎸搁幊蹇撯枍?
     nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
     nvgFillColor(vg, nvgRGBA(0, 0, 0, 50)); nvgFill(vg)
 
     nvgFontFaceId(vg, GetMainFont())
 
-    -- 2. 缁樺埗鎴樻枟鍖哄煙鍙傝€冪嚎
+    -- 2. 缂傚倷鐒﹂敋闁糕晜顨婇獮瀣熺紒妯间憾闂佸憡鐗曢幖顐︽偂濞嗘挸鐭楅柛灞剧妇閸嬫捇宕橀鍕枃
     nvgBeginPath(vg)
     nvgRect(vg, BATTLE_ZONE.left, BATTLE_ZONE.top,
         BATTLE_ZONE.right - BATTLE_ZONE.left, BATTLE_ZONE.bottom - BATTLE_ZONE.top)
     nvgStrokeColor(vg, nvgRGBA(100, 90, 60, 60)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
-    -- 3. 缁樺埗瀹為檯澶у皬鐨勪笁鍦堟寜閽紙浣跨敤涓?DrawBottomActionBar 瀹屽叏鐩稿悓鐨勫竷灞€閫昏緫锛?"
+    -- 3. 缂傚倷鐒﹂敋闁糕晜顨堥埀顒€婀遍崑銈咁瀶椤栨稑绶炵憸宥夋儍椤掑嫭鍎嶉柛鏇ㄤ簽閻熷繘鏌涢敃鈧悧濠勨偓鍨矒閺岋箓顢氶崱娆戭槱婵炶揪缍€濞夋洟寮妶鍡欌枖?DrawBottomActionBar 闁诲海鎳撻懟顖炲矗韫囨稒鍎庣紒瀣閸婇亶鏌ｉ妸銉ヮ仼缂佹棃顥撴禒锕傚焵椤掑嫭鐒婚柡鍕箳鐢棝鏌?"
     local btnSc = settingsPage.adjScale
     local R = math.floor(26 * btnSc)
     local gap = math.floor(6 * btnSc)
@@ -930,23 +930,23 @@ function DrawBtnAdjustMode()
     local topCX = (leftCX + rightCX) / 2
     local topCY = bottomCY - R * 2 - gap
 
-    -- 缁樺埗涓変釜鎿嶄綔鍦?"
+    -- 缂傚倷鐒﹂敋闁糕晜顨嗙粙澶嬪緞婢舵劕娈濋梺鐟扮仢缁夊磭绱為弮鍫濇嵍?"
     local circles = {
-        { cx = topCX, cy = topCY, label = "鑷姩", sub = "琛屽啗" },
-        { cx = leftCX, cy = bottomCY, label = "姝︽妧", sub = "1" },
-        { cx = rightCX, cy = bottomCY, label = "姝︽妧", sub = "2" },
+        { cx = topCX, cy = topCY, label = "Hero", sub = "Core" },
+        { cx = leftCX, cy = bottomCY, label = "Skill", sub = "1" },
+        { cx = rightCX, cy = bottomCY, label = "Skill", sub = "2" },
     }
     for _, c in ipairs(circles) do
-        -- 澶栧彂鍏?"
+        -- 婵犮垼鍩栭悧鏇°亹閸岀偛绀?"
         local glowGrad = nvgRadialGradient(vg, c.cx, c.cy, R * 0.8, R * 1.6,
             nvgRGBA(120, 50, 55, 40), nvgRGBA(120, 50, 55, 0))
         nvgBeginPath(vg); nvgCircle(vg, c.cx, c.cy, R * 1.6)
         nvgFillPaint(vg, glowGrad); nvgFill(vg)
-        -- 鎸夐挳鏈綋
+        -- 闂佸湱顭堥ˇ鐢稿箰閹惰棄瀚夋い鎴ｆ硶缁?
         nvgBeginPath(vg); nvgCircle(vg, c.cx, c.cy, R)
         nvgFillColor(vg, nvgRGBA(30, 35, 50, 220)); nvgFill(vg)
         nvgStrokeColor(vg, nvgRGBA(120, 50, 55, 200)); nvgStrokeWidth(vg, 2); nvgStroke(vg)
-        -- 鏂囧瓧
+        -- 闂佸搫鍊稿ú銈夋偤?
         nvgFontSize(vg, math.floor(11 * btnSc))
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         DrawWhiteInkText(c.cx, c.cy - 5 * btnSc, c.label)
@@ -954,7 +954,7 @@ function DrawBtnAdjustMode()
         DrawWhiteInkText(c.cx, c.cy + 7 * btnSc, c.sub)
     end
 
-    -- 鎷栨嫿涓殑瑙嗚鎻愮ず (浠呭綋鍓嶉€変腑缁勯珮浜?"
+    -- 闂佸綊鏀遍悧妤冣偓姘缁嬪顢橀悩宕囨殸闁荤喐鐟ュΛ婊堬綖鎼淬劌绠甸柟閭﹀枔娴?(婵炲濮撮幊搴ｇ礊鐎ｎ喖绀堢€广儱顦崑鎾村緞婢跺骸骞€缂傚倷绀佺€氫即鎮甸鐣岊洸?"
     local activeGrp = settingsPage.adjActiveGroup or "skill"
     if settingsPage.adjDragging and activeGrp == "skill" then
         for _, c in ipairs(circles) do
@@ -962,7 +962,7 @@ function DrawBtnAdjustMode()
             nvgStrokeColor(vg, nvgRGBA(100, 200, 255, 120)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
         end
     end
-    -- 閫変腑楂樹寒妗?(鎶€鑳界粍)
+    -- 闂備緡鍋勯ˇ顕€鎳欓幋鐑嗘畻婵☆垳鎳撻惁銊︿繆?(闂佺懓鐏堥崑鎾绘煠瀹曞洦娅曠紒?
     if activeGrp == "skill" then
         for _, c in ipairs(circles) do
             nvgBeginPath(vg); nvgCircle(vg, c.cx, c.cy, R + 2)
@@ -970,7 +970,7 @@ function DrawBtnAdjustMode()
         end
     end
 
-    -- 3b. 缁樺埗鍙充笂瑙掓寜閽粍棰勮
+    -- 3b. 缂傚倷鐒﹂敋闁糕晜顨婂畷锝夊礂閸涱垳鎲柣鐔哥懄鐢鈧灚绮撻弻锕傤敊閸撗呯厑婵☆偅婢樼€氼垶锝?
     local rbOfsX = settingsPage.adjRightBtnOffsetX
     local rbOfsY = settingsPage.adjRightBtnOffsetY
     local rbBtnW = 72
@@ -979,7 +979,7 @@ function DrawBtnAdjustMode()
     local rbRightMargin = 4
     local rbStartY = 28 + rbOfsY
     local rbX = W - rbBtnW - rbRightMargin + rbOfsX
-    local rbLabels = { "鍐涜祫", "鍒锋柊", "閫€鍑?" }
+    local rbLabels = { "闂佸憡鍔栫粙鏍矈?, "闂佸憡甯￠弨閬嶅蓟?, "闂備緡鍋€閸嬫捇鏌?" }
     local rbCurY = rbStartY
     for idx, lbl in ipairs(rbLabels) do
         nvgBeginPath(vg); nvgRoundedRect(vg, rbX, rbCurY, rbBtnW, rbBtnH, 3)
@@ -1005,7 +1005,7 @@ function DrawBtnAdjustMode()
         nvgStrokeColor(vg, nvgRGBA(100, 200, 255, 120)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
     end
 
-    -- 3c. 缁樺埗椤堕儴HUD棰勮
+    -- 3c. 缂傚倷鐒﹂敋闁糕晜顨嗛妵鍕醇閺囩偛濮UD婵☆偅婢樼€氼垶锝?
     local hudOfsX = settingsPage.adjHudOffsetX
     local hudOfsY = settingsPage.adjHudOffsetY
     local hudH2 = 22
@@ -1013,14 +1013,14 @@ function DrawBtnAdjustMode()
     nvgFillColor(vg, nvgRGBA(30, 25, 16, 190)); nvgFill(vg)
     nvgFontSize(vg, 20)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(16 + hudOfsX, 13 + hudOfsY, "鍐涜祫")
+    DrawWhiteInkText(16 + hudOfsX, 13 + hudOfsY, "Gold")
     nvgFontSize(vg, 22)
     DrawWhiteInkText(50 + hudOfsX, 13 + hudOfsY, "99")
     nvgFontSize(vg, 20)
-    DrawWhiteInkText(120 + hudOfsX, 13 + hudOfsY, "鏂?")
+    DrawWhiteInkText(120 + hudOfsX, 13 + hudOfsY, "KO")
     nvgFontSize(vg, 22)
     DrawWhiteInkText(140 + hudOfsX, 13 + hudOfsY, "0")
-    -- 鍊掕鏃堕瑙?"
+    -- 闂佺锕ョ敮鐔碱敇閹间礁绫嶉柛顐ｆ处閺嗘洟鎮?"
     local tmrW2 = 72
     local tmrH2 = 20
     local tmrX2 = W / 2 - tmrW2 / 2 + hudOfsX
@@ -1036,7 +1036,7 @@ function DrawBtnAdjustMode()
         nvgStrokeColor(vg, nvgRGBA(100, 200, 255, 180)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
     end
 
-    -- 3d. 缁樺埗宸︿笂瑙掍俊鎭潰鏉块瑙?"
+    -- 3d. 缂傚倷鐒﹂敋闁糕晜顨呴蹇涙晜鐠恒劎鎲柣鐔哥懄鐢﹥绌辨繝鍥х畳妞ゆ牜鍋炲銊╂煛婢跺﹥鍋ユい锝傛櫇閹?"
     local ipOfsX = settingsPage.adjInfoPanelOffsetX
     local ipOfsY = settingsPage.adjInfoPanelOffsetY
     local ipW = 110
@@ -1048,41 +1048,41 @@ function DrawBtnAdjustMode()
     nvgStrokeColor(vg, nvgRGBA(160, 130, 70, 40)); nvgStrokeWidth(vg, 0.5); nvgStroke(vg)
     nvgFontSize(vg, 13.5)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
-    DrawWhiteInkText(ipX + 6, ipY + 10, "闃靛 3/6")
-    DrawWhiteInkText(ipX + 6, ipY + 23, "鎬绘敾: 100")
-    DrawWhiteInkText(ipX + 6, ipY + 35, "鎬婚槻: 80")
+    DrawWhiteInkText(ipX + 6, ipY + 10, "Units: 3/6")
+    DrawWhiteInkText(ipX + 6, ipY + 23, "ATK: 100")
+    DrawWhiteInkText(ipX + 6, ipY + 35, "DEF: 80")
     nvgFontSize(vg, 11.2)
-    DrawWhiteInkText(ipX + 6, ipY + 51, "鐐瑰嚮鏌ョ湅 - 鎷栨嫿鎹綅")
-    DrawWhiteInkText(ipX + 6, ipY + 61, "鎷栨嫿鍗＄墝鑷崇煶鍙版斁缃?")
+    DrawWhiteInkText(ipX + 6, ipY + 51, "Tap and drag to move the info panel")
+    DrawWhiteInkText(ipX + 6, ipY + 61, "Offsets are applied after you save the layout")
     if activeGrp == "infoPanel" then
         nvgBeginPath(vg); nvgRoundedRect(vg, ipX - 3, ipY - 3, ipW + 6, ipH + 6, 5)
         nvgStrokeColor(vg, nvgRGBA(100, 200, 255, 180)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
     end
 
-    -- 4. 椤堕儴鎻愮ず鏉?"
+    -- 4. 婵＄偑鍊曢悥濂稿磿閹绢喖绠甸柟閭﹀枔娴犳盯鏌?"
     local tipBarH = 36
     nvgBeginPath(vg); nvgRect(vg, 0, 0, W, tipBarH)
     nvgFillColor(vg, nvgRGBA(10, 15, 30, 200)); nvgFill(vg)
     nvgFontSize(vg, 24)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(W / 2, tipBarH / 2, "鎷栨嫿灞忓箷绉诲姩閫変腑缁勪綅缃?")
+    DrawWhiteInkText(W / 2, tipBarH / 2, "闂佸綊鏀遍悧妤冣偓姘虫硶娴狅箒绠涢幘棰濆晜缂備礁顦抽褎鎱ㄩ埡鍛劵濠㈣泛顦抽崢顒傜磽娴ｇ顏х紓宥呮噽缁?")
 
-    -- 5. 搴曢儴宸ュ叿鏍?(澧為珮浠ュ绾崇粍鍒囨崲鏍囩)
+    -- 5. 闁圭厧鐡ㄥú鐔煎磿閺夋埈鍟呴柕澶堝劚瀵版棃鏌?(婵犫拃鍛槐闁绘繍鍠楃粋鎺楀Ψ閵夘喖鏅ｇ紓浣瑰劤绾绢厾鍒掑澶婄闁搞儯鍔屾惔濠囨煛瀹ュ懏宸濇い?
     local barH = 90
     local barY = H - barH
     nvgBeginPath(vg); nvgRect(vg, 0, barY, W, barH)
     nvgFillColor(vg, nvgRGBA(10, 15, 30, 220)); nvgFill(vg)
-    -- 椤堕儴鍒嗛殧绾?"
+    -- 婵＄偑鍊曢悥濂稿磿閹绢喖绀嗛柛鈩冪⊕椤撳墽绱?"
     nvgBeginPath(vg)
     nvgMoveTo(vg, 0, barY); nvgLineTo(vg, W, barY)
     nvgStrokeColor(vg, nvgRGBA(90, 45, 55, 100)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
-    -- 5a. 缁勫垏鎹㈡爣绛炬爮
+    -- 5a. 缂傚倷绀佺€氼剟宕硅箛娑樼闁靛骏绱曢崹鑲╃磼濞戞艾浜鹃柣?
     local groups = {
-        { key = "skill",     label = "鎶€鑳芥寜閽?" },
-        { key = "rightBtn",  label = "鍙充晶鎸夐挳" },
-        { key = "hud",       label = "椤堕儴淇℃伅" },
-        { key = "infoPanel", label = "宸︿晶闈㈡澘" },
+        { key = "skill",     label = "Skill" },
+        { key = "rightBtn",  label = "Right Button" },
+        { key = "hud",       label = "HUD" },
+        { key = "infoPanel", label = "Info Panel" },
     }
     local tabY = barY + 6
     local tabH = 26
@@ -1116,10 +1116,10 @@ function DrawBtnAdjustMode()
         tabCurX = tabCurX + tw + tabGap
     end
 
-    -- 5b. 缂╂斁婊戞潯 (浠呮妧鑳芥寜閽粍鏄剧ず)
+    -- 5b. 缂傚倸鍊甸弲婊堝棘娴ｅ壊鐓ラ柟瀵稿仦閽?(婵炲濮撮幊蹇斾繆瑜旈幊妤呮嚍閵夈儳妯嗛梻浣虹摂閸犳氨鍒掑澶婂強闁告挆浣风驳)
     local row2Y = tabY + tabH + 8
     if activeGrp == "skill" then
-        local sliderLabel = "澶у皬"
+        local sliderLabel = "Scale"
         local sliderX = 60
         local sliderW = W - 260
         local sliderH = 8
@@ -1145,22 +1145,22 @@ function DrawBtnAdjustMode()
         settingsPage.adjScaleSliderRect = nil
     end
 
-    -- 5c. 鎸夐挳鍖哄煙 (搴曢儴鍙充晶)
+    -- 5c. 闂佸湱顭堥ˇ鐢稿箰閹惰棄绀岄柛婵嗗閸?(闁圭厧鐡ㄥú鐔煎磿閹绢喖鐭楅柛蹇撴噺濞?
     local btnAreaX = W - 190
     local btnY = row2Y
     local btnW2 = 54
     local btnH2 = 32
 
-    -- 閲嶇疆鎸夐挳
+    -- 闂備焦褰冪粔鍫曟偪閸℃稑绠板鑸靛姈鐏?
     nvgBeginPath(vg); nvgRoundedRect(vg, btnAreaX, btnY, btnW2, btnH2, 5)
     nvgFillColor(vg, nvgRGBA(60, 55, 70, 220)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(90, 45, 55, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
     nvgFontSize(vg, 24)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(btnAreaX + btnW2 / 2, btnY + btnH2 / 2, "閲嶇疆")
+    DrawWhiteInkText(btnAreaX + btnW2 / 2, btnY + btnH2 / 2, "Reset")
     settingsPage.adjResetBtnRect = { x = btnAreaX, y = btnY, w = btnW2, h = btnH2 }
 
-    -- 淇濆瓨鎸夐挳
+    -- 婵烇絽娲︾换鍌炴偤閵娾晛绠板鑸靛姈鐏?
     local saveBtnX = btnAreaX + btnW2 + 8
     nvgBeginPath(vg); nvgRoundedRect(vg, saveBtnX, btnY, btnW2, btnH2, 5)
     local saveGrad = nvgLinearGradient(vg, saveBtnX, btnY, saveBtnX, btnY + btnH2,
@@ -1168,17 +1168,17 @@ function DrawBtnAdjustMode()
     nvgFillPaint(vg, saveGrad); nvgFill(vg)
     nvgFontSize(vg, 24)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(saveBtnX + btnW2 / 2, btnY + btnH2 / 2, "淇濆瓨")
+    DrawWhiteInkText(saveBtnX + btnW2 / 2, btnY + btnH2 / 2, "Save")
     settingsPage.adjSaveBtnRect = { x = saveBtnX, y = btnY, w = btnW2, h = btnH2 }
 
-    -- 杩斿洖鎸夐挳
+    -- 闁哄鏅滈弻銊ッ洪弽顓炵濠㈣埖鍔栫亸?
     local backBtnX = saveBtnX + btnW2 + 8
     nvgBeginPath(vg); nvgRoundedRect(vg, backBtnX, btnY, btnW2, btnH2, 5)
     nvgFillColor(vg, nvgRGBA(50, 35, 35, 220)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(180, 100, 80, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
     nvgFontSize(vg, 24)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(backBtnX + btnW2 / 2, btnY + btnH2 / 2, "杩斿洖")
+    DrawWhiteInkText(backBtnX + btnW2 / 2, btnY + btnH2 / 2, "Back")
     settingsPage.adjBackBtnRect = { x = backBtnX, y = btnY, w = btnW2, h = btnH2 }
 end
 
@@ -1194,14 +1194,14 @@ function DrawFormationScreen()
     nvgFontFaceId(vg, GetMainFont())
 
     -- ===========================
-    -- 1. 椤堕儴鏍? 杩斿洖 + 鏍囬
+    -- 1. 婵＄偑鍊曢悥濂稿磿閹绢喖鍐€? 闁哄鏅滈弻銊ッ?+ 闂佸搫绉村ú顓€?
     -- ===========================
     local topBarY = 12
     local backW, backH = 110, 48
     local backX = 10
 
     -- ===========================
-    -- 2. 缂栭槦妲藉尯鍩?(涓婂崐閮ㄥ垎, 鏈€澶?0涓Ы)
+    -- 2. 缂傚倸鍊归悧鐘参ｉ敃鈧嵄闁芥ê顦梾姗€鏌?(婵炴垶鎸搁敃銈呯暦閹扮増鐒鹃柕濞垮劚閻? 闂佸搫鐗冮崑鎾愁熆?0婵炴垶鎼╂禍婵婃綍)
     -- ===========================
     local FORMATION_MAX = 10
     local slotCols = 5
@@ -1213,28 +1213,28 @@ function DrawFormationScreen()
     local slotStartX = (W - slotAreaW) / 2
     local slotStartY = topBarY + backH + 16
 
-    -- 缁熻淇℃伅
+    -- 缂傚倷鑳堕崰鏇㈩敇閸涘﹦鈹嶉柍鈺佸暕缁?
     local formation = gameSettings.formation or {}
     local formCount = #formation
     local ownedCount = formationUI.ownedCount or GetOwnedHeroCount()
     local targetCount = math.min(FORMATION_MAX, ownedCount)
     local canManualEdit = ownedCount >= 10
 
-    -- 鏍囬鏍?"
+    -- 闂佸搫绉村ú顓€傛禒瀣唨?"
     nvgFontSize(vg, 15)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    local titleStr = "缂栭槦 (" .. formCount .. "/" .. targetCount .. ")"
+    local titleStr = "缂傚倸鍊归悧鐘参?(" .. formCount .. "/" .. targetCount .. ")"
     DrawWhiteInkText(W / 2, slotStartY - 8, titleStr)
 
-    -- 缂栭槦璇存槑 (鏍规嵁鐘舵€佷笉鍚屾樉绀?"
+    -- 缂傚倸鍊归悧鐘参ｉ敂鐐珰閻庢稒蓱椤?(闂佸搫绉烽～澶婄暤娓氣偓閹晠鎳滅喊妯轰壕濞达綁顥撻悷婵嬫煕濮橆剚婀版俊顖氼槺缁?"
     nvgFontSize(vg, 11)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     if canManualEdit then
         nvgFillColor(vg, nvgRGBA(180, 170, 140, 180))
-        nvgText(vg, W / 2, slotStartY + 4, "鐐瑰嚮鍗＄墝鍙皟鏁寸紪闃熼樀瀹?")
+        nvgText(vg, W / 2, slotStartY + 4, "闂佺粯鍔楅幊鎾诲吹椤曗偓瀹曪繝鏁嶉崟顐澓闂佸憡鐟崹鐢告儍閻旂厧鏋侀悗闈涙憸濡炰粙姊婚崘顏勬灈婵☆垪鍋撻柣?")
     else
         nvgFillColor(vg, nvgRGBA(255, 200, 100, math.floor(150 + 60 * math.sin(t * 2.5))))
-        nvgText(vg, W / 2, slotStartY + 4, "姝︾伒涓嶈冻10浜? 宸插叏閮ㄨ嚜鍔ㄤ笂闃?")
+        nvgText(vg, W / 2, slotStartY + 4, "濠殿喗绻愭俊鍥ㄥ閹烘挾鈻旂€广儱鐗嗛崰?0婵? 閻庣懓鎲¤ぐ鍐矗韫囨稒鐒鹃柕濞垮妼濞堜即鏌涢弬璇插缂佹鍊垮?")
     end
 
     slotStartY = slotStartY + 14
@@ -1250,11 +1250,11 @@ function DrawFormationScreen()
 
         local cardIdx = formation[i]
         if cardIdx and HERO_CARDS[cardIdx] and playerHeroes[cardIdx] and playerHeroes[cardIdx].owned then
-            -- 宸叉斁缃鐏?"
+            -- 閻庡湱顭堝鍫曞棘娴ｈ櫣纾炬い鏃傜摂閸斿懘鏌?"
             local card = HERO_CARDS[cardIdx]
             local hero = playerHeroes[cardIdx]
             DrawInventoryCard(sx, sy, slotW, slotH, card, hero.constellation or 0, false, false)
-            -- 绉婚櫎鏍囪 (鍙充笂瑙抶) 鈥?浠呮弧10浜哄彲鎵嬪姩缂栬緫鏃舵樉绀?"
+            -- 缂備礁顦…宄扳枍鎼淬劌鍐€闁搞儺浜堕崬?(闂佸憡鐟ラ崢鏍箔閸屾粍鍠嗛柟? 闂?婵炲濮撮幊蹇擃嚕?0婵炲瓨绮岄幖顐ャ亹閺屻儱绠ラ悗锝庝簻琚熺紓鍌氬€归悧鐐垫椤愶箑绫嶉柤绋跨仛閳绘梻绱掗埀?"
             if canManualEdit then
                 nvgBeginPath(vg)
                 nvgCircle(vg, sx + slotW - 6, sy + 6, 8)
@@ -1262,10 +1262,10 @@ function DrawFormationScreen()
                 nvgFontSize(vg, 14)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(255, 255, 255, 240))
-                nvgText(vg, sx + slotW - 6, sy + 6, "脳")
+                nvgText(vg, sx + slotW - 6, sy + 6, "X", nil)
             end
         else
-            -- 绌烘Ы浣?"
+            -- 缂備礁鐬奸崕銈堟綍婵?"
             local isEmpty = i > targetCount
             nvgBeginPath(vg); nvgRoundedRect(vg, sx, sy, slotW, slotH, 4)
             if isEmpty then
@@ -1292,7 +1292,7 @@ function DrawFormationScreen()
     end
 
     -- ===========================
-    -- 3. 鍔熻兘鎸夐挳鍖?(涓€閿紪闃?/ 娓呯┖)
+    -- 3. 闂佸憡姊婚崰鏇㈠礂濮椻偓楠炴劖寰勯幇顓炲攭闂?(婵炴垶鎸撮崑鎾绘⒑濞嗘儳鏋ょ紒槌栦邯濮?/ 濠电偞鎸搁幊鎰板煘?
     -- ===========================
     local btnAreaY = slotStartY + slotRows * (slotH + slotGap + 4) + 8
     local btnW = 90
@@ -1301,7 +1301,7 @@ function DrawFormationScreen()
     local totalBtnW = btnW * 2 + btnGap
     local btnStartX = (W - totalBtnW) / 2
 
-    -- 涓€閿紪闃熸寜閽?"
+    -- 婵炴垶鎸撮崑鎾绘⒑濞嗘儳鏋ょ紒槌栦邯濮婂ジ鎮㈢粙璺ㄦ▎闂?"
     local autoBtnX = btnStartX
     nvgBeginPath(vg); nvgRoundedRect(vg, autoBtnX, btnAreaY, btnW, btnH, 6)
     local autoGrad = nvgLinearGradient(vg, autoBtnX, btnAreaY, autoBtnX, btnAreaY + btnH,
@@ -1311,10 +1311,10 @@ function DrawFormationScreen()
     nvgStrokeColor(vg, nvgRGBA(120, 200, 80, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
     nvgFontSize(vg, 16)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(autoBtnX + btnW / 2, btnAreaY + btnH / 2, "涓€閿紪闃?")
+    DrawWhiteInkText(autoBtnX + btnW / 2, btnAreaY + btnH / 2, "婵炴垶鎸撮崑鎾绘⒑濞嗘儳鏋ょ紒槌栦邯濮?")
     formationUI.autoBtnRect = { x = autoBtnX, y = btnAreaY, w = btnW, h = btnH }
 
-    -- 娓呯┖鎸夐挳 (涓嶆弧10浜烘椂鏄剧ず鐏拌壊閿佸畾)
+    -- 濠电偞鎸搁幊鎰板煘閺嶎厼绠板鑸靛姈鐏?(婵炴垶鎸哥粔闈涱嚕?0婵炲瓨绮庨崕銈咁渻閸岀偛鍙婇柛鎾椾椒绮甸梺璇茬箲婵姤绔熸繝鍥ㄧ叆濞达絽鎽滈弳?
     local clearBtnX = btnStartX + btnW + btnGap
     nvgBeginPath(vg); nvgRoundedRect(vg, clearBtnX, btnAreaY, btnW, btnH, 6)
     if canManualEdit then
@@ -1331,25 +1331,25 @@ function DrawFormationScreen()
     nvgFontSize(vg, 16)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     if canManualEdit then
-        DrawWhiteInkText(clearBtnX + btnW / 2, btnAreaY + btnH / 2, "娓呯┖")
+        DrawWhiteInkText(clearBtnX + btnW / 2, btnAreaY + btnH / 2, "Clear")
     else
         nvgFillColor(vg, nvgRGBA(120, 110, 100, 120))
-        nvgText(vg, clearBtnX + btnW / 2, btnAreaY + btnH / 2, "娓呯┖")
+        nvgText(vg, clearBtnX + btnW / 2, btnAreaY + btnH / 2, "Clear", nil)
     end
     formationUI.clearBtnRect = { x = clearBtnX, y = btnAreaY, w = btnW, h = btnH }
 
     -- ===========================
-    -- 4. 鍝佽川绛涢€夋爣绛鹃〉
+    -- 4. 闂佸憡绻€濞村洤顔忓┑鍫㈤┏婵炴垟鎳囬崑鎾村緞鐎ｎ剙鐏辩紓浣圭洴缁犳牠濡?
     -- ===========================
     local tabY = btnAreaY + btnH + 12
     local tabH = 26
     local TAB_DEFS = {
-        { label = "鍏ㄩ儴", quality = 0 },
+        { label = "ALL", quality = 0 },
         { label = "N",    quality = 1 },
         { label = "R",    quality = 2 },
         { label = "SR",   quality = 3 },
         { label = "SSR",  quality = 4 },
-        { label = "闄愬畾", quality = 5 },
+        { label = "EX", quality = 5 },
     }
     local tabW = math.floor((W - 20) / #TAB_DEFS) - 4
     local tabStartX = 12
@@ -1378,13 +1378,13 @@ function DrawFormationScreen()
     end
 
     -- ===========================
-    -- 5. 宸叉嫢鏈夋鐏靛垪琛?(鍙粴鍔?"
+    -- 5. 閻庡湱顭堝鍓佲偓姘ュ灲瀵灚寰勭€ｉ潧濡抽梺璇茬箻濞佳囧垂椤忓棙鍋?(闂佸憡鐟崹杈╁垝閹绢喖绀?"
     -- ===========================
     local listStartY = tabY + tabH + 8
     local listEndY = H - 10
     local listViewH = listEndY - listStartY
 
-    -- 绛涢€夊凡鎷ユ湁 + 鍝佽川杩囨护
+    -- 缂備焦绋掗惄顖炲焵椤掆偓椤︻垶宕欓敓鐘茬闁靛闄勭粻?+ 闂佸憡绻€濞村洤顔忓┑鍥ㄤ氦闁搞儯鍔嶆慨?
     local filteredOwned = {}
     local inFormationSet = {}
     for _, idx in ipairs(formation) do inFormationSet[idx] = true end
@@ -1400,7 +1400,7 @@ function DrawFormationScreen()
         end
     end
 
-    -- 鎺掑簭: 宸茬紪闃熺殑鎺掑悗闈? 鍚岀粍鎸夊搧璐ㄩ檷搴?"
+    -- 闂佸湱鍎ょ敮鎺旇姳? 閻庤鐡曠亸娆戞椤忓牊鈷撻柣鏃傚劋閻ｉ亶鏌熼悜妯虹瑨闁诡喗顨婂Λ? 闂佸憡鑹鹃惉鑲╁垝瀹ュ绠板璺猴攻閹倿鎮归幇鈺佸婵￠箖鏀遍幆?"
     table.sort(filteredOwned, function(a, b)
         if a.inFormation ~= b.inFormation then return not a.inFormation end
         if a.card.quality ~= b.card.quality then return a.card.quality > b.card.quality end
@@ -1415,12 +1415,12 @@ function DrawFormationScreen()
     local rows = math.ceil(#filteredOwned / cols)
     local contentH = rows * (cardH + cardGap + 4)
 
-    -- 婊氬姩鑼冨洿闄愬埗
+    -- 濠电姴锕ラ懝鐐叏閳哄懏鍤戦柛鎰╁妽缁绢垶姊婚崟顒€濮囬柛?
     local maxScroll = math.max(0, contentH - listViewH)
     formationUI.scrollY = math.max(0, math.min(formationUI.scrollY or 0, maxScroll))
     local scrollY = formationUI.scrollY
 
-    -- 婊氬姩瑁佸壀
+    -- 濠电姴锕ラ懝鐐叏閳哄啯鍟戝ù锝囶焾椤?
     nvgSave(vg)
     nvgScissor(vg, 0, listStartY, W, listViewH)
 
@@ -1434,29 +1434,29 @@ function DrawFormationScreen()
 
         formationUI.cardRects[fi] = { x = cx, y = cy, w = cardW, h = cardH, cardIdx = entry.cardIdx }
 
-        -- 璺宠繃涓嶅彲瑙?"
+        -- 闁荤姴鎼悿鍥╂崲閸愨晝鈻旂€广儱鎳庣拋鏌ユ偡?"
         if cy + cardH >= listStartY - 10 and cy <= listEndY + 10 then
             if entry.inFormation then
-                -- 宸茬紪闃? 鏆楀寲鏄剧ず
+                -- 閻庤鐡曠亸娆戞椤忓牊鈷? 闂佸搫妫欓〃鍛偓鍨叀瀵即宕滆娴?
                 DrawInventoryCard(cx, cy, cardW, cardH, entry.card, entry.hero.constellation or 0, false, false)
                 nvgBeginPath(vg); nvgRoundedRect(vg, cx, cy, cardW, cardH, 4)
                 nvgFillColor(vg, nvgRGBA(10, 10, 15, 150)); nvgFill(vg)
-                -- "宸茬紪鍏? 鏍囪
+                -- "閻庤鐡曠亸娆戞椤忓牆绀? 闂佸搫绉村ú鈺咁敊?
                 nvgFontSize(vg, 13)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(120, 200, 100, 220))
-                nvgText(vg, cx + cardW / 2, cy + cardH / 2, "宸茬紪鍏?")
+                nvgText(vg, cx + cardW / 2, cy + cardH / 2, "閻庤鐡曠亸娆戞椤忓牆绀?")
             else
-                -- 鏈紪闃?"
+                -- 闂佸搫鐗滄禍鐐垫椤忓牊鈷?"
                 DrawInventoryCard(cx, cy, cardW, cardH, entry.card, entry.hero.constellation or 0, false, false)
-                -- 涓嶆弧10浜洪攣瀹氭椂锛屾湭缂栭槦鍗＄墝涔熸樉绀烘殫鍖栭攣瀹?"
+                -- 婵炴垶鎸哥粔闈涱嚕?0婵炲瓨绮嶅浠嬪绩閿濆洠鍋撶憴鍕暡婵＄偛鍊块弫宥囦沪閻愵剙绱︾紓鍌氬€归悧鐘参ｉ敃鍌氱闁挎稑瀚·鍌氣槈閺冨倸鏋戞俊顖氼槺缁牓鎮滃Ο娲诲敨闂佸憡鐗楅悧鐘诲绩閿濆洠鍋?"
                 if not canManualEdit then
                     nvgBeginPath(vg); nvgRoundedRect(vg, cx, cy, cardW, cardH, 4)
                     nvgFillColor(vg, nvgRGBA(10, 10, 15, 100)); nvgFill(vg)
                     nvgFontSize(vg, 20)
                     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(160, 140, 100, 120))
-                    nvgText(vg, cx + cardW / 2, cy + cardH / 2, "馃敀")
+                    nvgText(vg, cx + cardW / 2, cy + cardH / 2, "Locked", nil)
                 end
             end
         end
@@ -1464,7 +1464,7 @@ function DrawFormationScreen()
 
     nvgRestore(vg)
 
-    -- 婊氬姩鏉?"
+    -- 濠电姴锕ラ懝鐐叏閳哄懎绾?"
     if contentH > listViewH then
         local barH = math.max(20, listViewH * listViewH / contentH)
         local barY = listStartY + (scrollY / maxScroll) * (listViewH - barH)
@@ -1473,41 +1473,41 @@ function DrawFormationScreen()
     end
 
     -- ===========================
-    -- 6. 椤堕儴鏍?(瑕嗙洊鍦ㄤ笂灞?"
+    -- 6. 婵＄偑鍊曢悥濂稿磿閹绢喖鍐€?(闁荤喐娲栧Λ娑樏烘繝鍥ф嵍闁靛鍊楅悷鎰版倶?"
     -- ===========================
     nvgBeginPath(vg); nvgRect(vg, 0, 0, W, topBarY + backH + 4)
     nvgFillColor(vg, nvgRGBA(15, 20, 38, 230)); nvgFill(vg)
 
-    -- 杩斿洖鎸夐挳
+    -- 闁哄鏅滈弻銊ッ洪弽顓炵濠㈣埖鍔栫亸?
     nvgBeginPath(vg); nvgRoundedRect(vg, backX, topBarY, backW, backH, 8)
     nvgFillColor(vg, nvgRGBA(32, 38, 58, 200)); nvgFill(vg)
     nvgBeginPath(vg); nvgRoundedRect(vg, backX, topBarY, backW, backH, 8)
     nvgStrokeColor(vg, nvgRGBA(100, 85, 55, 100)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
     nvgFontSize(vg, 20)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(backX + backW / 2, topBarY + backH / 2, "鈼?杩斿洖")
+    DrawWhiteInkText(backX + backW / 2, topBarY + backH / 2, "Back")
     formationBackBtnRect = { x = backX, y = topBarY, w = backW, h = backH }
 
-    -- 鏍囬
+    -- 闂佸搫绉村ú顓€?
     nvgFontSize(vg, 22)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(W / 2, topBarY + backH / 2, "鍑哄緛缂栭槦")
+    DrawWhiteInkText(W / 2, topBarY + backH / 2, "Formation Layout")
 
-    -- 鍙充笂瑙掔姸鎬佹彁绀?"
+    -- 闂佸憡鐟ラ崢鏍箔閸屾粍鍠嗛柟鐑樻煥绗戦梺璇″厸閻掞箒銇愭担铏圭焼?"
     nvgFontSize(vg, 12)
     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
     if not canManualEdit then
-        -- 涓嶆弧10浜? 閿佸畾鎻愮ず
+        -- 婵炴垶鎸哥粔闈涱嚕?0婵? 闂備礁銇樼粈渚€鎮炬ィ鍐ㄧ闁归偊鍠撴禒?
         nvgFillColor(vg, nvgRGBA(255, 200, 100, math.floor(150 + 80 * math.sin(t * 3))))
-        nvgText(vg, W - 14, topBarY + backH / 2, "鑷姩缂栭槦涓?")
+        nvgText(vg, W - 14, topBarY + backH / 2, "闂佺厧顨庢禍婊勬叏閳哄啰纾介柡宥庡幗琚濇繛?")
     elseif formCount < targetCount then
-        -- 婊?0浜轰絾缂栭槦鏈弧
+        -- 濠?0婵炲瓨绮忓銊у緤閸撗呯＝闁哄稁鍘借闂佸搫鐗滄禍婵嗩嚕?
         nvgFillColor(vg, nvgRGBA(255, 180, 80, math.floor(150 + 80 * math.sin(t * 3))))
-        nvgText(vg, W - 14, topBarY + backH / 2, "闇€琛ラ綈" .. targetCount .. "浜?")
+        nvgText(vg, W - 14, topBarY + backH / 2, "Need " .. targetCount .. " slots", nil)
     else
-        -- 缂栭槦宸叉弧
+        -- 缂傚倸鍊归悧鐘参ｉ敃鈧蹇涘矗婢跺﹤袣
         nvgFillColor(vg, nvgRGBA(120, 220, 100, 180))
-        nvgText(vg, W - 14, topBarY + backH / 2, "缂栭槦瀹屾垚")
+        nvgText(vg, W - 14, topBarY + backH / 2, "Formation ready", nil)
     end
 end
 
