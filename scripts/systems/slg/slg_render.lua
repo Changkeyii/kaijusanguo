@@ -5,8 +5,9 @@
 
 ---@diagnostic disable: undefined-global
 
-local Data = require("systems.slg.slg_data")
-local FC   = Data.FC
+local Data  = require("systems.slg.slg_data")
+local Logic = require("systems.slg.slg_logic")
+local FC    = Data.FC
 
 local M = {}
 
@@ -14,12 +15,12 @@ local M = {}
 -- 布局常量
 -- ============================================================================
 M.LAYOUT = {
-    TOP_BAR_H   = 44,       -- 顶部状态栏高度
-    LEFT_W      = 230,      -- 左侧城池列表宽度
+    TOP_BAR_H   = 56,       -- 顶部状态栏高度(适配18pt最低字号)
+    LEFT_W      = 280,      -- 左侧城池列表宽度(适配18pt)
     LEFT_PAD    = 8,        -- 左侧列表内边距
-    CARD_H      = 56,       -- 城池卡片高度
-    CARD_GAP    = 4,        -- 卡片间距
-    RIGHT_W     = 280,      -- 右侧操作面板宽度
+    CARD_H      = 130,      -- 城池卡片高度(适配18pt 4行)
+    CARD_GAP    = 5,        -- 卡片间距
+    RIGHT_W     = 300,      -- 右侧操作面板宽度
     RIGHT_PAD   = 8,        -- 右侧面板内边距
 }
 
@@ -34,49 +35,95 @@ end
 -- 辅助: 获取各势力统计
 -- ============================================================================
 function M.GetFactionStats()
-    local stats = { player={cities=0,troops=0,heroes=0}, wei={cities=0,troops=0,heroes=0},
-                    shu={cities=0,troops=0,heroes=0}, wu={cities=0,troops=0,heroes=0},
-                    qun={cities=0,troops=0,heroes=0} }
+    local stats = {}
     for _, city in ipairs(WORLD_CITIES) do
         local cd = worldMapState.cityData[city.id]
-        if cd then
+        if cd and cd.owner and cd.owner ~= "neutral" then
             local key = cd.owner
-            if stats[key] then
-                stats[key].cities = stats[key].cities + 1
-                stats[key].troops = stats[key].troops + cd.garrison
-                stats[key].heroes = stats[key].heroes + #cd.heroes
+            if not stats[key] then
+                stats[key] = {cities=0, troops=0, heroes=0}
             end
+            stats[key].cities = stats[key].cities + 1
+            stats[key].troops = stats[key].troops + (cd.garrison or 0)
+            stats[key].heroes = stats[key].heroes + #(cd.heroes or {})
         end
     end
+    -- 确保 player 始终存在
+    if not stats.player then stats.player = {cities=0, troops=0, heroes=0} end
     return stats
 end
 
 -- ============================================================================
--- 辅助: 按钮(国风暖色卷轴风)
+-- 辅助: 描边文字 (白字黑描边, SLG 全局统一风格)
+-- ============================================================================
+function M.DrawTextOutlined(x, y, text, fontSize, alpha, align)
+    alpha = alpha or 240
+    align = align or (NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, fontSize)
+    nvgTextAlign(vg, align)
+    -- 黑色描边 (4方向偏移)
+    nvgFillColor(vg, nvgRGBA(0, 0, 0, math.floor(alpha * 0.7)))
+    nvgText(vg, x - 1, y, text, nil)
+    nvgText(vg, x + 1, y, text, nil)
+    nvgText(vg, x, y - 1, text, nil)
+    nvgText(vg, x, y + 1, text, nil)
+    -- 白色主体
+    nvgFillColor(vg, nvgRGBA(255, 255, 255, alpha))
+    nvgText(vg, x, y, text, nil)
+end
+
+-- 统一按钮色板
+M.BTN_PRIMARY  = { 100, 80, 45 }   -- 主要操作 (暗金)
+M.BTN_SECONDARY = { 55, 50, 48 }   -- 次要操作 (灰褐)
+M.BTN_DANGER   = { 130, 40, 35 }   -- 危险操作 (暗红)
+M.BTN_ACCENT   = { 50, 80, 110 }   -- 强调操作 (暗蓝)
+
+-- ============================================================================
+-- 辅助: 按钮(统一深底白字描边风)
 -- ============================================================================
 function M.DrawBtn(x, y, w, h, label, r, g, b, alpha)
     alpha = alpha or 200
     local disabled = (alpha <= 150)
-    -- 纯色渐变按钮 (不使用背景图)
-    nvgBeginPath(vg); nvgRoundedRect(vg, x + 1, y + 1, w, h, 4)
+    -- 字号自适应按钮高度: h<=28→14pt, h<=34→16pt, h<=40→18pt, else 20pt
+    local fontSize = h <= 34 and 18 or h <= 44 and 20 or 22
+    -- 自动缩小字号防止文字超框 (最小12pt)
+    nvgFontFaceId(vg, GetMainFont())
+    nvgFontSize(vg, fontSize)
+    local textW = nvgTextBounds(vg, 0, 0, label, nil) or 0
+    local padInner = 6
+    while textW > (w - padInner) and fontSize > 12 do
+        fontSize = fontSize - 1
+        nvgFontSize(vg, fontSize)
+        textW = nvgTextBounds(vg, 0, 0, label, nil) or 0
+    end
+    local radius = math.max(3, math.min(6, h * 0.12))
+    -- 按压缩放反馈
+    local Anim = require("ui.anim")
+    local now = gameState.gameTime or 0
+    local sc = Anim.GetBtnScaleFor(now, x, y, w, h)
+    if sc < 0.999 then
+        local cx, cy = x + w * 0.5, y + h * 0.5
+        nvgSave(vg)
+        nvgTranslate(vg, cx, cy); nvgScale(vg, sc, sc); nvgTranslate(vg, -cx, -cy)
+    end
+    -- 阴影
+    nvgBeginPath(vg); nvgRoundedRect(vg, x + 1, y + 1, w, h, radius)
     nvgFillColor(vg, nvgRGBA(60, 40, 20, 40)); nvgFill(vg)
+    -- 渐变填充
     local grad = nvgLinearGradient(vg, x, y, x, y + h,
         nvgRGBA(math.min(255, r + 40), math.min(255, g + 30), math.min(255, b + 20), alpha),
         nvgRGBA(r, g, b, alpha))
-    nvgBeginPath(vg); nvgRoundedRect(vg, x, y, w, h, 4)
+    nvgBeginPath(vg); nvgRoundedRect(vg, x, y, w, h, radius)
     nvgFillPaint(vg, grad); nvgFill(vg)
     nvgStrokeColor(vg, disabled and nvgRGBA(120, 100, 70, 60) or nvgRGBA(200, 170, 90, 140))
     nvgStrokeWidth(vg, 1); nvgStroke(vg)
-    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 17)
-    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    local tx, ty = x + w / 2, y + h / 2
     if disabled then
-        nvgFillColor(vg, nvgRGBA(120, 100, 80, 120))
+        M.DrawTextOutlined(tx, ty, label, fontSize, 120)
     else
-        nvgFillColor(vg, nvgRGBA(60, 30, 10, 160))
-        nvgText(vg, x + w / 2 + 1, y + h / 2 + 1, label, nil)
-        nvgFillColor(vg, nvgRGBA(255, 240, 200, 240))
+        M.DrawTextOutlined(tx, ty, label, fontSize, 240)
     end
-    nvgText(vg, x + w / 2, y + h / 2, label, nil)
+    if sc < 0.999 then nvgRestore(vg) end
     return { x = x, y = y, w = w, h = h }
 end
 
@@ -88,75 +135,94 @@ local function DrawTopBar(W, H)
     local L = M.LAYOUT
     local barH = L.TOP_BAR_H
 
-    -- 半透明深色条
+    -- 半透明深色条 (磨砂质感)
     nvgBeginPath(vg); nvgRect(vg, 0, 0, W, barH)
     local barGrad = nvgLinearGradient(vg, 0, 0, 0, barH,
-        nvgRGBA(40, 22, 10, 210), nvgRGBA(60, 32, 15, 220))
+        nvgRGBA(35, 20, 8, 220), nvgRGBA(50, 28, 12, 230))
     nvgFillPaint(vg, barGrad); nvgFill(vg)
     -- 底部金色线条
     nvgBeginPath(vg); nvgMoveTo(vg, 0, barH - 1); nvgLineTo(vg, W, barH - 1)
-    nvgStrokeColor(vg, nvgRGBA(255, 210, 100, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
+    nvgStrokeColor(vg, nvgRGBA(255, 200, 80, 100)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
     nvgFontFaceId(vg, GetMainFont())
 
-    -- 标题
-    nvgFontSize(vg, 20)
-    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, nvgRGBA(255, 235, 170, 255))
-    nvgText(vg, 12, barH / 2 - 6, "天下大势", nil)
+    -- 玩家阵营标签 (左上角胶囊)
+    local pfac = st.playerFaction
+    local pfName = GetFacName(pfac)
+    local pfc = M.GetFC("player")
+    nvgFontSize(vg, 18)
+    local pfNameW = nvgTextBounds(vg, 0, 0, pfName, nil)
+    local tagW = pfNameW + 14
+    nvgBeginPath(vg); nvgRoundedRect(vg, 8, 4, tagW, 22, 11)
+    nvgFillColor(vg, nvgRGBA(pfc.main[1], pfc.main[2], pfc.main[3], 100)); nvgFill(vg)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    M.DrawTextOutlined(8 + tagW / 2, 15, pfName, 18, 240)
 
-    -- 资源信息
-    nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-    local resY = barH / 2 - 6
-    nvgFillColor(vg, nvgRGBA(255, 240, 210, 220))
-    nvgText(vg, 108, resY, "第" .. st.turn .. "回合", nil)
-    nvgFillColor(vg, nvgRGBA(255, 230, 100, 255))
-    nvgText(vg, 200, resY, "💰" .. st.gold, nil)
-    nvgFillColor(vg, nvgRGBA(180, 240, 130, 255))
-    nvgText(vg, 285, resY, "🌾" .. st.food, nil)
+    -- 回合数 (紧跟阵营)
+    local turnStr = "第" .. st.turn .. "回合"
+    M.DrawTextOutlined(8 + tagW + 8, 15, turnStr, 18, 200, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+
+    -- 资源行 (第二行)
+    nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+    local resY = barH - 16
+    local resX = 10
+    local resGap = 6
+
+    local resAlign = NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE
+    local goldStr = "金" .. st.gold
+    M.DrawTextOutlined(resX, resY, goldStr, 18, 240, resAlign)
+    resX = resX + nvgTextBounds(vg, 0, 0, goldStr, nil) + resGap
+
+    local foodStr = "粮" .. st.food
+    M.DrawTextOutlined(resX, resY, foodStr, 18, 240, resAlign)
+    resX = resX + nvgTextBounds(vg, 0, 0, foodStr, nil) + resGap
+
     local pc = WorldMap.GetPlayerCityCount()
-    nvgFillColor(vg, nvgRGBA(220, 210, 255, 240))
-    nvgText(vg, 370, resY, "🏯" .. pc .. "/" .. #WORLD_CITIES, nil)
+    local cityStr = "城" .. pc .. "/" .. #WORLD_CITIES
+    M.DrawTextOutlined(resX, resY, cityStr, 18, 240, resAlign)
+    resX = resX + nvgTextBounds(vg, 0, 0, cityStr, nil) + resGap
 
-    -- 存档/读档按钮 (右上角区域)
-    local saveBtnW, saveBtnH = 44, 22
+    local ap = st.actionPoints or 0
+    local apMax = st.maxActionPoints or 6
+    local apStr = "令" .. ap .. "/" .. apMax
+    M.DrawTextOutlined(resX, resY, apStr, 18, ap > 0 and 240 or 255, resAlign)
+
+    -- 存档/读档按钮 (右上角)
+    local saveBtnW, saveBtnH = 56, 32
     local saveBtnY = 4
-    local saveBtnX = W - 10 - saveBtnW
+    local saveBtnX = W - 8 - saveBtnW
     local loadBtnX = saveBtnX - saveBtnW - 4
 
-    st.btn_save = M.DrawBtn(saveBtnX, saveBtnY, saveBtnW, saveBtnH, "存档", 80, 100, 60)
-    -- 仅在有存档时显示读档按钮
+    st.btn_save = M.DrawBtn(saveBtnX, saveBtnY, saveBtnW, saveBtnH, "存档", 100, 80, 45)
     local hasSave = rawget(_G, "WorldMap") and WorldMap.HasSave and WorldMap.HasSave()
     if hasSave then
-        st.btn_load = M.DrawBtn(loadBtnX, saveBtnY, saveBtnW, saveBtnH, "读档", 60, 80, 120)
+        st.btn_load = M.DrawBtn(loadBtnX, saveBtnY, saveBtnW, saveBtnH, "读档", 100, 80, 45)
     else
         st.btn_load = nil
     end
+    -- 规则按钮 (存档左侧)
+    local rulesBtnX = (hasSave and loadBtnX or saveBtnX) - saveBtnW - 4
+    st.btn_rules = M.DrawBtn(rulesBtnX, saveBtnY, saveBtnW, saveBtnH, "规则", 55, 50, 48)
+    -- 返回大厅按钮 (规则左侧)
+    local backBtnX = rulesBtnX - saveBtnW - 4
+    st.btn_back = M.DrawBtn(backBtnX, saveBtnY, saveBtnW, saveBtnH, "返回", 55, 50, 48)
 
-    -- 玩家阵营
-    local pfac = st.playerFaction
-    local pfName = FACTIONS[pfac] and FACTIONS[pfac].name or pfac
-    nvgFillColor(vg, nvgRGBA(255, 240, 200, 255))
-    nvgFontSize(vg, 12)
-    nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
-    nvgText(vg, loadBtnX - 6, resY, pfName, nil)
-
-    -- 势力实力条
+    -- 势力实力条 (底部)
     local facStats = M.GetFactionStats()
     local totalCities = #WORLD_CITIES
-    local powerY = barH / 2 + 10
-    local powerBarW = W - 24
-    local powerBarH = 5
-    nvgBeginPath(vg); nvgRoundedRect(vg, 12, powerY, powerBarW, powerBarH, 2)
-    nvgFillColor(vg, nvgRGBA(60, 30, 10, 100)); nvgFill(vg)
+    local powerY = barH - 4
+    local powerBarW = W - 16
+    local powerBarH = 3
+    nvgBeginPath(vg); nvgRoundedRect(vg, 8, powerY, powerBarW, powerBarH, 1.5)
+    nvgFillColor(vg, nvgRGBA(60, 30, 10, 80)); nvgFill(vg)
     local facOrder = {"player", "wei", "shu", "wu", "qun"}
-    local px2 = 12
+    local px2 = 8
     for _, fk in ipairs(facOrder) do
         local fs = facStats[fk]
         if fs and fs.cities > 0 then
             local segW = powerBarW * (fs.cities / totalCities)
             local fc = M.GetFC(fk)
-            nvgBeginPath(vg); nvgRoundedRect(vg, px2, powerY, segW, powerBarH, 2)
+            nvgBeginPath(vg); nvgRoundedRect(vg, px2, powerY, segW, powerBarH, 1.5)
             nvgFillColor(vg, nvgRGBA(fc.main[1], fc.main[2], fc.main[3], 200)); nvgFill(vg)
             px2 = px2 + segW
         end
@@ -170,8 +236,8 @@ local MAP_W = 1024   -- 地图坐标系宽度
 local MAP_H = 571    -- 地图坐标系高度
 local MAP_ZOOM_MIN = 1.0
 local MAP_ZOOM_MAX = 3.0
-local CITY_ICON_SIZE = 36     -- 城池图标尺寸(地图坐标)
-local FLAG_SIZE = 24          -- 旗帜尺寸(地图坐标)
+local CITY_ICON_SIZE = 48     -- 城池图标尺寸(地图坐标) 放大便于辨识
+local FLAG_SIZE = 32          -- 旗帜尺寸(地图坐标)
 
 -- 导出地图常量供 input 模块使用
 M.MAP_W = MAP_W
@@ -272,13 +338,13 @@ local function DrawCityIcons(t)
         if isSelected then
             local pulse = 0.5 + 0.5 * math.sin(t * 4)
             -- 外圈光环
-            nvgBeginPath(vg); nvgCircle(vg, cx, cy, iconSz * 0.7 + 6)
+            nvgBeginPath(vg); nvgCircle(vg, cx, cy, iconSz * 0.6 + 8)
             nvgStrokeColor(vg, nvgRGBA(255, 220, 80, math.floor(180 * pulse)))
-            nvgStrokeWidth(vg, 3); nvgStroke(vg)
+            nvgStrokeWidth(vg, 2.5); nvgStroke(vg)
             -- 内圈发光
-            local glow = nvgRadialGradient(vg, cx, cy, iconSz * 0.3, iconSz * 0.8,
-                nvgRGBA(255, 230, 100, math.floor(80 * pulse)), nvgRGBA(255, 200, 50, 0))
-            nvgBeginPath(vg); nvgCircle(vg, cx, cy, iconSz * 0.8)
+            local glow = nvgRadialGradient(vg, cx, cy, iconSz * 0.25, iconSz * 0.65,
+                nvgRGBA(255, 230, 100, math.floor(70 * pulse)), nvgRGBA(255, 200, 50, 0))
+            nvgBeginPath(vg); nvgCircle(vg, cx, cy, iconSz * 0.65)
             nvgFillPaint(vg, glow); nvgFill(vg)
         end
 
@@ -299,29 +365,26 @@ local function DrawCityIcons(t)
         -- 阵营旗帜 (偏右上)
         local flagImg = GetFlagImage(cd.owner)
         if IsImageReady(flagImg) then
-            local flagX = cx + iconSz * 0.3
-            local flagY = cy - iconSz * 0.35
+            local flagX = cx + iconSz * 0.32
+            local flagY = cy - iconSz * 0.38
             DrawIcon(flagImg, flagX, flagY, FLAG_SIZE, 0.9)
         end
 
         -- 城池名称 (带阴影)
-        nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 13)
-        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
-        local nameY = cy + iconSz * 0.42
-        -- 名称背景条
+        nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        local nameY = cy + iconSz * 0.45
+        -- 名称背景条 (高度匹配18pt字体)
         local tw = nvgTextBounds(vg, 0, 0, city.name, nil)
-        nvgBeginPath(vg); nvgRoundedRect(vg, cx - tw / 2 - 4, nameY - 1, tw + 8, 16, 3)
-        nvgFillColor(vg, nvgRGBA(30, 15, 5, 140)); nvgFill(vg)
-        -- 名称文字
-        nvgFillColor(vg, nvgRGBA(255, 245, 210, isPlayer and 255 or 200))
-        nvgText(vg, cx, nameY, city.name, nil)
+        local nameBgH = 24
+        nvgBeginPath(vg); nvgRoundedRect(vg, cx - tw / 2 - 6, nameY, tw + 12, nameBgH, 4)
+        nvgFillColor(vg, nvgRGBA(30, 15, 5, 170)); nvgFill(vg)
+        -- 名称文字 (居中对齐)
+        M.DrawTextOutlined(cx, nameY + nameBgH / 2, city.name, 18, isPlayer and 255 or 200)
 
-        -- 驻军数显示 (小字)
+        -- 驻军数显示
         if cd.garrison > 0 then
-            nvgFontSize(vg, 10)
-            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
-            nvgFillColor(vg, nvgRGBA(220, 200, 160, 180))
-            nvgText(vg, cx, nameY + 15, "兵" .. cd.garrison, nil)
+            M.DrawTextOutlined(cx, nameY + nameBgH + 2, "兵" .. FormatTroops(cd.garrison), 18, 200, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
         end
 
         -- 存储点击区域(地图坐标)
@@ -330,6 +393,197 @@ local function DrawCityIcons(t)
 
         ::cont_icon::
     end
+end
+
+-- ============================================================================
+-- 战斗动画: 地图坐标绘制 (行军路线/攻城/换旗/欢呼)
+-- 在 DrawCityIcons 之后、nvgRestore 之前调用 (地图变换内)
+-- ============================================================================
+local function DrawBattleAnimMap(t)
+    local st = worldMapState
+    if st.phase ~= "BATTLE_ANIM" then return end
+    local data = st.battleAnimData
+    if not data then return end
+    local phase = st.battleAnimPhase
+    local at = st.battleAnimT or 0
+
+    local fromCity = WORLD_CITIES[data.fromId]
+    local toCity   = WORLD_CITIES[data.toId]
+    if not fromCity or not toCity then return end
+
+    local fx, fy = fromCity.x, fromCity.y
+    local tx, ty = toCity.x,   toCity.y
+    local fc_atk = FC[data.fac] or FC.qun
+    local cr, cg, cb = fc_atk.main[1], fc_atk.main[2], fc_atk.main[3]
+
+    -- ---- march: 行军路线 + 部队图标 ----
+    if phase == "march" then
+        local dur = 1.5
+        local p = math.min(1, at / dur)
+        -- 虚线路径
+        nvgSave(vg)
+        nvgStrokeWidth(vg, 3)
+        nvgStrokeColor(vg, nvgRGBA(cr, cg, cb, 160))
+        nvgLineCap(vg, NVG_ROUND)
+        local segLen = 10
+        local dx, dy = tx - fx, ty - fy
+        local dist = math.sqrt(dx * dx + dy * dy)
+        local segs = math.max(1, math.floor(dist / segLen))
+        for i = 0, math.floor(segs * p) - 1 do
+            local s0 = i / segs
+            local s1 = math.min(p, (i + 0.5) / segs)
+            nvgBeginPath(vg)
+            nvgMoveTo(vg, fx + dx * s0, fy + dy * s0)
+            nvgLineTo(vg, fx + dx * s1, fy + dy * s1)
+            nvgStroke(vg)
+        end
+        nvgRestore(vg)
+
+        -- 部队圆点 (带兵力数)
+        local px = fx + dx * p
+        local py = fy + dy * p
+        -- 光晕
+        nvgBeginPath(vg); nvgCircle(vg, px, py, 18)
+        nvgFillColor(vg, nvgRGBA(cr, cg, cb, 60)); nvgFill(vg)
+        -- 实心
+        nvgBeginPath(vg); nvgCircle(vg, px, py, 10)
+        nvgFillColor(vg, nvgRGBA(cr, cg, cb, 220)); nvgFill(vg)
+        nvgStrokeColor(vg, nvgRGBA(255, 240, 200, 200))
+        nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
+        -- 兵力文字 (地图坐标18pt, 变换后自动缩放)
+        if data.troops then
+            M.DrawTextOutlined(px, py - 14, FormatTroops(data.troops), 18, 230, NVG_ALIGN_CENTER + NVG_ALIGN_BOTTOM)
+        end
+
+    -- ---- siege: 攻城冲击波 ----
+    elseif phase == "siege" then
+        local dur = 0.6
+        local p = math.min(1, at / dur)
+        -- 三圈扩散冲击波
+        for ring = 1, 3 do
+            local rp = math.max(0, p - (ring - 1) * 0.15)
+            if rp > 0 then
+                local radius = 12 + 40 * rp
+                local alpha = math.floor(200 * (1 - rp))
+                nvgBeginPath(vg); nvgCircle(vg, tx, ty, radius)
+                nvgStrokeColor(vg, nvgRGBA(255, 160, 60, alpha))
+                nvgStrokeWidth(vg, 3 - rp * 2); nvgStroke(vg)
+            end
+        end
+        -- 中心闪光
+        local flashA = math.floor(180 * (1 - p))
+        nvgBeginPath(vg); nvgCircle(vg, tx, ty, 8 + 6 * p)
+        nvgFillColor(vg, nvgRGBA(255, 220, 100, flashA)); nvgFill(vg)
+
+    -- ---- capture: 城池变色 + 旗帜升起 ----
+    elseif phase == "capture" then
+        local dur = 0.8
+        local p = math.min(1, at / dur)
+        -- 脉冲光环 (阵营色)
+        local pulse = 0.5 + 0.5 * math.sin(p * math.pi * 3)
+        local glowR = 20 + 30 * p
+        nvgBeginPath(vg); nvgCircle(vg, tx, ty, glowR)
+        nvgStrokeColor(vg, nvgRGBA(cr, cg, cb, math.floor(220 * pulse)))
+        nvgStrokeWidth(vg, 2.5); nvgStroke(vg)
+        -- 内部发光
+        local grad = nvgRadialGradient(vg, tx, ty, 4, glowR,
+            nvgRGBA(cr, cg, cb, math.floor(120 * pulse)), nvgRGBA(cr, cg, cb, 0))
+        nvgBeginPath(vg); nvgCircle(vg, tx, ty, glowR)
+        nvgFillPaint(vg, grad); nvgFill(vg)
+        -- 旗帜升起效果: 小三角旗从城池上方升起
+        local flagY = ty - CITY_ICON_SIZE * 0.38 - (1 - p) * 20
+        local flagAlpha = math.floor(255 * p)
+        nvgBeginPath(vg)
+        local flagX = tx + CITY_ICON_SIZE * 0.32
+        nvgMoveTo(vg, flagX, flagY - 8)
+        nvgLineTo(vg, flagX + 12, flagY - 4)
+        nvgLineTo(vg, flagX, flagY)
+        nvgClosePath(vg)
+        nvgFillColor(vg, nvgRGBA(cr, cg, cb, flagAlpha)); nvgFill(vg)
+
+    -- ---- cheer: 欢呼庆祝粒子 ----
+    elseif phase == "cheer" then
+        local dur = 0.8
+        local p = math.min(1, at / dur)
+        -- 8个粒子围绕城池旋转扩散
+        local count = 8
+        for i = 1, count do
+            local angle = (i / count) * math.pi * 2 + p * math.pi
+            local dist2 = 20 + 30 * p
+            local px = tx + math.cos(angle) * dist2
+            local py = ty + math.sin(angle) * dist2 - 10 * p  -- 上漂
+            local pAlpha = math.floor(220 * (1 - p * 0.6))
+            local pSize = 3 + 2 * (1 - p)
+            nvgBeginPath(vg); nvgCircle(vg, px, py, pSize)
+            -- 交替金色/阵营色
+            if i % 2 == 0 then
+                nvgFillColor(vg, nvgRGBA(255, 220, 80, pAlpha))
+            else
+                nvgFillColor(vg, nvgRGBA(cr, cg, cb, pAlpha))
+            end
+            nvgFill(vg)
+        end
+        -- 中心星爆
+        local starA = math.floor(160 * (1 - p))
+        local sGrad = nvgRadialGradient(vg, tx, ty, 2, 15 + 10 * p,
+            nvgRGBA(255, 240, 180, starA), nvgRGBA(255, 200, 80, 0))
+        nvgBeginPath(vg); nvgCircle(vg, tx, ty, 15 + 10 * p)
+        nvgFillPaint(vg, sGrad); nvgFill(vg)
+    end
+    -- notify 阶段不在地图坐标内绘制 (由 overlay 负责)
+end
+
+-- ============================================================================
+-- 战斗动画: 屏幕坐标覆盖层 (通知横幅 + 跳过提示)
+-- 在 DrawHeroPopup 之后、浮动飘字之前调用
+-- ============================================================================
+local function DrawBattleAnimOverlay(W, H)
+    local st = worldMapState
+    if st.phase ~= "BATTLE_ANIM" then return end
+    local data = st.battleAnimData
+    if not data then return end
+    local phase = st.battleAnimPhase
+    local at = st.battleAnimT or 0
+
+    -- ---- AI战斗标签 + 跳过提示 ----
+    if data.isAIBattle then
+        -- 左上角"AI交战"标签
+        M.DrawTextOutlined(12, 50, "[AI交战] " .. (data.facName or "") .. " x3", 20, 180, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+        -- 底部跳过提示
+        local blink = math.floor(180 + 60 * math.sin((at or 0) * 4))
+        M.DrawTextOutlined(W / 2, H - 16, "[ 点击跳过全部AI战斗 ]", 18, blink, NVG_ALIGN_CENTER + NVG_ALIGN_BOTTOM)
+    end
+
+    -- ---- notify: 战报通知横幅 ----
+    if phase == "notify" then
+        local dur = 2.0
+        -- 淡入淡出
+        local fadeIn = math.min(1, at / 0.3)
+        local fadeOut = math.max(0, 1 - math.max(0, at - (dur - 0.4)) / 0.4)
+        local alpha = math.floor(255 * fadeIn * fadeOut)
+        local bgAlpha = math.floor(200 * fadeIn * fadeOut)
+
+        -- 横幅背景 (居中, 宽度自适应)
+        local bannerH = 60
+        local bannerY = H * 0.35 - bannerH / 2
+        nvgBeginPath(vg); nvgRect(vg, 0, bannerY, W, bannerH)
+        nvgFillColor(vg, nvgRGBA(20, 10, 5, bgAlpha)); nvgFill(vg)
+        -- 上下金边
+        nvgBeginPath(vg); nvgMoveTo(vg, 0, bannerY); nvgLineTo(vg, W, bannerY)
+        nvgStrokeColor(vg, nvgRGBA(220, 180, 80, math.floor(alpha * 0.7)))
+        nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
+        nvgBeginPath(vg); nvgMoveTo(vg, 0, bannerY + bannerH); nvgLineTo(vg, W, bannerY + bannerH)
+        nvgStrokeColor(vg, nvgRGBA(220, 180, 80, math.floor(alpha * 0.7)))
+        nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
+
+        -- 通知文本
+        local msg = data.notify or ""
+        M.DrawTextOutlined(W / 2, bannerY + bannerH / 2, msg, 24, alpha)
+    end
+
+    -- ---- 底部跳过提示 (所有阶段) ----
+    local hintAlpha = math.floor(120 + 60 * math.sin((gameState.gameTime or 0) * 2.5))
+    M.DrawTextOutlined(W / 2, H - 12, "[ 点击屏幕跳过 ]", 18, hintAlpha, NVG_ALIGN_CENTER + NVG_ALIGN_BOTTOM)
 end
 
 -- ============================================================================
@@ -345,20 +599,17 @@ local function DrawCityList(W, H, t)
 
     -- 半透明面板背景
     nvgBeginPath(vg); nvgRect(vg, listX, listY, listW, listH)
-    nvgFillColor(vg, nvgRGBA(30, 18, 8, 170)); nvgFill(vg)
+    nvgFillColor(vg, nvgRGBA(28, 16, 6, 180)); nvgFill(vg)
     -- 右侧分隔线
     nvgBeginPath(vg); nvgMoveTo(vg, listW, listY); nvgLineTo(vg, listW, H)
-    nvgStrokeColor(vg, nvgRGBA(200, 160, 70, 80)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
+    nvgStrokeColor(vg, nvgRGBA(200, 160, 70, 60)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
-    -- 列表标题
-    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 15)
-    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, nvgRGBA(255, 230, 160, 220))
-    nvgText(vg, listW / 2, listY + 14, "— 城 池 —", nil)
+    -- 列表标题 (紧凑)
+    M.DrawTextOutlined(listW / 2, listY + 12, "-- 城 池 --", 18, 200)
 
     -- 裁切区域
-    local contentY = listY + 28
-    local contentH = listH - 28 - 42  -- 留底部按钮空间
+    local contentY = listY + 26
+    local contentH = listH - 26 - 40  -- 留底部按钮空间
     nvgSave(vg)
     nvgScissor(vg, listX, contentY, listW, contentH)
 
@@ -373,7 +624,9 @@ local function DrawCityList(W, H, t)
     local sortedCities = {}
     for _, city in ipairs(WORLD_CITIES) do
         local cd = st.cityData[city.id]
-        table.insert(sortedCities, {city = city, cd = cd, isPlayer = (cd.owner == "player")})
+        if cd then
+            table.insert(sortedCities, {city = city, cd = cd, isPlayer = (cd.owner == "player")})
+        end
     end
     table.sort(sortedCities, function(a, b)
         if a.isPlayer ~= b.isPlayer then return a.isPlayer end
@@ -388,34 +641,25 @@ local function DrawCityList(W, H, t)
     st._cityCardRects = st._cityCardRects or {}
     for k in pairs(st._cityCardRects) do st._cityCardRects[k] = nil end
 
-    -- 清除旧的武将名字点击区域
-    st._heroNameRects = st._heroNameRects or {}
-    for k in pairs(st._heroNameRects) do st._heroNameRects[k] = nil end
-
     for _, entry in ipairs(sortedCities) do
         local city = entry.city
         local cd = entry.cd
         local isPlayer = entry.isPlayer
 
         -- 分组标题
+        local groupH = 26
         if isPlayer and not drawnPlayerHeader then
             drawnPlayerHeader = true
-            if drawY + 20 > contentY - 20 and drawY < contentY + contentH then
-                nvgFontSize(vg, 12)
-                nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-                nvgFillColor(vg, nvgRGBA(255, 210, 80, 200))
-                nvgText(vg, pad + 4, drawY + 10, "▸ 我方城池", nil)
+            if drawY + groupH > contentY - groupH and drawY < contentY + contentH then
+                M.DrawTextOutlined(pad + 4, drawY + groupH / 2, "> 我方城池", 18, 220, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             end
-            drawY = drawY + 20
+            drawY = drawY + groupH
         elseif not isPlayer and not drawnEnemyHeader then
             drawnEnemyHeader = true
-            if drawY + 20 > contentY - 20 and drawY < contentY + contentH then
-                nvgFontSize(vg, 12)
-                nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-                nvgFillColor(vg, nvgRGBA(180, 160, 130, 180))
-                nvgText(vg, pad + 4, drawY + 10, "▸ 其他势力", nil)
+            if drawY + groupH > contentY - groupH and drawY < contentY + contentH then
+                M.DrawTextOutlined(pad + 4, drawY + groupH / 2, "> 其他势力", 18, 180, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             end
-            drawY = drawY + 20
+            drawY = drawY + groupH
         end
 
         -- 只绘制可见卡片
@@ -427,73 +671,122 @@ local function DrawCityList(W, H, t)
 
             -- 卡片背景
             if isSelected then
-                -- 选中态: 金色高亮
                 local pulse = 0.7 + 0.3 * math.sin(t * 3)
-                nvgBeginPath(vg); nvgRoundedRect(vg, cx, cy, cardW, cardH, 6)
-                nvgFillColor(vg, nvgRGBA(120, 90, 30, math.floor(180 * pulse))); nvgFill(vg)
-                nvgStrokeColor(vg, nvgRGBA(255, 210, 80, math.floor(220 * pulse)))
-                nvgStrokeWidth(vg, 2); nvgStroke(vg)
+                nvgBeginPath(vg); nvgRoundedRect(vg, cx, cy, cardW, cardH, 5)
+                nvgFillColor(vg, nvgRGBA(110, 80, 25, math.floor(170 * pulse))); nvgFill(vg)
+                nvgStrokeColor(vg, nvgRGBA(255, 210, 80, math.floor(200 * pulse)))
+                nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
             else
-                -- 普通态
-                nvgBeginPath(vg); nvgRoundedRect(vg, cx, cy, cardW, cardH, 6)
-                nvgFillColor(vg, nvgRGBA(fc.main[1], fc.main[2], fc.main[3], isPlayer and 60 or 35))
+                nvgBeginPath(vg); nvgRoundedRect(vg, cx, cy, cardW, cardH, 5)
+                nvgFillColor(vg, nvgRGBA(fc.main[1], fc.main[2], fc.main[3], isPlayer and 50 or 28))
                 nvgFill(vg)
-                nvgStrokeColor(vg, nvgRGBA(fc.main[1], fc.main[2], fc.main[3], isPlayer and 100 or 50))
+                nvgStrokeColor(vg, nvgRGBA(fc.main[1], fc.main[2], fc.main[3], isPlayer and 80 or 40))
                 nvgStrokeWidth(vg, 1); nvgStroke(vg)
             end
 
-            -- 阵营色条 (左侧竖条)
-            nvgBeginPath(vg); nvgRoundedRect(vg, cx, cy + 4, 4, cardH - 8, 2)
-            nvgFillColor(vg, nvgRGBA(fc.main[1], fc.main[2], fc.main[3], 220)); nvgFill(vg)
+            -- 阵营色条 (左侧竖条, 更窄)
+            nvgBeginPath(vg); nvgRoundedRect(vg, cx, cy + 3, 3, cardH - 6, 1.5)
+            nvgFillColor(vg, nvgRGBA(fc.main[1], fc.main[2], fc.main[3], 200)); nvgFill(vg)
 
-            -- 城池名称
-            nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 16)
-            nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
-            nvgFillColor(vg, isSelected and nvgRGBA(255, 240, 180, 255) or nvgRGBA(240, 225, 190, 230))
-            nvgText(vg, cx + 12, cy + 6, city.name, nil)
+            -- 第一行: 城池名称 + 阵营 (cy+4)
+            local ltAlign = NVG_ALIGN_LEFT + NVG_ALIGN_TOP
+            M.DrawTextOutlined(cx + 10, cy + 4, city.name, 20, isSelected and 255 or 230, ltAlign)
 
-            -- 区域+阵营
-            nvgFontSize(vg, 11)
-            local facName = isPlayer and "我方" or (FACTIONS[cd.owner] and FACTIONS[cd.owner].name or cd.owner)
-            nvgFillColor(vg, nvgRGBA(fc.light[1], fc.light[2], fc.light[3], 180))
-            nvgText(vg, cx + 60, cy + 8, facName .. " · " .. city.region, nil)
+            -- 阵营+区域 (名称右侧, 裁切防溢出)
+            nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
+            local facName = isPlayer and "我方" or GetFacName(cd.owner)
+            nvgFontSize(vg, 20)
+            local nameW = nvgTextBounds(vg, 0, 0, city.name, nil)
+            local facRegStr = facName .. " " .. city.region
+            nvgSave(vg)
+            nvgIntersectScissor(vg, cx + 12 + nameW, cy + 4, cardW - 14 - nameW, 24)
+            nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
+            nvgTextAlign(vg, ltAlign)
+            nvgFillColor(vg, nvgRGBA(0, 0, 0, 112))
+            nvgText(vg, cx + 12 + nameW - 1, cy + 6, facRegStr, nil)
+            nvgText(vg, cx + 12 + nameW + 1, cy + 6, facRegStr, nil)
+            nvgText(vg, cx + 12 + nameW, cy + 5, facRegStr, nil)
+            nvgText(vg, cx + 12 + nameW, cy + 7, facRegStr, nil)
+            nvgFillColor(vg, nvgRGBA(255, 255, 255, 160))
+            nvgText(vg, cx + 12 + nameW, cy + 6, facRegStr, nil)
+            nvgRestore(vg)
 
-            -- 第二行: 兵力/城防/产出
-            nvgFontSize(vg, 12)
-            nvgFillColor(vg, nvgRGBA(200, 190, 170, 200))
-            local infoY2 = cy + 26
-            nvgText(vg, cx + 12, infoY2, "兵:" .. cd.garrison, nil)
-            nvgText(vg, cx + 68, infoY2, "防:Lv" .. cd.level, nil)
-            nvgText(vg, cx + 125, infoY2, "产:" .. city.prod, nil)
+            -- 第二行: 兵力/城防/产出 (cy+30)
+            local infoY2 = cy + 30
+            local g = cd.garrison
+            local garStr = "兵" .. FormatTroops(g)
+            M.DrawTextOutlined(cx + 10, infoY2, garStr, 18, 220, ltAlign)
+            nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
+            local garW = nvgTextBounds(vg, 0, 0, garStr, nil)
+            local defStr = "防" .. cd.level
+            M.DrawTextOutlined(cx + 12 + garW + 4, infoY2, defStr, 18, 200, ltAlign)
+            local defW = nvgTextBounds(vg, 0, 0, defStr, nil)
+            M.DrawTextOutlined(cx + 16 + garW + defW + 8, infoY2, "民" .. (city.pop or 50), 18, 200, ltAlign)
 
-            -- 第三行: 士气(我方)/武将
-            nvgFontSize(vg, 11)
-            local row3Y = cy + 40
+            -- 薄弱角标
+            if not isPlayer and g < 40 then
+                local badgeX = cx + cardW - 36
+                local badgeY = cy + 2
+                nvgBeginPath(vg); nvgRoundedRect(vg, badgeX, badgeY, 34, 22, 4)
+                nvgFillColor(vg, nvgRGBA(180, 40, 20, 190)); nvgFill(vg)
+                nvgFontSize(vg, 18)
+                nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                nvgFillColor(vg, nvgRGBA(255, 220, 200, 255))
+                nvgText(vg, badgeX + 17, badgeY + 11, "弱", nil)
+                nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+            end
+
+            -- 第三行: 士气/武将 (cy+56)
+            local row3Y = cy + 56
             if isPlayer then
-                nvgFillColor(vg, nvgRGBA(180, 220, 120, 200))
-                nvgText(vg, cx + 12, row3Y, "气:" .. cd.morale, nil)
+                local moraleVal = cd.morale or 50
+                M.DrawTextOutlined(cx + 10, row3Y, "气" .. moraleVal, 18, 200, ltAlign)
             end
             if #cd.heroes > 0 then
-                local heroX = isPlayer and (cx + 50) or (cx + 12)
-                nvgFillColor(vg, nvgRGBA(140, 170, 220, 180))
-                nvgText(vg, heroX, row3Y, "将:", nil)
-                local nameStartX = heroX + 22
+                local heroX = isPlayer and (cx + 52) or (cx + 10)
+                M.DrawTextOutlined(heroX, row3Y, "将:", 18, 180, ltAlign)
+                nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
+                local nameStartX = heroX + nvgTextBounds(vg, 0, 0, "将:", nil) + 4
+                -- 裁切武将名防溢出
+                nvgSave(vg)
+                nvgIntersectScissor(vg, nameStartX, row3Y, cx + cardW - nameStartX - 4, 22)
+                nvgTextAlign(vg, ltAlign)
                 for hi, hIdx in ipairs(cd.heroes) do
                     local card = HERO_CARDS[hIdx]
                     if card then
-                        -- 武将名可点击 (带下划线风格)
-                        nvgFillColor(vg, nvgRGBA(180, 220, 255, 230))
-                        local tw = nvgTextBounds(vg, 0, 0, card.name, nil)
+                        nvgFillColor(vg, nvgRGBA(0, 0, 0, 154))
+                        nvgText(vg, nameStartX - 1, row3Y, card.name, nil)
+                        nvgText(vg, nameStartX + 1, row3Y, card.name, nil)
+                        nvgText(vg, nameStartX, row3Y - 1, card.name, nil)
+                        nvgText(vg, nameStartX, row3Y + 1, card.name, nil)
+                        nvgFillColor(vg, nvgRGBA(255, 255, 255, 220))
                         nvgText(vg, nameStartX, row3Y, card.name, nil)
-                        -- 下划线
-                        nvgBeginPath(vg); nvgMoveTo(vg, nameStartX, row3Y + 12)
-                        nvgLineTo(vg, nameStartX + tw, row3Y + 12)
-                        nvgStrokeColor(vg, nvgRGBA(160, 200, 255, 80)); nvgStrokeWidth(vg, 0.5); nvgStroke(vg)
-                        -- 存储点击区域
-                        st._heroNameRects[hIdx] = { x = nameStartX, y = row3Y - 2, w = tw, h = 14 }
-                        nameStartX = nameStartX + tw + 6
+                        nameStartX = nameStartX + nvgTextBounds(vg, 0, 0, card.name, nil) + 5
                     end
                 end
+                nvgRestore(vg)
+            end
+
+            -- 第四行: 武将综合战力指示条 (cy+82)
+            if #cd.heroes > 0 then
+                local barY4 = cy + 84
+                local barMaxW = cardW - 20
+                local totalPower = Logic.CalcSquadPower(cd.heroes)
+                local maxPower = #cd.heroes * 80
+                local ratio = math.min(1, totalPower / math.max(1, maxPower))
+                -- 战力条背景
+                nvgBeginPath(vg); nvgRoundedRect(vg, cx + 10, barY4, barMaxW, 6, 3)
+                nvgFillColor(vg, nvgRGBA(40, 35, 25, 80)); nvgFill(vg)
+                -- 战力条前景
+                local fillW4 = math.floor(barMaxW * ratio)
+                if fillW4 > 0 then
+                    local r4 = ratio < 0.5 and 200 or math.floor(100 + 120 * (1 - ratio))
+                    local g4 = ratio < 0.5 and math.floor(140 + 120 * ratio) or 200
+                    nvgBeginPath(vg); nvgRoundedRect(vg, cx + 10, barY4, fillW4, 6, 3)
+                    nvgFillColor(vg, nvgRGBA(r4, g4, 80, 170)); nvgFill(vg)
+                end
+                -- 战力数值 (条右侧)
+                M.DrawTextOutlined(cx + 12 + fillW4 + 3, barY4 - 3, string.format("%.0f", totalPower), 18, 160, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
             end
 
             -- 存储卡片点击区域
@@ -509,23 +802,14 @@ local function DrawCityList(W, H, t)
 
     nvgRestore(vg)
 
-    -- 底部按钮区域
-    local btnAreaY = H - 40
-    local btnW2 = 90
-    local endBtnX = listW / 2 - btnW2 / 2
-
-    local pulse = 0.8 + 0.2 * math.sin(t * 3)
-    st.btn_endTurn = M.DrawBtn(pad, btnAreaY, btnW2, 30, "结束回合",
-        math.floor(160 * pulse), math.floor(130 * pulse), 30)
-
-    st.btn_back = M.DrawBtn(pad + btnW2 + 6, btnAreaY, 60, 30, "返回", 60, 55, 50)
+    -- (结束回合已移至右侧面板底部, 返回已移至顶栏)
 
     -- 滚动条
     if st._cityListTotalH > contentH then
-        local scrollBarH = math.max(20, contentH * (contentH / st._cityListTotalH))
+        local scrollBarH = math.max(16, contentH * (contentH / st._cityListTotalH))
         local scrollBarY = contentY + (scrollY / (st._cityListTotalH - contentH)) * (contentH - scrollBarH)
         nvgBeginPath(vg); nvgRoundedRect(vg, listW - 4, scrollBarY, 3, scrollBarH, 1.5)
-        nvgFillColor(vg, nvgRGBA(200, 170, 100, 100)); nvgFill(vg)
+        nvgFillColor(vg, nvgRGBA(200, 170, 100, 80)); nvgFill(vg)
     end
 end
 
@@ -555,9 +839,9 @@ local function DrawHeroPopup(W, H, t)
     nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
     nvgFillColor(vg, nvgRGBA(0, 0, 0, 160)); nvgFill(vg)
 
-    -- 弹窗尺寸 (我方武将更大以容纳操作按钮)
-    local popW = 360
-    local popH = isPlayerHero and 440 or 400
+    -- 弹窗尺寸 (适配18pt最低字号)
+    local popW = 420
+    local popH = isPlayerHero and 540 or 480
     local popX = (W - popW) / 2
     local popY = (H - popH) / 2
 
@@ -572,21 +856,18 @@ local function DrawHeroPopup(W, H, t)
     nvgStrokeColor(vg, nvgRGBA(220, 180, 80, 200)); nvgStrokeWidth(vg, 2); nvgStroke(vg)
 
     -- 顶部装饰条
-    nvgBeginPath(vg); nvgRoundedRect(vg, popX + 2, popY + 2, popW - 4, 36, 8)
-    local titleGrad = nvgLinearGradient(vg, popX, popY, popX + popW, popY + 36,
+    nvgBeginPath(vg); nvgRoundedRect(vg, popX + 2, popY + 2, popW - 4, 30, 8)
+    local titleGrad = nvgLinearGradient(vg, popX, popY, popX + popW, popY + 30,
         nvgRGBA(180, 130, 40, 200), nvgRGBA(140, 90, 20, 200))
     nvgFillPaint(vg, titleGrad); nvgFill(vg)
 
     -- 武将名 + 品质
-    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 20)
-    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFillColor(vg, nvgRGBA(255, 245, 200, 255))
-    nvgText(vg, popX + popW / 2, popY + 20, card.name, nil)
+    M.DrawTextOutlined(popX + popW / 2, popY + 17, card.name, 18, 255)
 
     -- === 左侧: 卡牌立绘 ===
     local cardAreaX = popX + 14
-    local cardAreaY = popY + 44
-    local cardW2, cardH2 = 100, 130
+    local cardAreaY = popY + 38
+    local cardW2, cardH2 = 110, 144
 
     -- 使用 DrawInventoryCard 渲染完整卡牌
     local hero = playerHeroes and playerHeroes[hIdx]
@@ -594,88 +875,117 @@ local function DrawHeroPopup(W, H, t)
     DrawInventoryCard(cardAreaX, cardAreaY, cardW2, cardH2, card, cons, false, false)
 
     -- === 右侧: 属性面板 ===
-    local infoX = cardAreaX + cardW2 + 14
-    local infoW = popW - (cardW2 + 14) - 28
-    local lineH = 20
-    nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+    local infoX = cardAreaX + cardW2 + 10
+    local infoW = popW - (cardW2 + 10) - 24
+    local lineH = 24  -- 18pt字体用24px行高(紧凑)
+    local ltAlign = NVG_ALIGN_LEFT + NVG_ALIGN_TOP
 
     local attrY = cardAreaY + 2
 
     -- 势力
-    local facName = card.faction and FACTIONS[card.faction] and FACTIONS[card.faction].name or "群雄"
-    nvgFillColor(vg, nvgRGBA(180, 170, 140, 200)); nvgText(vg, infoX, attrY, "势力", nil)
-    nvgFillColor(vg, nvgRGBA(255, 230, 150, 255)); nvgText(vg, infoX + 42, attrY, facName, nil)
+    local facName = card.faction and GetFacName(card.faction) or "群雄"
+    M.DrawTextOutlined(infoX, attrY, "势力", 18, 180, ltAlign)
+    M.DrawTextOutlined(infoX + 38, attrY, facName, 18, 240, ltAlign)
 
     -- 兵种
     attrY = attrY + lineH
     local troopKey = st.heroTroopChoice[hIdx] or card.troopType or "infantry"
     local ttInfo = TROOP_TYPES[troopKey]
-    local troopDisp = ttInfo and (ttInfo.icon .. ttInfo.name) or troopKey
-    nvgFillColor(vg, nvgRGBA(180, 170, 140, 200)); nvgText(vg, infoX, attrY, "兵种", nil)
-    nvgFillColor(vg, nvgRGBA(255, 230, 150, 255)); nvgText(vg, infoX + 42, attrY, troopDisp, nil)
+    local troopDisp = ttInfo and ttInfo.name or "步兵"
+    M.DrawTextOutlined(infoX, attrY, "兵种", 18, 180, ltAlign)
+    M.DrawTextOutlined(infoX + 38, attrY, troopDisp, 18, 240, ltAlign)
 
-    -- 武力
-    attrY = attrY + lineH
-    nvgFillColor(vg, nvgRGBA(180, 170, 140, 200)); nvgText(vg, infoX, attrY, "武力", nil)
-    nvgFillColor(vg, nvgRGBA(255, 140, 100, 255)); nvgText(vg, infoX + 42, attrY, tostring(card.atk or 0), nil)
-
-    -- 智力
-    attrY = attrY + lineH
-    nvgFillColor(vg, nvgRGBA(180, 170, 140, 200)); nvgText(vg, infoX, attrY, "智力", nil)
-    nvgFillColor(vg, nvgRGBA(120, 180, 255, 255)); nvgText(vg, infoX + 42, attrY, tostring(card.intel or 0), nil)
-
-    -- 统帅
-    attrY = attrY + lineH
-    nvgFillColor(vg, nvgRGBA(180, 170, 140, 200)); nvgText(vg, infoX, attrY, "统帅", nil)
-    nvgFillColor(vg, nvgRGBA(255, 210, 80, 255)); nvgText(vg, infoX + 42, attrY, tostring(card.cmd or 0), nil)
-
-    -- 速度
-    attrY = attrY + lineH
-    nvgFillColor(vg, nvgRGBA(180, 170, 140, 200)); nvgText(vg, infoX, attrY, "速度", nil)
-    nvgFillColor(vg, nvgRGBA(100, 220, 150, 255)); nvgText(vg, infoX + 42, attrY, tostring(card.spd or 0), nil)
+    -- === 五维属性 (stats5) ===
+    local s5 = card.stats5 or { str = 50, int = 50, vit = 50, tec = 50, spd = 50 }
+    local barW = infoW - 62  -- 进度条宽度
+    local barH = 6            -- 进度条高度(更细)
+    local stats5List = {
+        { label = "武力", val = s5.str, clr = {255, 140, 100} },
+        { label = "智力", val = s5.int, clr = {120, 180, 255} },
+        { label = "体力", val = s5.vit, clr = {100, 220, 130} },
+        { label = "技法", val = s5.tec, clr = {255, 210, 80} },
+        { label = "速度", val = s5.spd, clr = {100, 220, 200} },
+    }
+    for _, attr in ipairs(stats5List) do
+        attrY = attrY + lineH
+        -- 标签
+        M.DrawTextOutlined(infoX, attrY, attr.label, 18, 180, ltAlign)
+        -- 数值
+        M.DrawTextOutlined(infoX + 38, attrY, tostring(attr.val), 18, 240, ltAlign)
+        -- 进度条背景
+        local bx = infoX + 62
+        local by = attrY + 7
+        nvgBeginPath(vg); nvgRoundedRect(vg, bx, by, barW, barH, 3)
+        nvgFillColor(vg, nvgRGBA(40, 35, 25, 150)); nvgFill(vg)
+        -- 进度条前景
+        local fillW = math.floor(barW * math.min(attr.val, 100) / 100)
+        if fillW > 0 then
+            nvgBeginPath(vg); nvgRoundedRect(vg, bx, by, fillW, barH, 3)
+            nvgFillColor(vg, nvgRGBA(attr.clr[1], attr.clr[2], attr.clr[3], 200)); nvgFill(vg)
+        end
+    end
 
     -- === 下方: 武技/习得 ===
     local bottomY = cardAreaY + cardH2 + 10
-    nvgFontSize(vg, 13); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
-    local detailX = popX + 18
+    local detailLineH = 26  -- 18pt字体用26px行高
+    local detailX = popX + 14
 
     -- 横线分隔
-    nvgBeginPath(vg); nvgMoveTo(vg, popX + 14, bottomY - 4); nvgLineTo(vg, popX + popW - 14, bottomY - 4)
+    nvgBeginPath(vg); nvgMoveTo(vg, popX + 12, bottomY - 4); nvgLineTo(vg, popX + popW - 12, bottomY - 4)
     nvgStrokeColor(vg, nvgRGBA(180, 150, 80, 60)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
     -- 武技
     if card.techs and #card.techs > 0 then
-        nvgFillColor(vg, nvgRGBA(180, 170, 140, 200)); nvgText(vg, detailX, bottomY, "武技:", nil)
-        nvgFillColor(vg, nvgRGBA(180, 220, 255, 240))
+        M.DrawTextOutlined(detailX, bottomY, "武技:", 18, 180, ltAlign)
         local techNames = {}
         for _, tech in ipairs(card.techs) do table.insert(techNames, tech.name or "?") end
+        local techStr = table.concat(techNames, " / ")
         nvgSave(vg)
-        nvgIntersectScissor(vg, detailX + 42, bottomY, popW - 74, lineH)
-        nvgText(vg, detailX + 42, bottomY, table.concat(techNames, " · "), nil)
+        nvgIntersectScissor(vg, detailX + 46, bottomY, popW - 74, detailLineH)
+        nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
+        nvgTextAlign(vg, ltAlign)
+        nvgFillColor(vg, nvgRGBA(0, 0, 0, 168))
+        nvgText(vg, detailX + 45, bottomY, techStr, nil)
+        nvgText(vg, detailX + 47, bottomY, techStr, nil)
+        nvgText(vg, detailX + 46, bottomY - 1, techStr, nil)
+        nvgText(vg, detailX + 46, bottomY + 1, techStr, nil)
+        nvgFillColor(vg, nvgRGBA(255, 255, 255, 240))
+        nvgText(vg, detailX + 46, bottomY, techStr, nil)
         nvgRestore(vg)
-        bottomY = bottomY + lineH
+        bottomY = bottomY + detailLineH
     end
 
     -- 拜师学到的技能
     if st.heroLearnedSkills[hIdx] then
         local ls = st.heroLearnedSkills[hIdx]
-        nvgFillColor(vg, nvgRGBA(180, 170, 140, 200)); nvgText(vg, detailX, bottomY, "习得:", nil)
+        M.DrawTextOutlined(detailX, bottomY, "习得:", 18, 180, ltAlign)
         local teacherCard = HERO_CARDS[ls.teacherIdx]
         local teacherTech = teacherCard and teacherCard.techs and teacherCard.techs[ls.techIdx]
         if teacherTech then
-            nvgFillColor(vg, nvgRGBA(255, 200, 120, 255))
-            nvgText(vg, detailX + 42, bottomY, teacherTech.name .. " (师从" .. (teacherCard.name or "") .. ")", nil)
+            local learnStr = teacherTech.name .. " (师从" .. (teacherCard.name or "") .. ")"
+            nvgSave(vg)
+            nvgIntersectScissor(vg, detailX + 46, bottomY, popW - 74, detailLineH)
+            nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 18)
+            nvgTextAlign(vg, ltAlign)
+            nvgFillColor(vg, nvgRGBA(0, 0, 0, 168))
+            nvgText(vg, detailX + 45, bottomY, learnStr, nil)
+            nvgText(vg, detailX + 47, bottomY, learnStr, nil)
+            nvgText(vg, detailX + 46, bottomY - 1, learnStr, nil)
+            nvgText(vg, detailX + 46, bottomY + 1, learnStr, nil)
+            nvgFillColor(vg, nvgRGBA(255, 255, 255, 240))
+            nvgText(vg, detailX + 46, bottomY, learnStr, nil)
+            nvgRestore(vg)
         end
-        bottomY = bottomY + lineH
+        bottomY = bottomY + detailLineH
     end
 
     -- 驻城信息
     if heroCityId then
         local cityInfo = WORLD_CITIES[heroCityId]
         if cityInfo then
-            nvgFillColor(vg, nvgRGBA(180, 170, 140, 200)); nvgText(vg, detailX, bottomY, "驻城:", nil)
-            nvgFillColor(vg, nvgRGBA(200, 220, 160, 255)); nvgText(vg, detailX + 42, bottomY, cityInfo.name, nil)
-            bottomY = bottomY + lineH
+            M.DrawTextOutlined(detailX, bottomY, "驻城:", 18, 180, ltAlign)
+            M.DrawTextOutlined(detailX + 46, bottomY, cityInfo.name, 18, 240, ltAlign)
+            bottomY = bottomY + detailLineH
         end
     end
 
@@ -683,37 +993,37 @@ local function DrawHeroPopup(W, H, t)
     if isPlayerHero then
         bottomY = bottomY + 6
         -- 横线分隔
-        nvgBeginPath(vg); nvgMoveTo(vg, popX + 14, bottomY - 2); nvgLineTo(vg, popX + popW - 14, bottomY - 2)
+        nvgBeginPath(vg); nvgMoveTo(vg, popX + 12, bottomY - 2); nvgLineTo(vg, popX + popW - 12, bottomY - 2)
         nvgStrokeColor(vg, nvgRGBA(180, 150, 80, 60)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
-        local btnW3 = 90
-        local btnH3 = 28
-        local btnGap = 8
+        local btnW3 = 96
+        local btnH3 = 34
+        local btnGap = 6
         local totalBtnW = btnW3 * 3 + btnGap * 2
         local btnStartX = popX + (popW - totalBtnW) / 2
 
         -- 武将管理按钮
-        st.btn_heroPopupManage = M.DrawBtn(btnStartX, bottomY + 2, btnW3, btnH3, "武将管理", 100, 80, 40)
+        st.btn_heroPopupManage = M.DrawBtn(btnStartX, bottomY + 2, btnW3, btnH3, "武将管理", 100, 80, 45)
 
         -- 兵种切换按钮
         local troopOpts = card.troopOptions or { card.troopType }
         if #troopOpts > 1 then
-            st.btn_heroPopupTroop = M.DrawBtn(btnStartX + btnW3 + btnGap, bottomY + 2, btnW3, btnH3, "切换兵种", 80, 100, 60)
+            st.btn_heroPopupTroop = M.DrawBtn(btnStartX + btnW3 + btnGap, bottomY + 2, btnW3, btnH3, "切换兵种", 100, 80, 45)
         end
 
         -- 拜师按钮
         if not st.heroLearnedSkills[hIdx] then
-            st.btn_heroPopupApprentice = M.DrawBtn(btnStartX + (btnW3 + btnGap) * 2, bottomY + 2, btnW3, btnH3, "拜师学技", 60, 80, 120)
+            st.btn_heroPopupApprentice = M.DrawBtn(btnStartX + (btnW3 + btnGap) * 2, bottomY + 2, btnW3, btnH3, "拜师学技", 100, 80, 45)
         end
 
         bottomY = bottomY + btnH3 + 8
     end
 
     -- 关闭按钮
-    local closeBtnW, closeBtnH = 80, 30
+    local closeBtnW, closeBtnH = 88, 34
     local closeBtnX = popX + (popW - closeBtnW) / 2
-    local closeBtnY = popY + popH - 38
-    st.btn_heroPopupClose = M.DrawBtn(closeBtnX, closeBtnY, closeBtnW, closeBtnH, "关闭", 120, 80, 40)
+    local closeBtnY = popY + popH - 40
+    st.btn_heroPopupClose = M.DrawBtn(closeBtnX, closeBtnY, closeBtnW, closeBtnH, "关闭", 55, 50, 48)
 end
 
 -- ============================================================================
@@ -724,6 +1034,12 @@ function M.DrawWorldMapScreen(drawPanelFn)
     local W, H = DESIGN_W, DESIGN_H
     local t = gameState.gameTime or 0
     st.mapPulse = t
+
+    -- 屏幕震动
+    local AnimShake = require("ui.anim")
+    AnimShake.UpdateShake(t)
+    nvgSave(vg)
+    AnimShake.ApplyShake()
 
     local L = M.LAYOUT
 
@@ -756,11 +1072,15 @@ function M.DrawWorldMapScreen(drawPanelFn)
         end
     end
 
-    -- === 地图视口区域 (左侧列表和右侧面板之间) ===
-    local mapViewX = L.LEFT_W
+    -- === 地图视口区域 (根据面板收缩状态动态计算) ===
+    local leftCollapsed  = st.leftPanelCollapsed  or false
+    local rightCollapsed = st.rightPanelCollapsed or false
+    local hasPanel = (st.selectedCity ~= nil) or (st.phase ~= "MAP" and st.phase ~= "BATTLE_ANIM")
+    local effectiveLeftW  = leftCollapsed and 0 or L.LEFT_W
+    local effectiveRightW = (hasPanel and not rightCollapsed) and L.RIGHT_W or 0
+    local mapViewX = effectiveLeftW
     local mapViewY = L.TOP_BAR_H
-    local hasPanel = (st.selectedCity ~= nil) or (st.phase ~= "MAP")
-    local mapViewW = hasPanel and (W - L.LEFT_W - L.RIGHT_W) or (W - L.LEFT_W)
+    local mapViewW = W - effectiveLeftW - effectiveRightW
     local mapViewH = H - L.TOP_BAR_H
 
     -- 计算适配缩放: 最小缩放时地图覆盖整个视口 (cover模式, 无留白)
@@ -822,6 +1142,9 @@ function M.DrawWorldMapScreen(drawPanelFn)
     -- 城池图标+连线 (在地图坐标系中绘制)
     DrawCityIcons(t)
 
+    -- 战斗动画: 行军/攻城/换旗/欢呼 (地图坐标)
+    DrawBattleAnimMap(t)
+
     nvgRestore(vg) -- 结束地图变换
 
     -- 地图边缘渐隐 (遮罩)
@@ -841,7 +1164,9 @@ function M.DrawWorldMapScreen(drawPanelFn)
     nvgRestore(vg) -- 结束 scissor
 
     -- === 2. 左侧城池列表 ===
-    DrawCityList(W, H, t)
+    if not leftCollapsed then
+        DrawCityList(W, H, t)
+    end
 
     -- === 3. 右侧操作面板 ===
     local rpX = W - L.RIGHT_W
@@ -849,22 +1174,113 @@ function M.DrawWorldMapScreen(drawPanelFn)
     local rpW = L.RIGHT_W
     local rpH = H - L.TOP_BAR_H
 
-    if hasPanel then
+    -- 全屏覆盖面板 (剧本/阵营选择，不依赖右侧面板区域)
+    local isFullscreenPhase = (st.phase == "CAMPAIGN_SELECT" or st.phase == "FACTION_SELECT" or st.phase == "TURN_REPORT")
+    if isFullscreenPhase then
+        if drawPanelFn then
+            drawPanelFn(0, 0, W, H, t)
+        end
+    elseif hasPanel and not rightCollapsed then
         nvgBeginPath(vg); nvgRect(vg, rpX, rpY, rpW, rpH)
         nvgFillColor(vg, nvgRGBA(30, 18, 8, 170)); nvgFill(vg)
         nvgBeginPath(vg); nvgMoveTo(vg, rpX, rpY); nvgLineTo(vg, rpX, H)
         nvgStrokeColor(vg, nvgRGBA(200, 160, 70, 80)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
+        if drawPanelFn then
+            drawPanelFn(rpX, rpY, rpW, rpH, t)
+        end
+    else
+        -- 右侧面板未绘制(收起或无面板): 清除所有面板相关点击区域, 防止残留rect穿透
+        st._mapPanelHeroRects = nil
+        st._mapPanelHeroScrollArea = nil
+        st._mapPanelHeroTotalH = nil
+        st._atkSourceRects = nil
+        st._atkTargetRects = nil
+        st._transferSourceRects = nil
+        st.heroPopup = nil; st._heroPopupRect = nil
+        -- 清除面板按钮rect
+        st.btn_affairs = nil; st.btn_reinforce = nil; st.btn_transfer = nil
+        st.btn_diplomacy = nil; st.btn_stratagem = nil; st.btn_attack = nil
+        st.btn_cancelAtk = nil; st.btn_confirmAtk = nil
+        st.btn_atkSourceBack = nil; st.btn_transferBack = nil
+        st.btn_affairsBack = nil; st.btn_diploBack = nil; st.btn_stratBack = nil
+        st.btn_moveBack = nil
     end
 
-    if drawPanelFn then
-        drawPanelFn(rpX, rpY, rpW, rpH, t)
+    -- === 4. 面板收缩 Tab 按钮 (全屏面板阶段不显示) ===
+    if isFullscreenPhase then
+        st.btn_toggleLeft = nil
+        st.btn_toggleRight = nil
+        return  -- 全屏面板不绘制Tab/顶部栏/武将弹窗
+    end
+    local tabW, tabH = 24, 72  -- 放大按钮，更易点击
+    local tabY = L.TOP_BAR_H + (H - L.TOP_BAR_H) / 2 - tabH / 2
+    local tabRadius = 6
+    local tabPulse = 0.85 + 0.15 * math.sin(t * 2.2)
+    local tabFill    = nvgRGBA(50, 34, 14, 220)
+    local tabStroke  = nvgRGBA(220, 175, 80, math.floor(150 * tabPulse))
+    local tabText    = nvgRGBA(240, 210, 150, 230)
+
+    -- 左侧 Tab
+    local leftTabX = leftCollapsed and 0 or (L.LEFT_W - tabW)
+    local leftArrow = leftCollapsed and "▶" or "◀"
+    nvgBeginPath(vg); nvgRoundedRect(vg, leftTabX, tabY, tabW, tabH, tabRadius)
+    nvgFillColor(vg, tabFill); nvgFill(vg)
+    nvgBeginPath(vg); nvgRoundedRect(vg, leftTabX, tabY, tabW, tabH, tabRadius)
+    nvgStrokeColor(vg, tabStroke); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
+    nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 24)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, tabText)
+    nvgText(vg, leftTabX + tabW / 2, tabY + tabH / 2, leftArrow, nil)
+    st.btn_toggleLeft = { x = leftTabX, y = tabY, w = tabW, h = tabH }
+
+    -- 右侧 Tab (仅当 hasPanel 时显示)
+    if hasPanel then
+        local rightTabX = rightCollapsed and (W - tabW) or (W - L.RIGHT_W)
+        local rightArrow = rightCollapsed and "◀" or "▶"
+        nvgBeginPath(vg); nvgRoundedRect(vg, rightTabX, tabY, tabW, tabH, tabRadius)
+        nvgFillColor(vg, tabFill); nvgFill(vg)
+        nvgBeginPath(vg); nvgRoundedRect(vg, rightTabX, tabY, tabW, tabH, tabRadius)
+        nvgStrokeColor(vg, tabStroke); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
+        nvgFontFaceId(vg, GetMainFont()); nvgFontSize(vg, 24)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        nvgFillColor(vg, tabText)
+        nvgText(vg, rightTabX + tabW / 2, tabY + tabH / 2, rightArrow, nil)
+        st.btn_toggleRight = { x = rightTabX, y = tabY, w = tabW, h = tabH }
+    else
+        st.btn_toggleRight = nil
     end
 
-    -- === 4. 顶部状态栏 (最后绘制，覆盖在最上层) ===
+    -- === 5. 顶部状态栏 (最后绘制，覆盖在最上层) ===
     DrawTopBar(W, H)
 
-    -- === 5. 武将弹窗 (最顶层) ===
+    -- === 6. 武将弹窗 (最顶层) ===
     DrawHeroPopup(W, H, t)
+
+    -- === 6.5 战斗动画覆盖层 (通知横幅 + 跳过提示) ===
+    DrawBattleAnimOverlay(W, H)
+
+    -- === 7. 浮动飘字 + 屏幕闪烁 ===
+    local Anim = require("ui.anim")
+    Anim.DrawFloatNumbers(t)
+    Anim.DrawFlash(W, H, t)
+
+    -- === 7.5 回合播报 ===
+    Anim.DrawTurnAnnounce(W, H, t)
+
+    -- === 7.6 飞卡动画 (搜索人才成功) ===
+    Anim.UpdateFlyingCard(t)
+    local fcBtn = Anim.DrawFlyingCard(W, H, t)
+    worldMapState.btn_talentOk = fcBtn
+
+    -- === 7.7 通用操作反馈弹窗 (征兵/升级城防/犒赏三军) ===
+    Anim.UpdateActionCard(t)
+    Anim.DrawActionCard(W, H, t)
+
+    -- === 8. 屏幕转场遮罩 (绝对最顶层) ===
+    Anim.DrawTransition(W, H)
+
+    -- 恢复震动偏移
+    nvgRestore(vg)
 end
 
 return M

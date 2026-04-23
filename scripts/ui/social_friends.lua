@@ -63,7 +63,7 @@ function DrawFriendsScreen()
         local friendIds = CloudManager.GetFriendIds()
         local friendCount = friendIds and #friendIds or 0
         -- 好友计数
-        nvgFontSize(vg, 15); nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
+        nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
         nvgFillColor(vg, nvgRGBA(160, 160, 160, 180))
         nvgText(vg, W - pad, bodyTop - 6, tostring(friendCount) .. "/50", nil)
 
@@ -86,7 +86,7 @@ function DrawFriendsScreen()
                 nvgFillColor(vg, nvgRGBA(200, 230, 255, 240))
                 nvgText(vg, pad + 14, cy + cardH / 2 - 8, fr.nickname or ("玩家" .. tostring(fr.userId or "")), nil)
                 -- 战力
-                nvgFontSize(vg, 14); nvgFillColor(vg, nvgRGBA(160, 160, 170, 180))
+                nvgFontSize(vg, 22); nvgFillColor(vg, nvgRGBA(160, 160, 170, 180))
                 nvgText(vg, pad + 14, cy + cardH / 2 + 14, "战力 " .. tostring(fr.combatPower or 0), nil)
                 -- 删除按钮
                 local delW, delH = 56, 30
@@ -94,7 +94,7 @@ function DrawFriendsScreen()
                 local delY = cy + (cardH - delH) / 2
                 nvgBeginPath(vg); nvgRoundedRect(vg, delX, delY, delW, delH, 6)
                 nvgFillColor(vg, nvgRGBA(90, 30, 30, 200)); nvgFill(vg)
-                nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(255, 180, 180, 240))
                 nvgText(vg, delX + delW / 2, delY + delH / 2, "删除", nil)
                 menuBtnRects["friendDel_" .. fi] = { x = delX, y = delY, w = delW, h = delH, userId = fr.userId }
@@ -114,19 +114,19 @@ function DrawFriendsScreen()
     elseif friendsUI.tab == "add" then
         -- 添加好友: 推荐玩家 + 搜索
         -- 搜索栏
-        nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+        nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(180, 180, 180, 200))
         nvgText(vg, pad + 8, bodyTop + 4, "输入玩家ID搜索:", nil)
 
         local searchInputW = W - pad * 2 - 80
-        local searchInputH = 36
+        local searchInputH = 42
         local searchInputY = bodyTop + 22
         nvgBeginPath(vg); nvgRoundedRect(vg, pad, searchInputY, searchInputW, searchInputH, 6)
         nvgFillColor(vg, nvgRGBA(15, 15, 20, 220)); nvgFill(vg)
         local searchActive = (friendsUI.inputActive == true)
         nvgStrokeColor(vg, searchActive and nvgRGBA(80, 180, 255, 200) or nvgRGBA(60, 60, 70, 150))
         nvgStrokeWidth(vg, searchActive and 2 or 1); nvgStroke(vg)
-        nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+        nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
         if #friendsUI.searchId > 0 then
             nvgFillColor(vg, nvgRGBA(255, 240, 200, 240))
             nvgText(vg, pad + 10, searchInputY + searchInputH / 2, friendsUI.searchId, nil)
@@ -141,7 +141,7 @@ function DrawFriendsScreen()
         local sBtnX = pad + searchInputW + 6
         nvgBeginPath(vg); nvgRoundedRect(vg, sBtnX, searchInputY, sBtnW, sBtnH, 6)
         nvgFillColor(vg, nvgRGBA(40, 70, 110, 220)); nvgFill(vg)
-        nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(180, 220, 255, 255))
         nvgText(vg, sBtnX + sBtnW / 2, searchInputY + sBtnH / 2, "搜索", nil)
         menuBtnRects.friendSearchBtn = { x = sBtnX, y = searchInputY, w = sBtnW, h = sBtnH }
@@ -158,13 +158,13 @@ function DrawFriendsScreen()
             nvgFillColor(vg, nvgRGBA(200, 230, 255, 240))
             nvgText(vg, pad + 14, recTop + cardH / 2, sr.nickname or ("玩家" .. tostring(sr.userId or "")), nil)
             -- 添加按钮
-            local addW, addH = 56, 30
+            local addW, addH = 64, 36
             local addX = W - pad - addW - 10
             local addY = recTop + (cardH - addH) / 2
             local isFr = CloudManager.IsFriend(sr.userId)
             nvgBeginPath(vg); nvgRoundedRect(vg, addX, addY, addW, addH, 6)
             nvgFillColor(vg, isFr and nvgRGBA(60, 60, 60, 150) or nvgRGBA(40, 90, 50, 220)); nvgFill(vg)
-            nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(200, 255, 200, isFr and 120 or 255))
             nvgText(vg, addX + addW / 2, addY + addH / 2, isFr and "已添加" or "添加", nil)
             if not isFr then
@@ -172,14 +172,14 @@ function DrawFriendsScreen()
             end
             recTop = recTop + cardH + 12
         elseif friendsUI.searchNotFound then
-            nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
+            nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
             nvgFillColor(vg, nvgRGBA(200, 120, 120, 200))
             nvgText(vg, cx, recTop, "未找到该玩家", nil)
             recTop = recTop + 26
         end
 
         -- 推荐标题
-        nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+        nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
         nvgFillColor(vg, nvgRGBA(180, 180, 180, 180))
         nvgText(vg, pad + 4, recTop + 4, "推荐玩家:", nil)
         recTop = recTop + 26
@@ -201,17 +201,17 @@ function DrawFriendsScreen()
             local cy = recTop + (ri - 1) * (cardH2 + cardGap2)
             nvgBeginPath(vg); nvgRoundedRect(vg, pad, cy, W - pad * 2, cardH2, 7)
             nvgFillColor(vg, nvgRGBA(20, 25, 35, 200)); nvgFill(vg)
-            nvgFontSize(vg, 17); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(200, 220, 240, 230))
             nvgText(vg, pad + 12, cy + cardH2 / 2, rp.nickname or ("玩家" .. tostring(rp.userId or "")), nil)
             -- 添加按钮
-            local addW2, addH2 = 56, 28
+            local addW2, addH2 = 64, 36
             local addX2 = W - pad - addW2 - 10
             local addY2 = cy + (cardH2 - addH2) / 2
             local isFr2 = CloudManager.IsFriend(rp.userId)
             nvgBeginPath(vg); nvgRoundedRect(vg, addX2, addY2, addW2, addH2, 6)
             nvgFillColor(vg, isFr2 and nvgRGBA(60, 60, 60, 150) or nvgRGBA(40, 90, 50, 220)); nvgFill(vg)
-            nvgFontSize(vg, 13); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(200, 255, 200, isFr2 and 120 or 255))
             nvgText(vg, addX2 + addW2 / 2, addY2 + addH2 / 2, isFr2 and "已添加" or "添加", nil)
             if not isFr2 then
@@ -220,7 +220,7 @@ function DrawFriendsScreen()
         end
         nvgRestore(vg)
         if #friendsUI.recommended == 0 and not friendsUI.recLoading then
-            nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(140, 140, 140, 160))
             nvgText(vg, cx, recTop + 40, "暂无推荐玩家", nil)
         end
@@ -252,13 +252,13 @@ function DrawFriendsScreen()
                 nvgFillColor(vg, nvgRGBA(200, 230, 255, 240))
                 nvgText(vg, pad + 14, cy + cardH / 2, req.nickname or ("玩家" .. tostring(req.fromUid or "")), nil)
                 -- 同意/拒绝
-                local btnW3, btnH3 = 52, 30
+                local btnW3, btnH3 = 60, 36
                 local accX = W - pad - btnW3 * 2 - 10
                 local rejX = W - pad - btnW3
                 local btnY3 = cy + (cardH - btnH3) / 2
                 nvgBeginPath(vg); nvgRoundedRect(vg, accX, btnY3, btnW3, btnH3, 6)
                 nvgFillColor(vg, nvgRGBA(40, 100, 40, 220)); nvgFill(vg)
-                nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(200, 255, 200, 255))
                 nvgText(vg, accX + btnW3 / 2, btnY3 + btnH3 / 2, "同意", nil)
                 menuBtnRects["friendAccept_" .. ri] = { x = accX, y = btnY3, w = btnW3, h = btnH3, fromUid = req.fromUid }
@@ -317,6 +317,21 @@ function DrawPowerRankScreen()
     DrawSocialBg(W, H)
     nvgFontFaceId(vg, GetMainFont())
 
+    -- 自动重试: CloudAPI 就绪后自动加载未加载的排行榜
+    if CloudAPI.IsAvailable() then
+        if not welfareState.powerLoaded and not welfareState.powerLoading then
+            ReportPowerScore()
+            LoadPowerRank()
+        end
+        if not welfareState.realmLoaded and not welfareState.realmLoading then
+            ReportRealmScore()
+            LoadRealmRank()
+        end
+        if curTab == "faction" and not welfareState.factionRankLoaded and not welfareState.factionRankLoading then
+            LoadFactionLevelRankForTab()
+        end
+    end
+
     -- 2. 返回按钮（与天命赐福同款）
     local backW, backH = 100, 44
     local backX, backY = 10, 10
@@ -328,11 +343,22 @@ function DrawPowerRankScreen()
     DrawWhiteInkText(backX + backW / 2, backY + backH / 2, "< 返回")
     menuBtnRects.powerRankBack = { x = backX, y = backY, w = backW, h = backH }
 
-    -- 3. 页签栏 (4个页签: 战力榜 / 职务榜 / 桩逼王 / 阵营榜)
+    -- 刷新按钮 (右上角)
+    local refW, refH = 80, 36
+    local refX, refY = W - refW - 10, 14
+    nvgBeginPath(vg); nvgRoundedRect(vg, refX, refY, refW, refH, 6)
+    nvgFillColor(vg, nvgRGBA(40, 60, 90, 200)); nvgFill(vg)
+    nvgStrokeColor(vg, nvgRGBA(80, 140, 200, 140)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
+    nvgFontSize(vg, 20)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    DrawWhiteInkText(refX + refW / 2, refY + refH / 2, "刷新")
+    menuBtnRects.rankRefresh = { x = refX, y = refY, w = refW, h = refH }
+
+    -- 3. 页签栏 (3个页签: 战力榜 / 职务榜 / 阵营榜)
     local tabW = 82
     local tabH = 36
     local tabGap = 5
-    local tabCount = 4
+    local tabCount = 3
     local totalTabW = tabW * tabCount + tabGap * (tabCount - 1)
     local tabStartX = cx - totalTabW / 2
     local tabY = 14
@@ -340,7 +366,6 @@ function DrawPowerRankScreen()
     local tabDefs = {
         { id = "power",   label = "战力榜",  colorA = {180,120,50},  colorS = {255,200,80},  colorT = {255,240,200} },
         { id = "realm",   label = "职务榜",  colorA = {80,50,160},   colorS = {180,140,255}, colorT = {220,200,255} },
-        { id = "dummy",   label = "桩逼王",  colorA = {160,40,40},   colorS = {255,100,80},  colorT = {255,200,200} },
         { id = "faction", label = "阵营榜",  colorA = {40,100,140},  colorS = {80,180,220},  colorT = {200,240,255} },
     }
     for ti, td in ipairs(tabDefs) do
@@ -371,9 +396,6 @@ function DrawPowerRankScreen()
     if curTab == "power" then
         local myPower = CalcPlayerTotalPower()
         DrawWhiteInkText(cx, tabY + tabH + 16, "我的战力: " .. FormatPower(myPower))
-    elseif curTab == "dummy" then
-        local myBest = playerInfo.bestDummyDamage or 0
-        DrawWhiteInkText(cx, tabY + tabH + 16, "我的最高伤害: " .. FormatPower(math.floor(myBest)))
     elseif curTab == "faction" then
         local fLvInfo = CloudManager.GetFactionLevelInfo()
         local fInfo = CloudManager.GetFactionInfo()
@@ -431,7 +453,10 @@ function DrawPowerRankScreen()
         nvgBeginPath(vg); nvgMoveTo(vg, secPad + 10, hy + headerH - 2); nvgLineTo(vg, secPad + secW - 10, hy + headerH - 2)
         nvgStrokeColor(vg, nvgRGBA(90, 45, 55, 60)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
-        if welfareState.powerLoading and not welfareState.powerLoaded then
+        if not CloudAPI.IsAvailable() and not welfareState.powerLoaded then
+            nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            DrawWhiteInkText(cx, baseY + listH / 2, "连接服务器中...")
+        elseif welfareState.powerLoading and not welfareState.powerLoaded then
             nvgFontSize(vg, 26); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             DrawWhiteInkText(cx, baseY + listH / 2, "加载中...")
         elseif powerCount == 0 then
@@ -529,7 +554,10 @@ function DrawPowerRankScreen()
         nvgBeginPath(vg); nvgMoveTo(vg, secPad + 10, hy + headerH - 2); nvgLineTo(vg, secPad + secW - 10, hy + headerH - 2)
         nvgStrokeColor(vg, nvgRGBA(80, 50, 120, 60)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
-        if welfareState.realmLoading and not welfareState.realmLoaded then
+        if not CloudAPI.IsAvailable() and not welfareState.realmLoaded then
+            nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            DrawWhiteInkText(cx, baseY + listH / 2, "连接服务器中...")
+        elseif welfareState.realmLoading and not welfareState.realmLoaded then
             nvgFontSize(vg, 26); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             DrawWhiteInkText(cx, baseY + listH / 2, "加载中...")
         elseif realmCount == 0 then
@@ -604,108 +632,6 @@ function DrawPowerRankScreen()
         end
         nvgRestore(vg)
 
-    elseif curTab == "dummy" then
-        -- ==================== 桩逼王排行榜 ====================
-        local dummyData = welfareState.dummyRank or {}
-        local dummyCount = #dummyData
-        local contentH = math.max(listH, headerH + dummyCount * rowH + 20)
-
-        local scrollOff = welfareState.dummyScroll.offset
-        local minScroll = math.min(0, listH - contentH)
-        scrollOff = math.max(minScroll, math.min(0, scrollOff))
-        welfareState.dummyScroll.offset = scrollOff
-
-        nvgSave(vg)
-        nvgScissor(vg, 0, listTop, W, listH)
-        local baseY = listTop + scrollOff
-
-        nvgBeginPath(vg); nvgRoundedRect(vg, secPad, baseY, secW, contentH, 10)
-        nvgFillColor(vg, nvgRGBA(18, 8, 8, 190)); nvgFill(vg)
-        nvgStrokeColor(vg, nvgRGBA(120, 45, 45, 80)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
-
-        -- 表头
-        local hy = baseY + 8
-        nvgBeginPath(vg); nvgRoundedRect(vg, secPad + 6, hy, secW - 12, headerH - 4, 6)
-        local headerGrad = nvgLinearGradient(vg, secPad, hy, secPad + secW, hy,
-            nvgRGBA(80, 30, 30, 100), nvgRGBA(60, 20, 20, 60))
-        nvgFillPaint(vg, headerGrad); nvgFill(vg)
-        nvgFontSize(vg, 20)
-        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-        nvgFillColor(vg, nvgRGBA(220, 180, 160, 200))
-        nvgText(vg, secPad + 30, hy + headerH / 2 - 2, "排名", nil)
-        nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-        nvgText(vg, secPad + 60, hy + headerH / 2 - 2, "道号", nil)
-        nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
-        nvgText(vg, secPad + secW - 16, hy + headerH / 2 - 2, "伤害", nil)
-
-        nvgBeginPath(vg); nvgMoveTo(vg, secPad + 10, hy + headerH - 2); nvgLineTo(vg, secPad + secW - 10, hy + headerH - 2)
-        nvgStrokeColor(vg, nvgRGBA(120, 45, 45, 60)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-
-        if welfareState.dummyLoading and not welfareState.dummyLoaded then
-            nvgFontSize(vg, 26); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            DrawWhiteInkText(cx, baseY + listH / 2, "加载中...")
-        elseif dummyCount == 0 then
-            nvgFontSize(vg, 26); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            DrawWhiteInkText(cx, baseY + listH / 2, "暂无数据，去打桩挑战吧！")
-        else
-            local medals = {"[1]", "[2]", "[3]"}
-            local rankColors = {
-                nvgRGBA(255, 100, 80, 35),
-                nvgRGBA(210, 210, 220, 25),
-                nvgRGBA(200, 130, 100, 20),
-            }
-            for i, entry in ipairs(dummyData) do
-                local ry = baseY + headerH + 8 + (i - 1) * rowH
-                if i <= 3 then
-                    nvgBeginPath(vg); nvgRoundedRect(vg, secPad + 6, ry + 2, secW - 12, rowH - 4, 6)
-                    nvgFillColor(vg, rankColors[i]); nvgFill(vg)
-                    nvgStrokeColor(vg, nvgRGBA(200, 80, 60, 40)); nvgStrokeWidth(vg, 0.5); nvgStroke(vg)
-                elseif i % 2 == 0 then
-                    nvgBeginPath(vg); nvgRoundedRect(vg, secPad + 6, ry + 2, secW - 12, rowH - 4, 4)
-                    nvgFillColor(vg, nvgRGBA(255, 200, 200, 6)); nvgFill(vg)
-                end
-                -- 排名
-                nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-                if i <= 3 then
-                    nvgFontSize(vg, 28)
-                    nvgText(vg, secPad + 30, ry + rowH / 2, medals[i], nil)
-                else
-                    nvgFontSize(vg, 22)
-                    nvgFillColor(vg, nvgRGBA(200, 160, 140, 200))
-                    nvgText(vg, secPad + 30, ry + rowH / 2, "#" .. i, nil)
-                end
-                -- 道号
-                nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
-                if i <= 3 then
-                    nvgFillColor(vg, nvgRGBA(255, 220, 200, 240))
-                else nvgFillColor(vg, nvgRGBA(220, 200, 190, 220)) end
-                nvgText(vg, secPad + 60, ry + rowH / 2, entry.name, nil)
-                -- 伤害数值
-                nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
-                if i <= 3 then
-                    nvgFillColor(vg, nvgRGBA(255, 120, 80, 240))
-                else nvgFillColor(vg, nvgRGBA(230, 150, 100, 210)) end
-                nvgText(vg, secPad + secW - 70, ry + rowH / 2, FormatPower(entry.damage or 0), nil)
-                -- 查看按钮
-                local vbW, vbH = 50, 28
-                local vbX = secPad + secW - 60
-                local vbY = ry + (rowH - vbH) / 2
-                nvgBeginPath(vg); nvgRoundedRect(vg, vbX, vbY, vbW, vbH, 5)
-                nvgFillColor(vg, nvgRGBA(80, 40, 40, 180)); nvgFill(vg)
-                nvgStrokeColor(vg, nvgRGBA(200, 120, 80, 100)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-                nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-                nvgFillColor(vg, nvgRGBA(255, 220, 180, 220))
-                nvgText(vg, vbX + vbW / 2, vbY + vbH / 2, "查看")
-                welfareState.rankViewBtnRects[i] = { x = vbX, y = vbY, w = vbW, h = vbH, userId = entry.userId, filteredIdx = i }
-                -- 分隔线
-                if i < dummyCount then
-                    nvgBeginPath(vg); nvgMoveTo(vg, secPad + 20, ry + rowH); nvgLineTo(vg, secPad + secW - 20, ry + rowH)
-                    nvgStrokeColor(vg, nvgRGBA(120, 45, 45, 25)); nvgStrokeWidth(vg, 0.5); nvgStroke(vg)
-                end
-            end
-        end
-        nvgRestore(vg)
-
     elseif curTab == "faction" then
         -- ==================== 阵营等级排行榜 ====================
         if not welfareState.factionRankLoaded and not welfareState.factionRankLoading then
@@ -746,7 +672,10 @@ function DrawPowerRankScreen()
         nvgBeginPath(vg); nvgMoveTo(vg, secPad + 10, hy + headerH - 2); nvgLineTo(vg, secPad + secW - 10, hy + headerH - 2)
         nvgStrokeColor(vg, nvgRGBA(50, 100, 140, 60)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
-        if welfareState.factionRankLoading and not welfareState.factionRankLoaded then
+        if not CloudAPI.IsAvailable() and not welfareState.factionRankLoaded then
+            nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            DrawWhiteInkText(cx, baseY + listH / 2, "连接服务器中...")
+        elseif welfareState.factionRankLoading and not welfareState.factionRankLoaded then
             nvgFontSize(vg, 26); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             DrawWhiteInkText(cx, baseY + listH / 2, "加载中...")
         elseif factionCount == 0 then
@@ -831,7 +760,7 @@ function DrawPowerRankScreen()
         -- UID 行 + 复制按钮
         local uidY = popY + 78
         local uidStr = tostring(e.userId or 0)
-        nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+        nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(150, 150, 170, 180))
         nvgText(vg, popX + 40, uidY, "UID: " .. uidStr, nil)
         -- 复制按钮
@@ -841,14 +770,14 @@ function DrawPowerRankScreen()
         nvgBeginPath(vg); nvgRoundedRect(vg, cpX, cpY2, cpW, cpH, 4)
         if popup.copyFlash and popup.copyFlash > 0 then
             nvgFillColor(vg, nvgRGBA(60, 160, 80, 220)); nvgFill(vg)
-            nvgFontSize(vg, 13); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(220, 255, 220, 240))
             nvgText(vg, cpX + cpW / 2, cpY2 + cpH / 2, "已复制", nil)
             popup.copyFlash = popup.copyFlash - (1.0 / 60.0)
         else
             nvgFillColor(vg, nvgRGBA(70, 60, 50, 200)); nvgFill(vg)
             nvgStrokeColor(vg, nvgRGBA(180, 150, 80, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-            nvgFontSize(vg, 13); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 220, 160, 220))
             nvgText(vg, cpX + cpW / 2, cpY2 + cpH / 2, "复制", nil)
         end
@@ -859,13 +788,7 @@ function DrawPowerRankScreen()
         local labelX = popX + 40
         local valX = popX + popW - 40
         local infos = {}
-        if curTab == "dummy" and e.damage then
-            infos = {
-                { label = "打桩伤害", value = FormatPower(e.damage or 0), color = nvgRGBA(255, 120, 80, 240) },
-                { label = "DPS", value = string.format("%.0f", (e.damage or 0) / 30), color = nvgRGBA(255, 200, 60, 240) },
-                { label = "战力", value = FormatPower(e.power or 0), color = nvgRGBA(200, 180, 140, 220) },
-            }
-        else
+        do
             infos = {
                 { label = "战力", value = FormatPower(e.power or 0), color = nvgRGBA(255, 200, 80, 240) },
                 { label = "职务", value = GetRankDisplayName(e.realmIdx or 1), color = nvgRGBA(160, 200, 255, 240) },

@@ -5,23 +5,23 @@
 -- 福利转盘奖励池（原在 gacha 模块中定义，已移至此处）
 if not rawget(_G, "WHEEL_REWARDS") then
     WHEEL_REWARDS = {
-        { label = "虎符x50",   jade = 50 },
-        { label = "虎符x100",  jade = 100 },
-        { label = "虎符x200",  jade = 200 },
+        { label = "玉壁x50",   jade = 50 },
+        { label = "玉壁x100",  jade = 100 },
+        { label = "玉壁x200",  jade = 200 },
         { label = "武技残片x5", frag = 5 },
         { label = "武技残片x10", frag = 10 },
         { label = "召唤券x1",  ticket = 1 },
         { label = "召唤券x3",  ticket = 3 },
-        { label = "虎符x500",  jade = 500 },
+        { label = "玉壁x500",  jade = 500 },
     }
 end
 
 -- 福利翻牌奖励池（原在 gacha 模块中定义，已移至此处）
 if not rawget(_G, "CARD_POOL") then
     CARD_POOL = {
-        { label = "虎符x30",   jade = 30 },
-        { label = "虎符x80",   jade = 80 },
-        { label = "虎符x150",  jade = 150 },
+        { label = "玉壁x30",   jade = 30 },
+        { label = "玉壁x80",   jade = 80 },
+        { label = "玉壁x150",  jade = 150 },
         { label = "武技残片x3", frag = 3 },
         { label = "武技残片x8", frag = 8 },
         { label = "召唤券x1",  ticket = 1 },
@@ -62,7 +62,7 @@ function GrantRewardTable(reward)
     if not reward then return end
     if reward.jade and reward.jade > 0 then
         playerInfo.jade = playerInfo.jade + reward.jade
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "+" .. reward.jade .. " 虎符", 1.5, { 210, 180, 255 }, 16)
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "+" .. reward.jade .. " 玉壁", 1.5, { 210, 180, 255 }, 18)
     end
     if reward.frag and reward.frag > 0 then
         -- 随机分配残片
@@ -70,13 +70,13 @@ function GrantRewardTable(reward)
             local idx = math.random(1, #SKILL_TECHNIQUES)
             skillFragments[idx] = (skillFragments[idx] or 0) + 1
         end
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.40, "+" .. reward.frag .. " 武技残片", 1.5, { 180, 160, 255 }, 14)
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.40, "+" .. reward.frag .. " 武技残片", 1.5, { 180, 160, 255 }, 18)
     end
     if reward.ticket and reward.ticket > 0 then
-        -- 讨伐票已废弃，转换为虎符 (1票=10虎符)
+        -- 讨伐票已废弃，转换为玉壁 (1票=10玉壁)
         local bonusJade = reward.ticket * 10
         playerInfo.jade = playerInfo.jade + bonusJade
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "+" .. bonusJade .. " 虎符", 1.5, { 200, 140, 255 }, 14)
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "+" .. bonusJade .. " 玉壁", 1.5, { 200, 140, 255 }, 18)
     end
     -- 装备掉落 (讨伐主要产出路径)
     if reward.equipDrop and reward.equipDrop > 0 then
@@ -98,7 +98,7 @@ function GrantRewardTable(reward)
             CreateEquipItem(si, pi, tier, math.random(30, 90))
             playerInfo.totalEquips = (playerInfo.totalEquips or 0) + 1
         end
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.50, "+" .. reward.equipDrop .. " 件装备!", 1.5, { 255, 200, 100 }, 16)
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.50, "+" .. reward.equipDrop .. " 件装备!", 1.5, { 255, 200, 100 }, 18)
     end
 end
 
@@ -188,7 +188,7 @@ function DecomposeEquipment(uid)
     if enhRefund > 0 then
         msg = msg .. " (含强化返还" .. enhRefund .. ")"
     end
-    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, msg, 1.5, { 180, 220, 255 }, 16)
+    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, msg, 1.5, { 180, 220, 255 }, 18)
     SaveGameProgress()
     return true
 end
@@ -297,12 +297,12 @@ function EnhanceEquipment(slotIdx)
     if not eq then return false end
     local curLv = eq.enhanceLv or 0
     if curLv >= ENHANCE_MAX_LEVEL then
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "已达强化上限 +20!", 1.0, { 255, 200, 100 }, 14)
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "已达强化上限 +20!", 1.0, { 255, 200, 100 }, 18)
         return false
     end
     local cost = ENHANCE_COST[curLv + 1] or 999
     if playerInfo.lingshi < cost then
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "军资不足 (需要" .. cost .. ")", 1.0, { 255, 100, 100 }, 14)
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "军资不足 (需要" .. cost .. ")", 1.0, { 255, 100, 100 }, 18)
         return false
     end
     playerInfo.lingshi = playerInfo.lingshi - cost
@@ -326,7 +326,7 @@ function GrantWheelReward(idx)
     if rw.jade then playerInfo.jade = playerInfo.jade + rw.jade end
     if rw.frag then playerInfo.skillFragments = (playerInfo.skillFragments or 0) + rw.frag end
     if rw.ticket then playerInfo.tickets = (playerInfo.tickets or 0) + rw.ticket end
-    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "转盘奖励: " .. rw.label, 2.0, { 255, 220, 80 }, 16)
+    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "转盘奖励: " .. rw.label, 2.0, { 255, 220, 80 }, 18)
 end
 
 
@@ -336,7 +336,7 @@ function GrantCardReward(poolIdx)
     if rw.jade then playerInfo.jade = playerInfo.jade + rw.jade end
     if rw.frag then playerInfo.skillFragments = (playerInfo.skillFragments or 0) + rw.frag end
     if rw.ticket then playerInfo.tickets = (playerInfo.tickets or 0) + rw.ticket end
-    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "翻牌奖励: " .. rw.label, 2.0, { 120, 220, 255 }, 16)
+    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "翻牌奖励: " .. rw.label, 2.0, { 120, 220, 255 }, 18)
 end
 
 

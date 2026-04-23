@@ -1,29 +1,18 @@
 -- ============================================================================
--- systems/stage_bridge.lua - 浠庡凡鍒犻櫎鐨?stage.lua / gacha.lua 涓彁鍙栫殑鍏辩敤鍑芥暟
--- 杩欎簺鍑芥暟琚垬鏂楃郴缁熴€佹帓浣嶇郴缁熴€佸叺绗︾郴缁熺瓑骞挎硾寮曠敤锛屽繀椤讳繚鐣?"
+-- systems/stage_bridge.lua - 从已删除的 stage.lua / gacha.lua 中提取的共用函数
+-- 这些函数被战斗系统、排位系统、兵符系统等广泛引用，必须保留
 -- ============================================================================
 
---- 搴旂敤鎴樻枟甯冨眬: 閲嶈鐭冲彴浣嶇疆 + 鍒囨崲鑳屾櫙
+--- 应用战斗布局: 记录当前布局索引 (石台位置由 G_systems.lua 中全局 PLAYER_SLOTS/ENEMY_SLOTS 固定)
 function ApplyBattleLayout(layoutIdx)
     layoutIdx = layoutIdx or 1
-    local layout = BATTLE_LAYOUTS[layoutIdx] or BATTLE_LAYOUTS[1]
     currentLayoutIdx = layoutIdx
-    for i, pos in ipairs(layout.playerSlots) do
-        if PLAYER_SLOTS[i] then
-            PLAYER_SLOTS[i].cx = pos[1] * BG2D_X
-            PLAYER_SLOTS[i].cy = pos[2] * BG2D_Y
-        end
-    end
-    for i, pos in ipairs(layout.enemySlots) do
-        if ENEMY_SLOTS[i] then
-            ENEMY_SLOTS[i].cx = pos[1] * BG2D_X
-            ENEMY_SLOTS[i].cy = pos[2] * BG2D_Y
-        end
-    end
+    -- 注意: 旧版本会用 BG 像素坐标覆盖 slot cx/cy，已移除。
+    -- 英雄槽位坐标由 G_systems.lua 的 MakeHeroSlot() 统一定义，横屏固定布局。
 end
 
 
---- 瀵煎嚭甯冨眬閰嶇疆鍒版枃浠?(JSON 鏍煎紡)
+--- 导出布局配置到文件 (JSON 格式)
 function ExportBattleLayouts()
     local data = {}
     for li, layout in ipairs(BATTLE_LAYOUTS) do
@@ -48,15 +37,15 @@ function ExportBattleLayouts()
     if file:IsOpen() then
         file:WriteString(jsonStr)
         file:Close()
-        print("[甯冨眬缂栬緫鍣╙ 宸插鍑哄埌 battle_layouts.json")
+        print("[布局编辑器] 已导出到 battle_layouts.json")
     else
-        print("[甯冨眬缂栬緫鍣╙ 瀵煎嚭澶辫触: 鏃犳硶鍐欏叆鏂囦欢")
+        print("[布局编辑器] 导出失败: 无法写入文件")
     end
-    print("[甯冨眬鏁版嵁] " .. jsonStr)
+    print("[布局数据] " .. jsonStr)
 end
 
 
---- 鎾ら攢涓婁竴姝ョ煶鍙版嫋鎷?"
+--- 撤销上一步石台拖拽
 function UndoSlotEdit()
     if #slotUndoStack == 0 then return false end
     local snap = slotUndoStack[#slotUndoStack]
@@ -77,7 +66,7 @@ end
 
 
 -- ============================================================================
--- 鎺掍綅杈呭姪鍑芥暟
+-- 排位辅助函数
 -- ============================================================================
 
 function GetRankedTier(score)
@@ -105,7 +94,7 @@ function CalcRankedScoreChange(isWin, currentStreak)
 end
 
 
---- 鐢熸垚鎺掍綅AI瀵规墜
+--- 生成排位AI对手
 local function buildRankedCardFromHero(cardIdx, heroInfo)
     local baseCard = HERO_CARDS[cardIdx]
     if not baseCard or not heroInfo then
@@ -201,10 +190,10 @@ end
 
 
 -- ============================================================================
--- 婊″懡姝︾伒妫€娴?(鍏电绯荤粺渚濊禆)
+-- 满命武灵检测 (兵符系统依赖)
 -- ============================================================================
 
---- 妫€鏌ユ槸鍚︽湁鑷冲皯1涓弧鍛芥鐏?"
+--- 检查是否有至少1个满命武灵
 function HasMaxConstellationHero()
     for idx, hero in pairs(playerHeroes) do
         if hero and (hero.constellation or 0) >= GameConfig.MAX_CONSTELLATION then
@@ -215,7 +204,7 @@ function HasMaxConstellationHero()
 end
 
 
---- 鑾峰彇鎵€鏈夋弧鍛芥鐏靛垪琛?"
+--- 获取所有满命武灵列表
 function GetMaxConstellationHeroes()
     local list = {}
     if not HERO_CARDS then return list end
@@ -233,27 +222,27 @@ end
 
 
 -- ============================================================================
--- 姝︽妧娈嬬墖鎺夎惤鏉冮噸锛堝師鍦ㄨ繍琛屾椂鍒濆鍖栵紝姝ゅ鎻愪緵榛樿鍊硷級
+-- 武技残片掉落权重（原在运行时初始化，此处提供默认值）
 -- ============================================================================
 if not rawget(_G, "SKILL_FRAG_WEIGHTS") then
     SKILL_FRAG_WEIGHTS = {
-        [1] = 100,  -- 鍑″搧
-        [2] = 60,   -- 鑹搧
+        [1] = 100,  -- 凡品
+        [2] = 60,   -- 良品
         [3] = 35,   -- 浼樺搧
         [4] = 18,   -- 灏嗗搧
-        [5] = 8,    -- 渚搧
-        [6] = 3,    -- 鐜嬪搧
-        [7] = 1,    -- 甯濆搧
+        [5] = 8,    -- 侍品
+        [6] = 3,    -- 王品
+        [7] = 1,    -- 帝品
     }
 end
 
 -- ============================================================================
--- 鎴樻枟姝︽妧娈嬬墖鎺夎惤
+-- 战斗武技残片掉落
 -- ============================================================================
 
---- 鎴樻枟鑳滃埄鎺夎惤姝︽妧娈嬬墖
---- @param maxTier number 鍏冲崱鏈€楂樻帀钀介樁绾?1-6)
---- @return table[] fragDrops 鎺夎惤鍒楄〃
+--- 战斗胜利掉落武技残片
+--- @param maxTier number 关卡最高掉落阶级(1-6)
+--- @return table[] fragDrops 掉落列表
 function GenerateBattleSkillFragDrop(maxTier)
     local fragDrops = {}
     local dropCount = 1

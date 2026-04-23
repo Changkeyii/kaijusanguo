@@ -1,6 +1,6 @@
 -- ============================================================================
--- cloud_manager_core.lua - 涓夊浗姝︾伒褰?(浠?cloud_manager.lua 鎷嗗垎)
--- 鏍稿績瀛樺偍: Init, CollectDomainData, SaveAll, SaveDomain, LoadAll
+-- cloud_manager_core.lua - 三国武灵录 (从 cloud_manager.lua 拆分)
+-- 核心存储: Init, CollectDomainData, SaveAll, SaveDomain, LoadAll
 -- ============================================================================
 ---@diagnostic disable: undefined-global
 
@@ -11,7 +11,7 @@ CloudManager = {}
 -- ============================================================================
 local PREFIX = "p_49dd_"
 
--- 涓汉瀛樻。 domain 瀹氫箟
+-- 个人存档 domain 定义
 local DOMAINS = {
     core     = PREFIX .. "sv_core",
     heroes   = PREFIX .. "sv_heroes",
@@ -24,82 +24,82 @@ local DOMAINS = {
     worldmap = PREFIX .. "sv_worldmap",
 }
 
--- 鍏紑/绀句氦 key
+-- 公开/社交 key
 local KEYS = {
     combat_power  = PREFIX .. "combat_power",
     pub_profile   = PREFIX .. "pub_profile",
     realm_level   = PREFIX .. "realm_level",
-    -- 濂藉弸鍏叡鐢宠姹?(鎺掕姒滄ā鎷熷叕鍏变俊绠?"
-    freq_outbox_ts = PREFIX .. "freq_outbox_ts",  -- SetInt: 鏈€鏂扮敵璇锋椂闂存埑 (鎺掕鐢?"
-    freq_outbox    = PREFIX .. "freq_outbox",      -- Set: 鍑虹珯鐢宠鍒楄〃 JSON
-    freq_resp_ts   = PREFIX .. "freq_resp_ts",     -- SetInt: 鏈€鏂板洖澶嶆椂闂存埑
-    freq_resp      = PREFIX .. "freq_resp",        -- Set: 鍥炲鍒楄〃 JSON
-    -- 闃佃惀鍏叡瀛樺偍 (鎺掕姒滄ā鎷熼樀钀ユ€昏〃)
-    camp_leader_ts = PREFIX .. "camp_leader_ts",   -- SetInt: 闃佃惀鍒涘缓鏃堕棿 (鎺掕鐢? 浠呯洘涓?"
-    camp_meta      = PREFIX .. "camp_meta",        -- Set: 闃佃惀鍏冩暟鎹?(浠呯洘涓荤淮鎶?"
-    camp_apply_ts  = PREFIX .. "camp_apply_ts",    -- SetInt: 鍏ヨ惀鐢宠鏃堕棿
-    camp_apply     = PREFIX .. "camp_apply",       -- Set: 鍏ヨ惀鐢宠 JSON
-    camp_resp_ts   = PREFIX .. "camp_resp_ts",     -- SetInt: 鐩熶富瀹℃壒鍥炲鏃堕棿
-    camp_resp      = PREFIX .. "camp_resp",        -- Set: 瀹℃壒鍥炲 JSON
-    -- 闃佃惀鑱婂ぉ (姣忎汉鍙戝竷鑷繁鐨勬渶杩戞秷鎭? 杞鍚堝苟)
-    camp_chat_ts   = PREFIX .. "camp_chat_ts",      -- SetInt: 鏈€鏂拌亰澶╂椂闂存埑 (鎺掕鐢?"
-    camp_chat      = PREFIX .. "camp_chat",          -- Set: 鏈€杩戞秷鎭垪琛?JSON [{text,time,ts}]
-    world_chat_ts  = PREFIX .. "world_chat_ts",      -- SetInt: 涓栫晫鑱婂ぉ鏃堕棿鎴?(鎺掕鐢?"
-    world_chat     = PREFIX .. "world_chat",          -- Set: 涓栫晫鑱婂ぉ娑堟伅鍒楄〃
-    -- 灏佺绯荤粺 (寮€鍙戣€呴€氳繃鎺掕姒滃彂甯冨皝绂佸悕鍗?"
-    ban_ts        = PREFIX .. "ban_ts",            -- SetInt: 灏佺鍙戝竷鏃堕棿
-    ban_data      = PREFIX .. "ban_data",           -- Set: 灏佺鍚嶅崟 JSON
-    -- 瀛樻。鏍￠獙
-    save_hash     = PREFIX .. "save_hash",          -- Set: 瀛樻。鍝堝笇鏍￠獙鍊?"
-    -- 鍏煎鏃у瓨妗?"
+    -- 好友公共申请池 (排行榜模拟公共信箱)
+    freq_outbox_ts = PREFIX .. "freq_outbox_ts",  -- SetInt: 最新申请时间戳 (排行用)
+    freq_outbox    = PREFIX .. "freq_outbox",      -- Set: 出站申请列表 JSON
+    freq_resp_ts   = PREFIX .. "freq_resp_ts",     -- SetInt: 最新回复时间戳
+    freq_resp      = PREFIX .. "freq_resp",        -- Set: 回复列表 JSON
+    -- 阵营公共存储 (排行榜模拟阵营总表)
+    camp_leader_ts = PREFIX .. "camp_leader_ts",   -- SetInt: 阵营创建时间 (排行用, 仅盟主)
+    camp_meta      = PREFIX .. "camp_meta",        -- Set: 阵营元数据 (仅盟主维护)
+    camp_apply_ts  = PREFIX .. "camp_apply_ts",    -- SetInt: 入营申请时间
+    camp_apply     = PREFIX .. "camp_apply",       -- Set: 入营申请 JSON
+    camp_resp_ts   = PREFIX .. "camp_resp_ts",     -- SetInt: 盟主审批回复时间
+    camp_resp      = PREFIX .. "camp_resp",        -- Set: 审批回复 JSON
+    -- 阵营聊天 (每人发布自己的最近消息, 轮询合并)
+    camp_chat_ts   = PREFIX .. "camp_chat_ts",      -- SetInt: 最新聊天时间戳 (排行用)
+    camp_chat      = PREFIX .. "camp_chat",          -- Set: 最近消息列表 JSON [{text,time,ts}]
+    world_chat_ts  = PREFIX .. "world_chat_ts",      -- SetInt: 世界聊天时间戳 (排行用)
+    world_chat     = PREFIX .. "world_chat",          -- Set: 世界聊天消息列表
+    -- 封禁系统 (开发者通过排行榜发布封禁名单)
+    ban_ts        = PREFIX .. "ban_ts",            -- SetInt: 封禁发布时间
+    ban_data      = PREFIX .. "ban_data",           -- Set: 封禁名单 JSON
+    -- 存档校验
+    save_hash     = PREFIX .. "save_hash",          -- Set: 存档哈希校验值
+    -- 兼容旧存档
     legacy_save   = PREFIX .. "savegame",
-    -- 鐜╁閭欢 (鍏叡淇＄妯″紡)
-    mail_ts       = PREFIX .. "mail_ts",           -- SetInt: 鏈€鏂板彂浠舵椂闂存埑 (鎺掕鐢?"
-    mail_outbox   = PREFIX .. "mail_outbox",       -- Set: 鍙戜欢绠?JSON [{to,subject,body,rewards,time,id}]
+    -- 好友公共申请池 (排行榜模拟公共信箱)
+    mail_ts       = PREFIX .. "mail_ts",           -- SetInt: 最新发件时间戳 (排行用)
+    mail_outbox   = PREFIX .. "mail_outbox",       -- Set: 发件箱 JSON [{to,subject,body,rewards,time,id}]
 }
 
 local MAX_FRIENDS = 50
-local REQUEST_EXPIRE_SECONDS = 7 * 86400  -- 鐢宠7澶╄繃鏈?"
-local MAX_OUTBOX = 20       -- 姣忎汉鏈€澶?0鏉″緟澶勭悊鍑虹珯鐢宠
-local MAX_CAMP_MEMBERS = 20 -- 闃佃惀鏈€澶т汉鏁帮紙1绾ч樀钀ヤ笂闄愶級
-local CAMP_CREATE_COST = 5000 -- 鍒涘缓闃佃惀娑堣€楄檸绗?"
-local SAVE_VERSION = 2  -- 瀛樻。鐗堟湰 (1=鏃у崟key, 2=鏂板domain)
+local REQUEST_EXPIRE_SECONDS = 7 * 86400  -- 申请7天过期
+local MAX_OUTBOX = 20       -- 每人最多20条待处理出站申请
+local MAX_CAMP_MEMBERS = 20 -- 阵营最大人数（1级阵营上限）
+local CAMP_CREATE_COST = 5000 -- 创建阵营消耗玉壁
+local SAVE_VERSION = 2  -- 存档版本 (1=旧单key, 2=新多domain)
 
 -- ============================================================================
--- 闃佃惀鑱屼綅浣撶郴 (浠跨巼鍦熶箣婊ㄥ悓鐩?"
--- 缁ф壙閾? leader 鈫?vice_leader 鈫?strategist 鈫?vanguard 鈫?diplomat 鈫?elite 鈫?member
+-- 阵营职位体系 (仿率土之滨同盟)
+-- 继承链: leader → vice_leader → strategist → vanguard → diplomat → elite → member
 -- ============================================================================
 local FACTION_ROLES = {
-    leader      = { level = 6, name = "鐩熶富",   max = 1  },
-    vice_leader = { level = 5, name = "鍓洘涓?", max = 2  },
-    strategist  = { level = 4, name = "鍐涘笀",   max = 4  },
-    vanguard    = { level = 3, name = "鍏堥攱瀹?", max = 4  },
-    diplomat    = { level = 2, name = "澶栦氦瀹?", max = 2  },
-    elite       = { level = 1, name = "绮捐嫳",   max = -1 }, -- 涓嶉檺
-    member      = { level = 0, name = "鎴愬憳",   max = -1 }, -- 涓嶉檺
+    leader      = { level = 6, name = "盟主",   max = 1  },
+    vice_leader = { level = 5, name = "副盟主", max = 2  },
+    strategist  = { level = 4, name = "军师",   max = 4  },
+    vanguard    = { level = 3, name = "先锋官", max = 4  },
+    diplomat    = { level = 2, name = "外交官", max = 2  },
+    elite       = { level = 1, name = "精英",   max = -1 }, -- 不限
+    member      = { level = 0, name = "成员",   max = -1 }, -- 不限
 }
 
--- 鎸夌瓑绾ч檷搴忔帓鍒楃殑瑙掕壊鍒楄〃 (鐢ㄤ簬缁ф壙閾鹃亶鍘?"
+    -- 好友公共申请池 (排行榜模拟公共信箱)
 local ROLE_SUCCESSION = { "vice_leader", "strategist", "vanguard", "diplomat", "elite", "member" }
 
---- 鑾峰彇瑙掕壊绛夌骇 (鏁板瓧瓒婂ぇ鏉冮檺瓒婇珮)
+--- 获取角色等级 (数字越大权限越高)
 local function _getRoleLevel(role)
     local def = FACTION_ROLES[role or "member"]
     return def and def.level or 0
 end
 
---- 鑾峰彇瑙掕壊涓枃鍚?"
+--- 获取角色中文名
 local function _getRoleName(role)
     local def = FACTION_ROLES[role or "member"]
-    return def and def.name or "鎴愬憳"
+    return def and def.name or "成员"
 end
 
---- 妫€鏌ユ搷浣滆€呮槸鍚︽湁鏉冨鐩爣鎵ц鎿嶄綔 (鎿嶄綔鑰呯瓑绾у繀椤婚珮浜庣洰鏍?"
+--- 检查操作者是否有权对目标执行操作 (操作者等级必须高于目标)
 local function _hasAuthorityOver(operatorRole, targetRole)
     return _getRoleLevel(operatorRole) > _getRoleLevel(targetRole)
 end
 
---- 缁熻鎸囧畾瑙掕壊褰撳墠浜烘暟
+--- 统计指定角色当前人数
 local function _countRole(roles, roleName)
     local count = 0
     for _, r in pairs(roles or {}) do
@@ -108,24 +108,24 @@ local function _countRole(roles, roleName)
     return count
 end
 
--- 灏佺绯荤粺甯搁噺
-local BAN_LEVEL_NONE    = 0  -- 鏃犲皝绂?"
-local BAN_LEVEL_SOCIAL  = 1  -- 绀句氦灏佺(鏃犳硶濂藉弸/闃佃惀)
-local BAN_LEVEL_CORE    = 2  -- 鏍稿績灏佺(鏃犳硶鎺掕/绔炴妧/鎶藉崱)
-local BAN_LEVEL_FULL    = 3  -- 鍏ㄥ皝绂?鍙兘鐪嬩笉鑳界帺)
+-- 封禁系统常量
+local BAN_LEVEL_NONE    = 0  -- 无封禁
+local BAN_LEVEL_SOCIAL  = 1  -- 社交封禁(无法好友/阵营)
+local BAN_LEVEL_CORE    = 2  -- 核心封禁(无法排行/竞技/抽卡)
+local BAN_LEVEL_FULL    = 3  -- 全封禁(只能看不能玩)
 
--- 棰戠巼闄愬埗甯搁噺 (绉?"
-local COOLDOWN_FRIEND_REQUEST  = 30   -- 濂藉弸鐢宠闂撮殧
-local COOLDOWN_PROFILE_PUBLISH = 300  -- 妗ｆ鍙戝竷闂撮殧(5鍒嗛挓)
-local COOLDOWN_SAVE_ALL        = 10   -- 鍏ㄩ噺淇濆瓨闂撮殧
-local COOLDOWN_REJECTED_RETRY  = 86400 -- 琚嫆缁濆悗閲嶆柊鐢宠鍐峰嵈(24灏忔椂)
+-- 频率限制常量 (秒)
+local COOLDOWN_FRIEND_REQUEST  = 30   -- 好友申请间隔
+local COOLDOWN_PROFILE_PUBLISH = 300  -- 档案发布间隔(5分钟)
+local COOLDOWN_SAVE_ALL        = 10   -- 全量保存间隔
+local COOLDOWN_REJECTED_RETRY  = 86400 -- 被拒绝后重新申请冷却(24小时)
 
--- 鍝堝笇鏍￠獙瀵嗛挜 (娣锋穯鐢? 闈炲姞瀵嗗畨鍏?"
+    -- 阵营聊天 (每人发布自己的最近消息, 轮询合并)
 local HASH_SEED = 37829
 local HASH_SECRET = 0x5F3759DF
 
 -- ============================================================================
--- 鍏变韩鍙彉鐘舵€?(瀛愭ā鍧楅€氳繃 CloudManager._S 璁块棶)
+-- 共享可变状态 (子模块通过 CloudManager._S 访问)
 -- ============================================================================
 local S = {}
 CloudManager._S = S
@@ -136,41 +136,43 @@ S.retryTimer = 0
 S.retryData = nil
 S.lastSyncTime = 0
 
-S.banLevel = BAN_LEVEL_NONE      -- 褰撳墠鐜╁鐨勫皝绂佺瓑绾?"
-S.banReason = ""                 -- 灏佺鍘熷洜
-S.banChecked = false             -- 鏄惁宸插畬鎴愬皝绂佹鏌?"
+S.banLevel = BAN_LEVEL_NONE      -- 当前玩家的封禁等级
+S.banReason = ""                 -- 封禁原因
+S.banChecked = false             -- 是否已完成封禁检查
 
-S.cooldownTimestamps = {}        -- 棰戠巼闄愬埗: 鍚勬搷浣滄渶鍚庢墽琛屾椂闂存埑
-S.rejectedByCache = {}           -- 琚嫆缁濊褰? { [targetUid] = rejectTime }
+S.cooldownTimestamps = {}        -- 频率限制: 各操作最后执行时间戳
+S.rejectedByCache = {}           -- 被拒绝记录: { [targetUid] = rejectTime }
 
-S.cloudLoadPending = false       -- 浜戠鍔犺浇涓爣蹇?"
-S.pendingSaveCallback = nil      -- 浜戠鍔犺浇鏈熼棿绉敀鐨勪繚瀛樿姹?"
+S.cloudLoadPending = false       -- 云端加载中标志
+S.cloudLoadStartTime = 0         -- 云端加载开始时间 (os.clock)
+S.cloudSyncNeeded = false        -- 服务端就绪后需补偿同步 (初次加载时服务端未就绪)
+S.pendingSaveCallback = nil      -- 云端加载期间积攒的保存请求
 
 -- ============================================================================
--- 鍒濆鍖?"
+-- 初始化
 -- ============================================================================
 
 ---@param opts? { prefix?: string, onBanned?: fun(level: number, reason: string) }
 function CloudManager.Init(opts)
     if opts and opts.prefix then
-        -- 鍏佽瑕嗙洊鍓嶇紑(娴嬭瘯鐢?"
+        -- 允许覆盖前缀(测试用)
     end
     S.initialized = true
-    print("[CloudManager] 鍒濆鍖栧畬鎴? prefix=" .. PREFIX)
+    print("[CloudManager] 初始化完成, prefix=" .. PREFIX)
 
-    -- 鍚姩鏃跺厛妫€鏌ュ皝绂佺姸鎬?(灏佺妫€鏌ヤ紭鍏堜簬涓€鍒?"
+    -- 启动时先检查封禁状态 (封禁检查优先于一切)
     CloudManager.CheckBanStatus(function(level, reason)
         if level >= BAN_LEVEL_FULL then
-            print("[CloudManager] 鐜╁琚叏灏佺: " .. tostring(reason))
+            print("[CloudManager] 玩家被全封禁: " .. tostring(reason))
             if opts and opts.onBanned then
                 opts.onBanned(level, reason)
             end
-            return -- 鍏ㄥ皝绂? 涓嶅姞杞戒换浣曟暟鎹?"
+            return -- 全封禁: 不加载任何数据
         end
         if level >= BAN_LEVEL_SOCIAL then
-            print("[CloudManager] 鐜╁琚ぞ浜ゅ皝绂? " .. tostring(reason))
+            print("[CloudManager] 玩家被社交封禁: " .. tostring(reason))
         end
-        -- 闈炲叏灏佺: 姝ｅ父鍔犺浇濂藉弸/闃佃惀鍑虹珯淇＄
+        -- 非全封禁: 正常加载好友/阵营出站信箱
         if level < BAN_LEVEL_SOCIAL then
             CloudManager._loadMyOutbox()
         end
@@ -178,10 +180,10 @@ function CloudManager.Init(opts)
 end
 
 -- ============================================================================
--- 鏁版嵁鎵撳寘: 灏嗘父鎴忓叏灞€鍙橀噺鎸?domain 鎵撳寘
+-- 数据打包: 将游戏全局变量按 domain 打包
 -- ============================================================================
 
---- 鏀堕泦鎸囧畾 domain 鐨勬暟鎹?(浠庡叏灞€鍙橀噺璇诲彇)
+--- 收集指定 domain 的数据 (从全局变量读取)
 ---@param domain string
 ---@return table
 function CloudManager.CollectDomainData(domain)
@@ -252,7 +254,7 @@ function CloudManager.CollectDomainData(domain)
         }
 
     elseif domain == "welfare" then
-        -- nil 淇濇姢: 杩欎簺鍏ㄥ眬鍙橀噺鍙兘鍦ㄩ娆＄櫥褰曟椂灏氭湭鍒濆鍖?"
+        -- nil 保护: 这些全局变量可能在首次登录时尚未初始化
         local ws = rawget(_G, "welfareState") or {}
         local sw = ws.spinWheel or {}
         local cf = ws.cardFlip or {}
@@ -292,7 +294,7 @@ function CloudManager.CollectDomainData(domain)
             mailClaimed = ml.claimed or {},
             cloudMailClaimed = CloudManager._mailClaimed or {},
             lastWeeklySettled = ws.lastWeeklySettled,
-            tutorialRewardClaimed = gs.tutorialRewardClaimed or false,
+
             sealData = rawget(_G, "sealData"),
             sealExpItems = rawget(_G, "sealExpItems"),
             sealInventory = rawget(_G, "sealInventory"),
@@ -347,7 +349,7 @@ function CloudManager.CollectDomainData(domain)
         local wm = rawget(_G, "WorldMap")
         local wms = rawget(_G, "worldMapState")
         if wm and wms and wms.inited then
-            -- 鏀堕泦鍩庢睜杩愯鏃舵暟鎹?"
+            -- 收集城池运行时数据
             local citySave = {}
             for _, c in ipairs(WORLD_CITIES) do
                 local cd = wms.cityData[c.id]
@@ -361,12 +363,12 @@ function CloudManager.CollectDomainData(domain)
                     }
                 end
             end
-            -- 搴忓垪鍖栧叺绉嶉€夋嫨 (key浠巒umber杞瑂tring, JSON鍏煎)
+            -- 序列化兵种选择 (key从number转string, JSON兼容)
             local troopChoiceSave = {}
             for k, v in pairs(wms.heroTroopChoice or {}) do
                 troopChoiceSave[tostring(k)] = v
             end
-            -- 搴忓垪鍖栧凡瀛︽鎶€
+            -- 序列化已学武技
             local learnedSave = {}
             for k, v in pairs(wms.heroLearnedSkills or {}) do
                 learnedSave[tostring(k)] = v
@@ -392,100 +394,100 @@ function CloudManager.CollectDomainData(domain)
 end
 
 -- ============================================================================
--- 鍏ㄩ噺淇濆瓨 (鏈湴 + 浜戠澶歞omain)
+-- 全量保存 (本地 + 云端多domain)
 -- ============================================================================
 
---- 鍏ㄩ噺淇濆瓨: 鏈湴JSON + 浜戠澶歞omain BatchSet
+--- 全量保存: 本地JSON + 云端多domain BatchSet
 ---@param callback? fun(success: boolean, msg: string)
----@param forceBypass? boolean 璺宠繃棰戠巼闄愬埗(鍐呴儴鐢?"
+---@param forceBypass? boolean 跳过频率限制(内部用)
 function CloudManager.SaveAll(callback, forceBypass)
-    -- 灏佺妫€鏌? 鍏ㄥ皝绂佺姝繚瀛?"
+    -- 封禁检查: 全封禁禁止保存
     if S.banLevel >= BAN_LEVEL_FULL then
-        if callback then callback(false, "璐﹀彿宸茶灏佺, 鏃犳硶淇濆瓨") end
+        if callback then callback(false, "账号已被封禁, 无法保存") end
         return
     end
 
-    -- 浜戠鍔犺浇涓繚鎶? 鍙繚瀛樻湰鍦? 涓嶄笂浼犱簯绔?(闃叉鏃ф暟鎹鐩栦簯绔柊鏁版嵁)
+    -- 云端加载中保护: 只保存本地, 不上传云端 (防止旧数据覆盖云端新数据)
     if S.cloudLoadPending then
-        print("[CloudManager] 浜戠鍔犺浇涓? 浠呬繚瀛樻湰鍦?(闃叉绔炴€佽鐩?")
+        print("[CloudManager] 云端加载中, 仅保存本地 (防止竞态覆盖)")
         CloudManager._sanitizeResources()
         local allData = {}
         for name, _ in pairs(DOMAINS) do
             allData[name] = CloudManager.CollectDomainData(name)
         end
         CloudManager._saveLocalJSON(allData)
-        -- 璁板綍寰呬繚瀛樺洖璋? LoadAll 瀹屾垚鍚庝細瑙﹀彂涓€娆″畬鏁?SaveAll
+        -- 记录待保存回调, LoadAll 完成后会触发一次完整 SaveAll
         S.pendingSaveCallback = callback
         return
     end
 
-    -- 棰戠巼闄愬埗: 闃叉楂橀淇濆瓨 (浣嗘湰鍦版枃浠朵粛鐒朵繚瀛?"
+    -- 频率限制: 防止高频保存 (但本地文件仍然保存)
     if not forceBypass and not CloudManager._checkCooldown("save_all", COOLDOWN_SAVE_ALL) then
-        -- 鍗充娇琚喎鍗撮樆鏂? 浠嶇劧淇濆瓨鏈湴鏂囦欢 (闃叉宕╂簝涓㈠け鏁版嵁)
+        -- 即使被冷却阻断, 仍然保存本地文件 (防止崩溃丢失数据)
         CloudManager._sanitizeResources()
         local allData = {}
         for name, _ in pairs(DOMAINS) do
             allData[name] = CloudManager.CollectDomainData(name)
         end
         CloudManager._saveLocalJSON(allData)
-        if callback then callback(false, "淇濆瓨杩囦簬棰戠箒, 浠呮湰鍦颁繚瀛?") end
+        if callback then callback(false, "保存过于频繁, 仅本地保存") end
         return
     end
 
-    -- 0. 璐熷€奸槻鎶? 鍏抽敭璧勬簮涓嶅厑璁镐负璐?"
+    -- 0. 负值防护: 关键资源不允许为负
     CloudManager._sanitizeResources()
 
-    -- 1. 鏀堕泦鎵€鏈?domain 鏁版嵁
+    -- 1. 收集所有 domain 数据
     local allData = {}
     for name, _ in pairs(DOMAINS) do
         allData[name] = CloudManager.CollectDomainData(name)
     end
 
-    -- 2. 淇濆瓨鏈湴JSON (淇濈暀瀹屾暣鍗曟枃浠跺厹搴?"
+    -- 2. 保存本地JSON (保留完整单文件兜底)
     CloudManager._saveLocalJSON(allData)
 
-    -- 3. 浜戠 BatchSet (澶歞omain + 鍏紑妗ｆ)
+    -- 3. 云端 BatchSet (多domain + 公开档案)
     if not CloudAPI.IsAvailable() then
-        if callback then callback(true, "鏈湴淇濆瓨鎴愬姛(鏃犱簯绔?") end
+        if callback then callback(true, "本地保存成功(无云端)") end
         return
     end
 
-    -- 瀹夊叏妫€鏌? 闃叉绌烘暟鎹鐩栨湁鏁堝瓨妗?"
+    -- 安全检查: 防止空数据覆盖有效存档
     local coreData = allData.core
     if coreData and coreData.playerInfo then
         local pi = coreData.playerInfo
         local weight = (pi.totalBattles or 0) + (pi.totalWins or 0)
             + (pi.rankIdx or 0) * 100 + (pi.totalGachas or 0) + (pi.totalEquips or 0)
         if weight <= 100 and not pi.profileSet then
-            print("[CloudManager] 璺宠繃浜戠鍚屾: 鏁版嵁鏉冮噸杩囦綆(" .. tostring(weight) .. ")")
-            if callback then callback(true, "鏈湴淇濆瓨鎴愬姛(鏉冮噸杩囦綆璺宠繃浜戠)") end
+            print("[CloudManager] 跳过云端同步: 数据权重过低(" .. tostring(weight) .. ")")
+        if callback then callback(true, "本地保存成功(无云端)") end
             return
         end
     end
 
-    -- 鏋勫缓 BatchSet
+    -- 构建 BatchSet
     local batch = CloudAPI:BatchSet()
     for name, key in pairs(DOMAINS) do
         batch:Set(key, allData[name])
     end
 
-    -- 鍚屾椂鏇存柊鏃ф牸寮?savegame key (鍚戜笅鍏煎)
+    -- 同时更新旧格式 savegame key (向下兼容)
     local legacyData = CloudManager._buildLegacyData(allData)
     batch:Set(KEYS.legacy_save, legacyData)
 
-    -- 璁＄畻骞朵繚瀛樺瓨妗ｅ搱甯?"
+    -- 计算并保存存档哈希
     local hash = CloudManager._computeSaveHash(allData)
     batch:Set(KEYS.save_hash, { hash = hash, time = os.time() })
 
     batch:Save("CloudManager.SaveAll", {
         ok = function()
-            print("[CloudManager] 浜戠澶歞omain鍚屾鎴愬姛")
+            print("[CloudManager] 云端多domain同步成功")
             S.retryCount = 0
             S.lastSyncTime = os.time()
-            if callback then callback(true, "浜戠鍚屾鎴愬姛") end
+            if callback then callback(true, "云端同步成功") end
         end,
         error = function(code, reason)
-            print("[CloudManager] 浜戠鍚屾澶辫触: " .. tostring(code) .. " " .. tostring(reason))
+            print("[CloudManager] 云端同步失败: " .. tostring(code) .. " " .. tostring(reason))
             S.retryCount = S.retryCount + 1
             if S.retryCount <= 3 then
                 S.retryTimer = 30
@@ -495,24 +497,24 @@ function CloudManager.SaveAll(callback, forceBypass)
         end,
     })
 
-    -- 4. 鍙戝竷鍏紑妗ｆ (寮傛锛屼笉闃诲淇濆瓨, 鏈夐鐜囬檺鍒?"
+    -- 4. 发布公开档案 (异步，不阻塞保存, 有频率限制)
     CloudManager._publishProfile(allData)
 end
 
---- 鍗曞煙淇濆瓨 (浠呮洿鏂版寚瀹歞omain)
----@param domain string domain鍚嶇О
+--- 单域保存 (仅更新指定domain)
+---@param domain string domain名称
 ---@param callback? fun(success: boolean)
 function CloudManager.SaveDomain(domain, callback)
     local key = DOMAINS[domain]
     if not key then
-        print("[CloudManager] 鏈煡domain: " .. tostring(domain))
+        print("[CloudManager] 未知domain: " .. tostring(domain))
         return
     end
 
     local data = CloudManager.CollectDomainData(domain)
 
-    -- 鏇存柊鏈湴JSON (鍏ㄩ噺閲嶅啓)
-    CloudManager._saveLocalJSON(nil) -- 瑙﹀彂鍏ㄩ噺鏈湴淇濆瓨
+    -- 更新本地JSON (全量重写)
+    CloudManager._saveLocalJSON(nil) -- 触发全量本地保存
 
     if not CloudAPI.IsAvailable() then
         if callback then callback(true) end
@@ -521,57 +523,61 @@ function CloudManager.SaveDomain(domain, callback)
 
     CloudAPI:Set(key, data, {
         ok = function()
-            print("[CloudManager] domain " .. domain .. " 浜戠淇濆瓨鎴愬姛")
+            print("[CloudManager] domain " .. domain .. " 云端保存成功")
             if callback then callback(true) end
         end,
         error = function(code, reason)
-            print("[CloudManager] domain " .. domain .. " 浜戠淇濆瓨澶辫触: " .. tostring(reason))
+            print("[CloudManager] domain " .. domain .. " 云端保存失败: " .. tostring(reason))
             if callback then callback(false) end
         end,
     })
 end
 
 -- ============================================================================
--- 鍏ㄩ噺鍔犺浇 (鏈湴浼樺厛 + 浜戠瀵规瘮)
+-- 全量加载 (本地优先 + 云端对比)
 -- ============================================================================
 
---- 鍏ㄩ噺鍔犺浇: 鍏堝姞杞芥湰鍦?-> 鍐嶅姣斾簯绔彇鏇存柊鐨?"
+--- 全量加载: 先加载本地 -> 再对比云端取更新的
 ---@param callback? fun(source: string) "local" | "cloud" | "none"
 function CloudManager.LoadAll(callback)
-    -- 1. 鍔犺浇鏈湴
+    -- 1. 加载本地
     local localData = CloudManager._loadLocalJSON()
     local localVersion = nil
 
     if localData then
-        -- 鍒ゆ柇鏄棫鏍煎紡杩樻槸鏂版牸寮?"
+        -- 判断是旧格式还是新格式
         if localData._multiDomain then
-            -- 鏂版牸寮? 鎸塪omain鎭㈠
+            -- 新格式: 按domain恢复
             localVersion = "multi"
             CloudManager._applyMultiDomain(localData)
         else
-            -- 鏃ф牸寮? 鐢ㄥ師鏈?ApplySaveData
+            -- 旧格式: 用原有 ApplySaveData
             localVersion = "legacy"
             if rawget(_G, "ApplySaveData") then
                 ApplySaveData(localData)
             end
         end
-        print("[CloudManager] 鏈湴瀛樻。宸插姞杞? format=" .. localVersion)
+        print("[CloudManager] 本地存档已加载, format=" .. localVersion)
     else
-        print("[CloudManager] 鏈湴鏃犲瓨妗?")
+        print("[CloudManager] 本地无存档")
     end
 
-    -- 2. 浜戠瀵规瘮
-    if not CloudAPI.IsAvailable() then
+    -- 2. 云端对比 (必须用 IsReady: 服务端已连接且收到 Welcome 才走云端路径,
+    --    否则请求会进入 delayedCloudQueue_ 永远等不到响应, cloudLoadPending 卡死)
+    if not CloudAPI.IsReady() then
+        print("[CloudManager] 服务端未就绪(IsReady=false), 跳过云端加载, 使用本地存档")
+        S.cloudSyncNeeded = true  -- 标记: 服务端就绪后需补偿同步
         if callback then callback(localData and "local" or "none") end
         return
     end
 
-    -- 璁剧疆浜戠鍔犺浇涓爣蹇? 闃叉 SaveAll 鍦ㄦ鏈熼棿瑕嗙洊浜戠鏁版嵁
+    -- 设置云端加载中标志, 防止 SaveAll 在此期间覆盖云端数据
     S.cloudLoadPending = true
+    S.cloudLoadStartTime = os.clock()
     S.pendingSaveCallback = nil
-    print("[CloudManager] 寮€濮嬩簯绔姞杞? 宸查攣瀹氫簯绔啓鍏?")
+    print("[CloudManager] 开始云端加载, 已锁定云端写入")
 
-    -- BatchGet 鎵€鏈?domain + 鏃ф牸寮弅ey + 鍝堝笇鏍￠獙
+    -- BatchGet 所有 domain + 旧格式key + 哈希校验
     local batchGet = CloudAPI:BatchGet()
     for _, key in pairs(DOMAINS) do
         batchGet:Key(key)
@@ -581,23 +587,23 @@ function CloudManager.LoadAll(callback)
 
     batchGet:Fetch({
         ok = function(values, iscores)
-            -- 妫€鏌ヤ簯绔槸鍚︽湁鏂版牸寮忔暟鎹?"
+            -- 检查云端是否有新格式数据
             local cloudHasMulti = values[DOMAINS.core] ~= nil
             local cloudHasLegacy = values[KEYS.legacy_save] ~= nil
 
             if not cloudHasMulti and not cloudHasLegacy then
-                -- 浜戠鏃犲瓨妗? 涓婁紶鏈湴
+                -- 云端无存档, 上传本地
                 S.cloudLoadPending = false
                 print("[CloudManager] 云端加载完成(无云端存档)，已解锁云端写入")
                 if localData then
-                    print("[CloudManager] 浜戠鏃犲瓨妗? 涓婁紶鏈湴")
+                    print("[CloudManager] 云端无存档, 上传本地")
                     CloudManager.SaveAll()
                 end
                 if callback then callback(localData and "local" or "none") end
                 return
             end
 
-            -- 鑾峰彇浜戠鏃堕棿鎴?"
+            -- 获取云端时间戳
             local cloudTime = 0
             if cloudHasMulti then
                 local coreData = values[DOMAINS.core]
@@ -607,7 +613,7 @@ function CloudManager.LoadAll(callback)
                 cloudTime = (legData and legData.savedAt) or 0
             end
 
-            -- 鑾峰彇鏈湴鏃堕棿鎴?"
+            -- 获取本地时间戳
             local localTime = 0
             if localData then
                 if localVersion == "multi" and localData.domains and localData.domains.core then
@@ -617,8 +623,8 @@ function CloudManager.LoadAll(callback)
                 end
             end
 
-            -- 瀵规瘮鍐崇瓥
-            -- 鍏抽敭鏁版嵁璇婃柇: 鍦ㄥ喅绛栧墠璁板綍鏈湴鍜屼簯绔殑鍏电/铏庣鍊?"
+            -- 对比决策
+            -- 关键数据诊断: 在决策前记录本地和云端的兵符/玉壁值
             local localJade = rawget(_G, "playerInfo") and playerInfo.jade or -1
             local localSealCount = 0
             if rawget(_G, "sealData") then
@@ -632,82 +638,82 @@ function CloudManager.LoadAll(callback)
             if cloudHasMulti and values[DOMAINS.welfare] and values[DOMAINS.welfare].sealData then
                 for _ in pairs(values[DOMAINS.welfare].sealData) do cloudSealCount = cloudSealCount + 1 end
             end
-            print(string.format("[CloudManager] 鏁版嵁瀵规瘮: 鏈湴jade=%s sealCount=%d | 浜戠jade=%s sealCount=%d",
+            print(string.format("[CloudManager] 数据对比: 本地jade=%s sealCount=%d | 云端jade=%s sealCount=%d",
                 tostring(localJade), localSealCount, tostring(cloudJade), cloudSealCount))
 
             local useCloud = false
             if not localData then
                 useCloud = true
-                print("[CloudManager] 鏈湴鏃犲瓨妗? 浣跨敤浜戠")
+                print("[CloudManager] 本地无存档, 使用云端")
             elseif cloudTime > 0 and localTime > 0 then
                 useCloud = cloudTime > localTime
-                print(string.format("[CloudManager] 鏈湴time=%d vs 浜戠time=%d -> %s",
-                    localTime, cloudTime, useCloud and "鐢ㄤ簯绔?" or "鐢ㄦ湰鍦?"))
+                print(string.format("[CloudManager] 本地time=%d vs 云端time=%d -> %s",
+                    localTime, cloudTime, useCloud and "用云端" or "用本地"))
             end
 
             if useCloud then
                 if cloudHasMulti then
-                    -- 鏂版牸寮? 鎸塪omain鎭㈠
+                    -- 新格式: 按domain恢复
                     local cloudDomains = {}
                     for name, key in pairs(DOMAINS) do
                         cloudDomains[name] = values[key]
                     end
-                    -- 鍝堝笇鏍￠獙: 楠岃瘉浜戠瀛樻。瀹屾暣鎬?"
+                    -- 哈希校验: 验证云端存档完整性
                     local storedHashData = values[KEYS.save_hash]
                     if storedHashData and storedHashData.hash then
                         local recalcHash = CloudManager._computeSaveHash(cloudDomains)
                         if recalcHash ~= storedHashData.hash then
-                            print("[CloudManager] 浜戠瀛樻。鍝堝笇鏍￠獙澶辫触! stored="
+                            print("[CloudManager] 云端存档哈希校验失败! stored="
                                 .. tostring(storedHashData.hash) .. " calc=" .. tostring(recalcHash))
-                            -- 瀛樻。鍙兘琚鏀? 浠嶇劧鍔犺浇浣嗘爣璁拌鍛?"
+                            -- 存档可能被篡改: 仍然加载但标记警告
                             CloudManager._hashMismatch = true
                         else
                             CloudManager._hashMismatch = false
                         end
                     end
                     CloudManager._applyMultiDomain({ domains = cloudDomains })
-                    -- 璐熷€奸槻鎶?"
+                    -- 负值防护
                     CloudManager._sanitizeResources()
-                    -- 淇濆瓨鍒版湰鍦?"
+                    -- 保存到本地
                     CloudManager._saveLocalJSON(nil)
-                    print("[CloudManager] 宸插簲鐢ㄤ簯绔domain瀛樻。")
+            print("[CloudManager] 云端多domain同步成功")
                 else
-                    -- 鏃ф牸寮?"
+                    -- 旧格式
                     local legData = values[KEYS.legacy_save]
                     if rawget(_G, "ApplySaveData") then
                         ApplySaveData(legData)
                     end
                     CloudManager._saveLocalJSON(nil)
-                    print("[CloudManager] 宸插簲鐢ㄤ簯绔棫鏍煎紡瀛樻。")
+        print("[CloudManager] 本地无存档")
                 end
                 if callback then callback("cloud") end
             else
-                -- 鏈湴鏇存柊, 鍚屾鍒颁簯绔?"
+                -- 本地更新, 同步到云端
                 CloudManager.SaveAll()
                 if callback then callback("local") end
             end
 
-            -- 瑙ｉ攣浜戠鍐欏叆
+            -- 解锁云端写入
             S.cloudLoadPending = false
-            print("[CloudManager] 浜戠鍔犺浇瀹屾垚, 宸茶В閿佷簯绔啓鍏?")
+            print("[CloudManager] 云端加载完成, 已解锁云端写入")
 
-            -- 濡傛灉鍔犺浇鏈熼棿鏈夊欢杩熺殑淇濆瓨璇锋眰, 鐜板湪鎵ц涓€娆″畬鏁?SaveAll
+            -- 如果加载期间有延迟的保存请求, 现在执行一次完整 SaveAll
             if S.pendingSaveCallback then
                 local cb = S.pendingSaveCallback
                 S.pendingSaveCallback = nil
-                print("[CloudManager] 鎵ц寤惰繜淇濆瓨璇锋眰")
-                CloudManager.SaveAll(cb, true) -- forceBypass=true 璺宠繃鍐峰嵈
+        print("[CloudManager] 本地无存档")
+                CloudManager.SaveAll(cb, true) -- forceBypass=true 跳过冷却
             end
 
-            -- 濂藉弸/闃佃惀淇＄: 鎷夊彇鍑虹珯鏁版嵁 (鐢宠姹犳ā寮?"
+            -- 好友/阵营信箱: 拉取出站数据 (申请池模式)
             CloudManager._loadMyOutbox()
         end,
         error = function(code, reason)
-            print("[CloudManager] 浜戠鍔犺浇澶辫触: " .. tostring(reason))
-            -- 瑙ｉ攣浜戠鍐欏叆 (鍗充娇澶辫触涔熻瑙ｉ攣, 鍚﹀垯姘歌繙鏃犳硶淇濆瓨鍒颁簯绔?"
+            print("[CloudManager] 玩家被全封禁: " .. tostring(reason))
+            -- 解锁云端写入 (即使失败也要解锁, 否则永远无法保存到云端)
             S.cloudLoadPending = false
-            print("[CloudManager] 浜戠鍔犺浇澶辫触, 宸茶В閿佷簯绔啓鍏?")
-            -- 鎵ц寤惰繜淇濆瓨
+            print("[CloudManager] 云端加载失败, 已解锁云端写入")
+            -- 执行延迟保存
             if S.pendingSaveCallback then
                 local cb = S.pendingSaveCallback
                 S.pendingSaveCallback = nil
@@ -719,7 +725,7 @@ function CloudManager.LoadAll(callback)
 end
 
 -- ============================================================================
--- 瀵煎嚭甯搁噺/宸ュ叿鍑芥暟渚涘瓙妯″潡浣跨敤 (瀛愭ā鍧楅€氳繃 CloudManager._C 璁块棶)
+-- 导出常量/工具函数供子模块使用 (子模块通过 CloudManager._C 访问)
 -- ============================================================================
 CloudManager._C = {
     PREFIX = PREFIX,

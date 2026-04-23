@@ -1714,7 +1714,7 @@ function EquipUI.HandleTouchBegin(dx, dy)
                 local eqEnhLv = item.enhanceLv or 0
                 local enhCost = ENHANCE_COST[eqEnhLv + 1] or 999
                 if playerInfo.lingshi < enhCost then
-                    AddFloatText(W / 2, H * 0.3, "军资不足", 1.0, {255, 100, 100}, 14)
+                    AddFloatText(W / 2, H * 0.3, "军资不足", 1.0, {255, 100, 100}, 18)
                 else
                     state.enhanceConfirm = { slotIdx = item.slotIdx, enhLv = eqEnhLv, cost = enhCost }
                 end
@@ -1770,7 +1770,7 @@ function EquipUI.HandleTouchBegin(dx, dy)
             if selCount > 0 then
                 state.selectDecompConfirm = { count = selCount, gain = selGain }
             else
-                AddFloatText(W / 2, H * 0.3, "请先选择要分解的宝物", 1.0, {255, 200, 100}, 14)
+                AddFloatText(W / 2, H * 0.3, "请先选择要分解的宝物", 1.0, {255, 200, 100}, 18)
             end
             PlaySFX(AUDIO.sfx_click); return true
         end
@@ -1791,13 +1791,13 @@ function EquipUI.HandleTouchBegin(dx, dy)
             sdk:ShowRewardVideoAd(SafeAdCallback(function(result)
                 if result.success then
                     playerEquipment.unlockedSlots = (playerEquipment.unlockedSlots or 0) + UNLOCK_PER_AD
-                    AddFloatText(W / 2, H * 0.3, "解锁+" .. UNLOCK_PER_AD .. "格子", 1.5, {120, 255, 180}, 16)
+                    AddFloatText(W / 2, H * 0.3, "解锁+" .. UNLOCK_PER_AD .. "格子", 1.5, {120, 255, 180}, 18)
                     ReportAdWatch(); SaveGameProgress()
                 end
             end))
         else
             playerEquipment.unlockedSlots = (playerEquipment.unlockedSlots or 0) + UNLOCK_PER_AD
-            AddFloatText(W / 2, H * 0.3, "[DEV] 解锁+" .. UNLOCK_PER_AD .. "格子", 1.5, {120, 255, 180}, 16)
+            AddFloatText(W / 2, H * 0.3, "[DEV] 解锁+" .. UNLOCK_PER_AD .. "格子", 1.5, {120, 255, 180}, 18)
             ReportAdWatch(); SaveGameProgress()
         end
         PlaySFX(AUDIO.sfx_click); return true
@@ -1855,11 +1855,11 @@ function EquipUI.HandleTouchEnd(dx, dy)
             if rect.item and hitRect(rect, dx, dy) then
                 local item = rect.item
                 if rect.locked then
-                    AddFloatText(W / 2, H * 0.3, "看广告解锁更多格子", 1.0, {255, 200, 100}, 14)
+                    AddFloatText(W / 2, H * 0.3, "看广告解锁更多格子", 1.0, {255, 200, 100}, 18)
                 elseif state.selectMode then
                     -- 选中模式：切换勾选（已装备的不可选）
                     if isItemEquipped(item) then
-                        AddFloatText(W / 2, H * 0.3, "已装备，不可分解", 1.0, {255, 150, 100}, 14)
+                        AddFloatText(W / 2, H * 0.3, "已装备，不可分解", 1.0, {255, 150, 100}, 18)
                     else
                         if state.selectedUids[item.uid] then
                             state.selectedUids[item.uid] = nil

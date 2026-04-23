@@ -100,11 +100,11 @@ function ExecuteSealGachaPull(count)
         cost = SEAL_GACHA_COST * count
     end
     if playerInfo.jade < cost then
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "虎符不足!", 1.2, { 255, 100, 100 }, 14)
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "玉壁不足!", 1.2, { 255, 100, 100 }, 18)
         return false
     end
     if not HasMaxConstellationHero() then
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "需要拥有至少1个满命武灵!", 1.5, { 255, 100, 100 }, 14)
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "需要拥有至少1个满命武灵!", 1.5, { 255, 100, 100 }, 18)
         return false
     end
     playerInfo.jade = playerInfo.jade - cost
@@ -113,7 +113,7 @@ function ExecuteSealGachaPull(count)
 
     local maxHeroes = GetMaxConstellationHeroes()
     if #maxHeroes == 0 then
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "需要拥有至少1个满命武灵!", 1.5, { 255, 100, 100 }, 14)
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "需要拥有至少1个满命武灵!", 1.5, { 255, 100, 100 }, 18)
         playerInfo.jade = playerInfo.jade + cost
         return false
     end
@@ -129,12 +129,12 @@ function ExecuteSealGachaPull(count)
             local slotType = math.random(1, SEAL_MAX_SLOTS)
             -- 等阶: 独立roll, 与装备概率相同
             local sealQ = RollSealTier()
-            -- 检查是否与该英雄同孔位同品质完全重复 → 返还虎符
+            -- 检查是否与该英雄同孔位同品质完全重复 → 返还玉壁
             if not sealData[cardIdx] then sealData[cardIdx] = { slots = {} } end
             local sd = sealData[cardIdx]
             local equipped = sd.slots[slotType]
             if equipped and equipped.sealQ == sealQ then
-                -- 同武灵 + 同孔位 + 同品质 → 重复, 返还虎符
+                -- 同武灵 + 同孔位 + 同品质 → 重复, 返还玉壁
                 totalJadeRefund = totalJadeRefund + SEAL_DUPE_REFUND
                 table.insert(sealGachaState.results, {
                     type = "seal_dupe", cardIdx = cardIdx, heroName = target.name,
@@ -178,7 +178,7 @@ function ExecuteSealGachaPull(count)
 
     if totalJadeRefund > 0 then
         playerInfo.jade = playerInfo.jade + totalJadeRefund
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.55, "重复兵符返还 +" .. totalJadeRefund .. " 虎符", 1.5, { 255, 200, 80 }, 16)
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.55, "重复兵符返还 +" .. totalJadeRefund .. " 玉壁", 1.5, { 255, 200, 80 }, 18)
     end
 
     playerInfo.totalGachas = (playerInfo.totalGachas or 0) + count
@@ -208,12 +208,12 @@ function UseSealExpItem(cardIdx, slotIdx, expItemIdx)
     if not sd or not sd.slots or not sd.slots[slotIdx] then return false end
     local slot = sd.slots[slotIdx]
     if slot.level >= SEAL_MAX_LEVEL then
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "已达最高等级!", 1.2, { 255, 180, 80 }, 14)
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "已达最高等级!", 1.2, { 255, 180, 80 }, 18)
         return false
     end
     local itemCount = sealExpItems[expItemIdx] or 0
     if itemCount <= 0 then
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "道具不足!", 1.2, { 255, 100, 100 }, 14)
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "道具不足!", 1.2, { 255, 100, 100 }, 18)
         return false
     end
     sealExpItems[expItemIdx] = itemCount - 1
@@ -240,7 +240,7 @@ function UseSealExpItem(cardIdx, slotIdx, expItemIdx)
         AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, SEAL_SLOT_NAMES[slotIdx] .. "兵符升级! Lv." .. slot.level, 1.5, { 255, 220, 80 }, 18)
         PlaySFX(AUDIO.sfx_click)
     else
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "+" .. expGain .. " 兵符经验", 1.0, { 200, 180, 255 }, 14)
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "+" .. expGain .. " 兵符经验", 1.0, { 200, 180, 255 }, 18)
     end
     SaveGameProgress()
     return true
@@ -390,7 +390,7 @@ function EquipSealFromInventory(invIndex, heroIdx, slotIdx)
     -- 兵符只能装备到绑定的武灵身上
     if invSeal.fromHero ~= heroIdx then
         AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4,
-            "该兵符绑定了其他武灵!", 1.2, { 255, 100, 100 }, 16)
+            "该兵符绑定了其他武灵!", 1.2, { 255, 100, 100 }, 18)
         return false
     end
     if not sealData[heroIdx] then sealData[heroIdx] = { slots = {} } end
@@ -412,7 +412,7 @@ function EquipSealFromInventory(invIndex, heroIdx, slotIdx)
     -- 从仓库移除
     table.remove(sealInventory, invIndex)
     AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4,
-        SEAL_SLOT_NAMES[slotIdx] .. " 已装备!", 1.2, { 100, 255, 160 }, 16)
+        SEAL_SLOT_NAMES[slotIdx] .. " 已装备!", 1.2, { 100, 255, 160 }, 18)
     SaveGameProgress()
     return true
 end
@@ -450,7 +450,7 @@ function DecomposeSealFromInventory(invIndex)
     table.remove(sealInventory, invIndex)
     local qName = SEAL_QUALITY_NAMES[invSeal.sealQ] or "兵符"
     AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
-        qName .. SEAL_SLOT_NAMES[invSeal.slotType] .. " 分解成功!", 1.5, { 255, 200, 80 }, 16)
+        qName .. SEAL_SLOT_NAMES[invSeal.slotType] .. " 分解成功!", 1.5, { 255, 200, 80 }, 18)
     if #returnTexts > 0 then
         AddFloatText(DESIGN_W / 2, DESIGN_H * 0.42,
             "获得: " .. table.concat(returnTexts, ", "), 2.0, { 200, 180, 255 }, 13)
@@ -492,7 +492,7 @@ function DecomposeEquippedSeal(heroIdx, slotIdx)
     local qName = SEAL_QUALITY_NAMES[slot.sealQ] or "兵符"
     sd.slots[slotIdx] = nil
     AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
-        qName .. SEAL_SLOT_NAMES[slotIdx] .. " 分解成功!", 1.5, { 255, 200, 80 }, 16)
+        qName .. SEAL_SLOT_NAMES[slotIdx] .. " 分解成功!", 1.5, { 255, 200, 80 }, 18)
     if #returnTexts > 0 then
         AddFloatText(DESIGN_W / 2, DESIGN_H * 0.42,
             "获得: " .. table.concat(returnTexts, ", "), 2.0, { 200, 180, 255 }, 13)
@@ -574,7 +574,7 @@ function ExecuteSealBatchDecomp(maxTier, slotFilter)
             end
         end
         AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
-            "筛选分解 " .. count .. " 件兵符!", 2.0, { 255, 200, 80 }, 16)
+            "筛选分解 " .. count .. " 件兵符!", 2.0, { 255, 200, 80 }, 18)
         if #parts > 0 then
             AddFloatText(DESIGN_W / 2, DESIGN_H * 0.42,
                 "获得: " .. table.concat(parts, ", "), 2.5, { 200, 180, 255 }, 13)
@@ -650,7 +650,7 @@ function ExecuteSealSelectDecomp(selectedIds)
             end
         end
         AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
-            "选中分解 " .. count .. " 件兵符!", 2.0, { 255, 200, 80 }, 16)
+            "选中分解 " .. count .. " 件兵符!", 2.0, { 255, 200, 80 }, 18)
         if #parts > 0 then
             AddFloatText(DESIGN_W / 2, DESIGN_H * 0.42,
                 "获得: " .. table.concat(parts, ", "), 2.5, { 200, 180, 255 }, 13)

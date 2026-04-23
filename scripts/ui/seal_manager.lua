@@ -40,7 +40,7 @@ function DrawSealMgrScreen()
     DrawHelpBtn(DESIGN_W - 14 - 30, topBarY + (backH - 30) / 2, 30)
 
     -- 仓库入口按钮
-    local invBtnW, invBtnH = 80, 34
+    local invBtnW, invBtnH = 80, 40
     local invBtnX = DESIGN_W - 14 - 30 - 10 - invBtnW
     local invBtnY = topBarY + (backH - invBtnH) / 2
     nvgBeginPath(vg); nvgRoundedRect(vg, invBtnX, invBtnY, invBtnW, invBtnH, 4)
@@ -57,7 +57,7 @@ function DrawSealMgrScreen()
         local badgeY = invBtnY
         nvgBeginPath(vg); nvgCircle(vg, badgeX, badgeY, badgeR)
         nvgFillColor(vg, nvgRGBA(200, 50, 50, 240)); nvgFill(vg)
-        nvgFontSize(vg, 12)
+        nvgFontSize(vg, 20)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(255, 255, 255, 255))
         nvgText(vg, badgeX, badgeY, tostring(#sealInventory), nil)
@@ -67,7 +67,7 @@ function DrawSealMgrScreen()
     sealInvFilterBtnRects.batchDecompBtn = nil
     sealInvFilterBtnRects.selectDecompBtn = nil
     if #sealInventory > 0 and not sealInvFilterState.selectMode then
-        local dbtnW, dbtnH = 88, 30
+        local dbtnW, dbtnH = 88, 36
         local dbtnGap = 6
         local dbtn1X = invBtnX - dbtnGap - dbtnW
         local dbtnY = topBarY + (backH - dbtnH) / 2
@@ -75,7 +75,7 @@ function DrawSealMgrScreen()
         nvgBeginPath(vg); nvgRoundedRect(vg, dbtn1X, dbtnY, dbtnW, dbtnH, 4)
         nvgFillColor(vg, nvgRGBA(110, 40, 40, 220)); nvgFill(vg)
         nvgStrokeColor(vg, nvgRGBA(200, 80, 80, 160)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-        nvgFontSize(vg, 16)
+        nvgFontSize(vg, 24)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         DrawWhiteInkText(dbtn1X + dbtnW / 2, dbtnY + dbtnH / 2, "筛选分解")
         sealInvFilterBtnRects.batchDecompBtn = { x = dbtn1X, y = dbtnY, w = dbtnW, h = dbtnH }
@@ -84,7 +84,7 @@ function DrawSealMgrScreen()
         nvgBeginPath(vg); nvgRoundedRect(vg, dbtn2X, dbtnY, dbtnW, dbtnH, 4)
         nvgFillColor(vg, nvgRGBA(40, 60, 100, 220)); nvgFill(vg)
         nvgStrokeColor(vg, nvgRGBA(80, 140, 200, 160)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-        nvgFontSize(vg, 16)
+        nvgFontSize(vg, 24)
         DrawWhiteInkText(dbtn2X + dbtnW / 2, dbtnY + dbtnH / 2, "选中分解")
         sealInvFilterBtnRects.selectDecompBtn = { x = dbtn2X, y = dbtnY, w = dbtnW, h = dbtnH }
     end
@@ -225,14 +225,14 @@ function DrawSealMgrScreen()
         end
 
         -- 兵符孔数信息 (卡牌下方)
-        nvgFontSize(vg, 16)
+        nvgFontSize(vg, 24)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         DrawWhiteInkText(cardCX, cardY + cardH + 16, "六欲 " .. slotCount .. "/" .. SEAL_MAX_SLOTS)
 
         -- 切换提示
         if #maxHeroes > 1 then
             local hintPulse = 150 + 60 * math.sin(t * 2.0)
-            nvgFontSize(vg, 13)
+            nvgFontSize(vg, 20)
             nvgFillColor(vg, nvgRGBA(200, 170, 240, math.floor(hintPulse)))
             nvgText(vg, cardCX, cardY + cardH + 34, "- 点击卡牌切换 -", nil)
         end
@@ -294,19 +294,19 @@ function DrawSealMgrScreen()
                 end
 
                 -- 等级 (六角形下半区)
-                nvgFontSize(vg, 13)
+                nvgFontSize(vg, 20)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 DrawWhiteInkText(sx, sy + slotR * 0.25, "Lv." .. (slot.level or 1))
 
                 -- 孔名 (下方白字描边)
-                nvgFontSize(vg, 14)
+                nvgFontSize(vg, 22)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 DrawWhiteInkText(sx, sy + slotR + 14, SEAL_SLOT_NAMES[slotIdx])
 
                 -- 效果主题 (更下方，带主题色描边)
                 local eff = SEAL_SLOT_EFFECTS[slotIdx]
                 if eff then
-                    nvgFontSize(vg, 11)
+                    nvgFontSize(vg, 18)
                     -- 先画描边
                     nvgFillColor(vg, nvgRGBA(0, 0, 0, 140))
                     nvgText(vg, sx - 1, sy + slotR + 29, eff.theme, nil)
@@ -347,7 +347,7 @@ function DrawSealMgrScreen()
                 nvgText(vg, sx, sy, "锁", nil)
 
                 -- 孔名 (白字描边，暗淡)
-                nvgFontSize(vg, 14)
+                nvgFontSize(vg, 22)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(0, 0, 0, 100))
                 nvgText(vg, sx - 1, sy + slotR + 14, SEAL_SLOT_NAMES[slotIdx], nil)
@@ -358,7 +358,7 @@ function DrawSealMgrScreen()
                 -- 效果主题 (暗淡)
                 local eff2 = SEAL_SLOT_EFFECTS[slotIdx]
                 if eff2 then
-                    nvgFontSize(vg, 11)
+                    nvgFontSize(vg, 18)
                     nvgFillColor(vg, nvgRGBA(100, 70, 150, 60))
                     nvgText(vg, sx, sy + slotR + 29, eff2.theme, nil)
                 end
@@ -411,7 +411,7 @@ function DrawSealMgrScreen()
             DrawWhiteInkText(cx, bottomY + 16, "兵符总加成")
 
             -- 两列加成
-            nvgFontSize(vg, 14)
+            nvgFontSize(vg, 22)
             local colW = bPanelW / 2
             for li, bl in ipairs(bonusLines) do
                 local col = (li - 1) % 2
@@ -460,12 +460,12 @@ function DrawSealMgrScreen()
             end
 
             -- 道具名 (白字描边)
-            nvgFontSize(vg, 12)
+            nvgFontSize(vg, 20)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             DrawWhiteInkText(ccx, itemRowY + imgSize + 10, item.name)
 
             -- 数量
-            nvgFontSize(vg, 14)
+            nvgFontSize(vg, 22)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             if cnt > 0 then
                 DrawWhiteInkText(ccx, itemRowY + imgSize + 26, "x" .. cnt)
@@ -497,7 +497,7 @@ function DrawSealMgrScreen()
         nvgFontSize(vg, 18)
         DrawWhiteInkText(cardCX, cardY + cardH + 20, "暂无满命武灵")
 
-        nvgFontSize(vg, 14)
+        nvgFontSize(vg, 22)
         nvgFillColor(vg, nvgRGBA(140, 110, 180, 120))
         nvgText(vg, cardCX, cardY + cardH + 42, "满命后解锁兵符系统", nil)
     end
@@ -562,7 +562,7 @@ function DrawSealMgrScreen()
         DrawWhiteInkText(cx, ppY + headerH / 2, "— 选择武灵 —")
 
         -- 武灵数量提示
-        nvgFontSize(vg, 12)
+        nvgFontSize(vg, 20)
         nvgFillColor(vg, nvgRGBA(180, 150, 220, 160))
         nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
         nvgText(vg, ppX + padX, ppY + headerH / 2 + 1, #maxHeroes .. "位满命", nil)
@@ -637,7 +637,7 @@ function DrawSealMgrScreen()
                 nvgFillPaint(vg, badgeBg); nvgFill(vg)
                 nvgBeginPath(vg); nvgRoundedRect(vg, badgeX, badgeY, badgeW2, badgeH2, badgeH2 / 2)
                 nvgStrokeColor(vg, nvgRGBA(160, 120, 220, 100)); nvgStrokeWidth(vg, 0.5); nvgStroke(vg)
-                nvgFontSize(vg, 10)
+                nvgFontSize(vg, 18)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 local slotColor = sc2 >= 6 and nvgRGBA(255, 220, 80, 255) or nvgRGBA(200, 180, 240, 220)
                 nvgFillColor(vg, slotColor)
@@ -668,7 +668,7 @@ function DrawSealMgrScreen()
 
         -- ====== 底部提示 (可滚动时显示) ======
         if needsScroll then
-            nvgFontSize(vg, 11)
+            nvgFontSize(vg, 18)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(160, 140, 200, 100))
             nvgText(vg, cx, ppY + ppH - footerH / 2, "上下滑动查看更多", nil)
@@ -735,7 +735,7 @@ function DrawSealMgrScreen()
             local stc = SEAL_SLOT_THEME_COLORS[slotIdx] or { 200, 160, 255 }
             if slotBonus then
                 -- 主题名 (主题色描边)
-                nvgFontSize(vg, 15)
+                nvgFontSize(vg, 22)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(0, 0, 0, 120))
                 nvgText(vg, cx - 1, attrY, "【" .. slotBonus.theme .. "】", nil)
@@ -745,7 +745,7 @@ function DrawSealMgrScreen()
                 attrY = attrY + 22
 
                 -- 主属性 (白字描边)
-                nvgFontSize(vg, 17)
+                nvgFontSize(vg, 24)
                 local mainText = slotBonus.mainName .. string.format("+%.1f%%", slotBonus.mainVal)
                 if slotBonus.mainKey == "extraTroops" then
                     mainText = slotBonus.mainName .. string.format("+%.1f", slotBonus.mainVal)
@@ -755,7 +755,7 @@ function DrawSealMgrScreen()
                 -- 副属性
                 if slotBonus.subKey and slotBonus.subVal > 0 then
                     attrY = attrY + 20
-                    nvgFontSize(vg, 15)
+                    nvgFontSize(vg, 22)
                     nvgFillColor(vg, nvgRGBA(0, 0, 0, 120))
                     nvgText(vg, cx - 1, attrY, slotBonus.subName .. string.format("+%.1f%%", slotBonus.subVal), nil)
                     nvgText(vg, cx + 1, attrY, slotBonus.subName .. string.format("+%.1f%%", slotBonus.subVal), nil)
@@ -787,11 +787,11 @@ function DrawSealMgrScreen()
                 nvgStrokeColor(vg, nvgRGBA(sc[1], sc[2], sc[3], 100))
                 nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
 
-                nvgFontSize(vg, 13)
+                nvgFontSize(vg, 20)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 DrawWhiteInkText(cx, barY + barH2 / 2, expCur .. " / " .. expNeeded)
             else
-                nvgFontSize(vg, 16)
+                nvgFontSize(vg, 24)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(0, 0, 0, 120))
                 nvgText(vg, cx - 1, barY + barH2 / 2, "已达最高等级!", nil)
@@ -842,7 +842,7 @@ function DrawSealMgrScreen()
                 end
 
                 -- 道具名 (白字描边)
-                nvgFontSize(vg, 12)
+                nvgFontSize(vg, 20)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 if canUse then
                     DrawWhiteInkText(bcx, by + imgBtnSize + 14, item.name)
@@ -852,7 +852,7 @@ function DrawSealMgrScreen()
                 end
 
                 -- 经验值
-                nvgFontSize(vg, 11)
+                nvgFontSize(vg, 18)
                 if canUse then
                     DrawWhiteInkText(bcx, by + imgBtnSize + 30, "+" .. item.exp .. "EXP")
                 else
@@ -861,7 +861,7 @@ function DrawSealMgrScreen()
                 end
 
                 -- 数量
-                nvgFontSize(vg, 14)
+                nvgFontSize(vg, 22)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 if cnt > 0 then
                     DrawWhiteInkText(bcx, by + imgBtnSize + 48, "x" .. cnt)
@@ -872,7 +872,7 @@ function DrawSealMgrScreen()
 
                 -- "使用" 按钮文字
                 if canUse then
-                    nvgFontSize(vg, 14)
+                    nvgFontSize(vg, 22)
                     nvgFillColor(vg, nvgRGBA(0, 0, 0, 120))
                     nvgText(vg, bcx - 1, by + useBtnH - 8, "使用", nil)
                     nvgText(vg, bcx + 1, by + useBtnH - 8, "使用", nil)
@@ -902,7 +902,7 @@ function DrawSealMgrScreen()
                 nvgStrokeColor(vg, nvgRGBA(140, 80, 220, 80)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
 
                 -- "升至" 文字
-                nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+                nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                 DrawWhiteInkText(pX + 26, batchY + 18, "升至")
 
                 -- - 按钮
@@ -932,14 +932,14 @@ function DrawSealMgrScreen()
                 sealMgrBtnRects.batchPlus = { x = plusBtnX, y = batchY + 4, w = minusBtnW, h = minusBtnH }
 
                 -- 所需经验
-                nvgFontSize(vg, 12); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+                nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(180, 160, 220, 180))
                 nvgText(vg, pX + 26, batchY + 40, "需" .. expNeeded .. "EXP", nil)
 
                 -- 材料消耗预览
                 if plan then
                     local previewX = pX + 100
-                    nvgFontSize(vg, 11)
+                    nvgFontSize(vg, 18)
                     for idx = 1, #SEAL_EXP_ITEMS do
                         local use = plan[idx] or 0
                         if use > 0 then
@@ -950,7 +950,7 @@ function DrawSealMgrScreen()
                         end
                     end
                 else
-                    nvgFontSize(vg, 12)
+                    nvgFontSize(vg, 20)
                     nvgFillColor(vg, nvgRGBA(255, 100, 100, 200))
                     nvgText(vg, pX + 100, batchY + 40, "材料不足", nil)
                 end
@@ -970,7 +970,7 @@ function DrawSealMgrScreen()
                     nvgFillColor(vg, nvgRGBA(40, 25, 55, 180)); nvgFill(vg)
                     nvgStrokeColor(vg, nvgRGBA(80, 50, 110, 80)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
                 end
-                nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 if canBatch then
                     DrawWhiteInkText(goBtnX + goBtnW / 2, goBtnY2 + goBtnH / 2, "一键升级")
                 else
@@ -1068,12 +1068,12 @@ function DrawSealReplacePopup()
     local infoY = pY + 54
     if equipped then
         local sc = SEAL_QUALITY_COLORS[equipped.sealQ] or { 180, 180, 180 }
-        nvgFontSize(vg, 15)
+        nvgFontSize(vg, 22)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(sc[1], sc[2], sc[3], 220))
         nvgText(vg, cx, infoY, "当前: " .. (SEAL_QUALITY_NAMES[equipped.sealQ] or "?") .. " Lv." .. (equipped.level or 1), nil)
     else
-        nvgFontSize(vg, 15)
+        nvgFontSize(vg, 22)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(120, 100, 160, 150))
         nvgText(vg, cx, infoY, "当前: 空", nil)
@@ -1128,7 +1128,7 @@ function DrawSealReplacePopup()
     end
 
     -- 匹配/全部计数
-    nvgFontSize(vg, 12)
+    nvgFontSize(vg, 20)
     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
     nvgFillColor(vg, nvgRGBA(180, 140, 240, 160))
     nvgText(vg, pX + pW - 18, listY - 8, "匹配 " .. matchCount .. " / 全部 " .. #allSeals, nil)
@@ -1173,7 +1173,7 @@ function DrawSealReplacePopup()
                 local dsc = { math.floor(sc[1] * 0.4), math.floor(sc[2] * 0.4), math.floor(sc[3] * 0.4) }
                 DrawSealHexIcon(hexX, hexY, hexR, dsc, seal.sealQ)
             end
-            nvgFontSize(vg, 13)
+            nvgFontSize(vg, 20)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             if isMatch then
                 DrawWhiteInkText(hexX, hexY + 2, "Lv." .. (seal.level or 1))
@@ -1184,7 +1184,7 @@ function DrawSealReplacePopup()
 
             -- 中间: 信息
             local infoX = listX + 68
-            nvgFontSize(vg, 16)
+            nvgFontSize(vg, 24)
             nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(sc[1], sc[2], sc[3], math.floor(230 * dimAlpha)))
             nvgText(vg, infoX, iy + 18, (SEAL_QUALITY_NAMES[seal.sealQ] or "?") .. " " .. SEAL_SLOT_NAMES[seal.slotType], nil)
@@ -1192,7 +1192,7 @@ function DrawSealReplacePopup()
             -- 效果描述
             local eff = SEAL_SLOT_EFFECTS[seal.slotType]
             if eff then
-                nvgFontSize(vg, 12)
+                nvgFontSize(vg, 20)
                 local effTC = SEAL_SLOT_THEME_COLORS[seal.slotType] or stc
                 nvgFillColor(vg, nvgRGBA(effTC[1], effTC[2], effTC[3], math.floor(180 * dimAlpha)))
                 local tierData = eff[seal.sealQ] or eff[1]
@@ -1207,7 +1207,7 @@ function DrawSealReplacePopup()
 
             -- 来源英雄
             if seal.fromHero and HERO_CARDS[seal.fromHero] then
-                nvgFontSize(vg, 11)
+                nvgFontSize(vg, 18)
                 nvgFillColor(vg, nvgRGBA(140, 120, 180, math.floor((isMatch and 120 or 60) * 1)))
                 local heroTag = HERO_CARDS[seal.fromHero].name
                 if not isMatch then heroTag = heroTag .. (seal.slotType ~= slotIdx and " [孔位不同]" or " [其他武灵]") end
@@ -1228,7 +1228,7 @@ function DrawSealReplacePopup()
                 nvgBeginPath(vg); nvgRoundedRect(vg, btnX, equipBtnY, btnW, btnH2, 4)
                 nvgFillColor(vg, nvgRGBA(40, 120, 80, 220)); nvgFill(vg)
                 nvgStrokeColor(vg, nvgRGBA(80, 200, 120, 160)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-                nvgFontSize(vg, 15)
+                nvgFontSize(vg, 22)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 DrawWhiteInkText(btnX + btnW / 2, equipBtnY + btnH2 / 2, "装备")
                 sealReplaceListRects[i].equip = { x = btnX, y = equipBtnY, w = btnW, h = btnH2, invIndex = entry.index }
@@ -1238,7 +1238,7 @@ function DrawSealReplacePopup()
                 nvgBeginPath(vg); nvgRoundedRect(vg, btnX, equipBtnY, btnW, btnH2, 4)
                 nvgFillColor(vg, nvgRGBA(30, 30, 30, 120)); nvgFill(vg)
                 nvgStrokeColor(vg, nvgRGBA(80, 80, 80, 60)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-                nvgFontSize(vg, 15)
+                nvgFontSize(vg, 22)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(120, 120, 120, 80))
                 nvgText(vg, btnX + btnW / 2, equipBtnY + btnH2 / 2, "装备", nil)
@@ -1250,7 +1250,7 @@ function DrawSealReplacePopup()
             nvgBeginPath(vg); nvgRoundedRect(vg, btnX, decompBtnY, btnW, btnH2, 4)
             nvgFillColor(vg, nvgRGBA(120, 40, 40, math.floor(220 * (isMatch and 1.0 or 0.6)))); nvgFill(vg)
             nvgStrokeColor(vg, nvgRGBA(200, 80, 80, math.floor(160 * (isMatch and 1.0 or 0.6)))); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-            nvgFontSize(vg, 15)
+            nvgFontSize(vg, 22)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             if isMatch then
                 DrawWhiteInkText(btnX + btnW / 2, decompBtnY + btnH2 / 2, "分解")
@@ -1352,12 +1352,12 @@ function DrawSealDecomposeConfirm()
     -- 返还道具预览
     local returns = SEAL_DECOMPOSE_RETURNS[sealQ] or SEAL_DECOMPOSE_RETURNS[1]
     local retY = pY + 105
-    nvgFontSize(vg, 15)
+    nvgFontSize(vg, 22)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     DrawWhiteInkText(cx, retY, "分解将获得:")
     retY = retY + 24
     for _, ret in ipairs(returns) do
-        nvgFontSize(vg, 14)
+        nvgFontSize(vg, 22)
         nvgFillColor(vg, nvgRGBA(200, 180, 255, 220))
         nvgText(vg, cx, retY, SEAL_EXP_ITEMS[ret.idx].name .. " x" .. ret.count, nil)
         retY = retY + 20
@@ -1368,7 +1368,7 @@ function DrawSealDecomposeConfirm()
         for lv = 1, sealLevel - 1 do extraExp = extraExp + (SEAL_EXP_TABLE[lv] or 0) end
         local extraCount = math.floor(extraExp / SEAL_EXP_ITEMS[1].exp)
         if extraCount > 0 then
-            nvgFontSize(vg, 13)
+            nvgFontSize(vg, 20)
             nvgFillColor(vg, nvgRGBA(255, 220, 100, 180))
             nvgText(vg, cx, retY, "+" .. SEAL_EXP_ITEMS[1].name .. " x" .. extraCount .. " (经验返还)", nil)
             retY = retY + 20
@@ -1436,7 +1436,7 @@ function DrawSealBatchDecompConfirm()
     -- 品质筛选行
     local filterY = pY + 75
     local arrowW, arrowH = 32, 28
-    nvgFontSize(vg, 15)
+    nvgFontSize(vg, 22)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     nvgFillColor(vg, nvgRGBA(200, 180, 220, 220))
     nvgText(vg, cx - 70, filterY, "品质上限:", nil)
@@ -1455,7 +1455,7 @@ function DrawSealBatchDecompConfirm()
     local tierLabel = ft <= 7 and (SEAL_TIER_NAMES[ft] or "全部") or "全部"
     local tc = SEAL_QUALITY_COLORS[ft] or { 200, 200, 200 }
     nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 240))
-    nvgFontSize(vg, 17)
+    nvgFontSize(vg, 24)
     nvgText(vg, cx + 70, filterY, tierLabel, nil)
 
     -- 右箭头
@@ -1469,7 +1469,7 @@ function DrawSealBatchDecompConfirm()
 
     -- 孔位筛选行
     local slotFilterY = filterY + 40
-    nvgFontSize(vg, 15)
+    nvgFontSize(vg, 22)
     nvgFillColor(vg, nvgRGBA(200, 180, 220, 220))
     nvgText(vg, cx - 70, slotFilterY, "孔位筛选:", nil)
 
@@ -1485,7 +1485,7 @@ function DrawSealBatchDecompConfirm()
     local slotLabel = sf == 0 and "全部" or SEAL_SLOT_NAMES[sf]
     local slotC = sf > 0 and (SEAL_SLOT_THEME_COLORS[sf] or { 200, 160, 255 }) or { 200, 200, 200 }
     nvgFillColor(vg, nvgRGBA(slotC[1], slotC[2], slotC[3], 240))
-    nvgFontSize(vg, 17)
+    nvgFontSize(vg, 24)
     nvgText(vg, cx + 70, slotFilterY, slotLabel, nil)
 
     local slotArrowRX = cx + 105
@@ -1505,7 +1505,7 @@ function DrawSealBatchDecompConfirm()
     -- 统计
     local bdc, bdReturns = CalcSealBatchDecomp(ft, sf)
     local statY = slotFilterY + 42
-    nvgFontSize(vg, 16)
+    nvgFontSize(vg, 24)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     nvgFillColor(vg, nvgRGBA(200, 180, 220, 220))
     nvgText(vg, cx, statY, "将分解 " .. bdc .. " 件仓库兵符", nil)
@@ -1517,15 +1517,15 @@ function DrawSealBatchDecompConfirm()
             end
         end
         if #parts > 0 then
-            nvgFontSize(vg, 14)
+            nvgFontSize(vg, 22)
             nvgFillColor(vg, nvgRGBA(200, 180, 255, 180))
             nvgText(vg, cx, statY + 22, "返还: " .. table.concat(parts, " "), nil)
         end
-        nvgFontSize(vg, 13)
+        nvgFontSize(vg, 20)
         nvgFillColor(vg, nvgRGBA(255, 130, 80, 200))
         nvgText(vg, cx, statY + 46, "此操作不可撤销!", nil)
     else
-        nvgFontSize(vg, 14)
+        nvgFontSize(vg, 22)
         nvgFillColor(vg, nvgRGBA(140, 120, 180, 140))
         nvgText(vg, cx, statY + 22, "当前筛选无可分解兵符", nil)
     end
@@ -1590,7 +1590,7 @@ function DrawSealSelectModeList()
     sealInvFilterBtnRects.selectItems = {}
 
     if #allSeals == 0 then
-        nvgFontSize(vg, 16)
+        nvgFontSize(vg, 24)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(140, 120, 180, 120))
         nvgText(vg, cx, listY + listH / 2, "仓库中没有兵符", nil)
@@ -1634,7 +1634,7 @@ function DrawSealSelectModeList()
                 nvgBeginPath(vg); nvgRoundedRect(vg, cbX, cbY, cbSize, cbSize, 4)
                 if isSelected then
                     nvgFillColor(vg, nvgRGBA(200, 60, 60, 230)); nvgFill(vg)
-                    nvgFontSize(vg, 16)
+                    nvgFontSize(vg, 24)
                     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(255, 255, 255, 255))
                     nvgText(vg, cbX + cbSize / 2, cbY + cbSize / 2, "✓", nil)
@@ -1648,13 +1648,13 @@ function DrawSealSelectModeList()
                 local hexX = cbX + cbSize + 18
                 local hexY = iy + itemH / 2
                 DrawSealHexIcon(hexX, hexY, 18, sc, seal.sealQ)
-                nvgFontSize(vg, 11)
+                nvgFontSize(vg, 18)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 DrawWhiteInkText(hexX, hexY + 2, "Lv." .. (seal.level or 1))
 
                 -- 信息
                 local infoX = hexX + 28
-                nvgFontSize(vg, 15)
+                nvgFontSize(vg, 22)
                 nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(sc[1], sc[2], sc[3], 230))
                 nvgText(vg, infoX, iy + 18, (SEAL_QUALITY_NAMES[seal.sealQ] or "?") .. " " .. SEAL_SLOT_NAMES[seal.slotType], nil)
@@ -1663,7 +1663,7 @@ function DrawSealSelectModeList()
                 local stc = SEAL_SLOT_THEME_COLORS[seal.slotType] or { 200, 160, 255 }
                 local eff = SEAL_SLOT_EFFECTS[seal.slotType]
                 if eff then
-                    nvgFontSize(vg, 11)
+                    nvgFontSize(vg, 18)
                     nvgFillColor(vg, nvgRGBA(stc[1], stc[2], stc[3], 180))
                     local tierData = eff[seal.sealQ] or eff[1]
                     local mainVal = (tierData.main or 0) * (seal.level or 1)
@@ -1672,7 +1672,7 @@ function DrawSealSelectModeList()
 
                 -- 来源
                 if seal.fromHero and HERO_CARDS[seal.fromHero] then
-                    nvgFontSize(vg, 10)
+                    nvgFontSize(vg, 18)
                     nvgFillColor(vg, nvgRGBA(140, 120, 180, 100))
                     nvgText(vg, infoX, iy + 50, "来源: " .. HERO_CARDS[seal.fromHero].name, nil)
                 end
@@ -1683,7 +1683,7 @@ function DrawSealSelectModeList()
                 for _, ret in ipairs(returns) do
                     table.insert(retParts, SEAL_EXP_ITEMS[ret.idx].name:sub(1, 6) .. "x" .. ret.count)
                 end
-                nvgFontSize(vg, 10)
+                nvgFontSize(vg, 18)
                 nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(180, 160, 220, 140))
                 nvgText(vg, listX + listW - 8, iy + itemH / 2, table.concat(retParts, " "), nil)
@@ -1721,7 +1721,7 @@ function DrawSealSelectModeList()
     -- 已选数量
     local selCount = 0
     for _ in pairs(sealInvFilterState.selectedIds) do selCount = selCount + 1 end
-    nvgFontSize(vg, 14)
+    nvgFontSize(vg, 22)
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
     nvgFillColor(vg, nvgRGBA(200, 180, 255, 200))
     nvgText(vg, 14, barY + barH / 2, "已选 " .. selCount .. " 件", nil)
@@ -1737,7 +1737,7 @@ function DrawSealSelectModeList()
     nvgBeginPath(vg); nvgRoundedRect(vg, allX, sbY, sbW2, sbH, 5)
     nvgFillColor(vg, nvgRGBA(50, 50, 90, 220)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(100, 100, 200, 150)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-    nvgFontSize(vg, 15)
+    nvgFontSize(vg, 22)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     DrawWhiteInkText(allX + sbW2 / 2, sbY + sbH / 2, "全选")
     sealInvFilterBtnRects.selectAll = { x = allX, y = sbY, w = sbW2, h = sbH }
@@ -1752,7 +1752,7 @@ function DrawSealSelectModeList()
         nvgFillColor(vg, nvgRGBA(60, 30, 40, 180)); nvgFill(vg)
         nvgStrokeColor(vg, nvgRGBA(100, 60, 70, 100)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
     end
-    nvgFontSize(vg, 15)
+    nvgFontSize(vg, 22)
     DrawWhiteInkText(confirmX + sbW2 / 2, sbY + sbH / 2, "分解")
     sealInvFilterBtnRects.selectDoDecomp = { x = confirmX, y = sbY, w = sbW2, h = sbH }
 
@@ -1761,7 +1761,7 @@ function DrawSealSelectModeList()
     nvgBeginPath(vg); nvgRoundedRect(vg, cancelX, sbY, sbW2, sbH, 5)
     nvgFillColor(vg, nvgRGBA(50, 35, 70, 220)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(120, 90, 170, 150)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-    nvgFontSize(vg, 15)
+    nvgFontSize(vg, 22)
     DrawWhiteInkText(cancelX + sbW2 / 2, sbY + sbH / 2, "取消")
     sealInvFilterBtnRects.selectCancelMode = { x = cancelX, y = sbY, w = sbW2, h = sbH }
 end
@@ -1799,7 +1799,7 @@ function DrawSealSelectDecompConfirm()
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     DrawWhiteInkText(cx, pY + 32, "确认分解选中兵符？")
 
-    nvgFontSize(vg, 16)
+    nvgFontSize(vg, 24)
     nvgFillColor(vg, nvgRGBA(200, 180, 220, 220))
     nvgText(vg, cx, pY + 68, "将分解 " .. selCount .. " 件兵符", nil)
 
@@ -1811,11 +1811,11 @@ function DrawSealSelectDecompConfirm()
         end
     end
     if #parts > 0 then
-        nvgFontSize(vg, 14)
+        nvgFontSize(vg, 22)
         nvgFillColor(vg, nvgRGBA(200, 180, 255, 180))
         nvgText(vg, cx, pY + 95, "返还: " .. table.concat(parts, " "), nil)
     end
-    nvgFontSize(vg, 13)
+    nvgFontSize(vg, 20)
     nvgFillColor(vg, nvgRGBA(255, 130, 80, 200))
     nvgText(vg, cx, pY + 120, "此操作不可撤销!", nil)
 

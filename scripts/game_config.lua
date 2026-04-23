@@ -44,39 +44,39 @@ Config.DRAW_QUALITY_WEIGHTS = {
     [4] = 5,    -- SSR (LEGENDARY) 5%
 }
 
--- 重复满命座角色转化虎符
+-- 重复满命座角色转化玉壁
 Config.DUPLICATE_JADE_REWARD = {
-    [1] = 1,    -- N  → 1 虎符
-    [2] = 5,    -- R  → 5 虎符
-    [3] = 15,   -- SR → 15 虎符
-    [4] = 60,   -- SSR → 60 虎符
+    [1] = 1,    -- N  → 1 玉壁
+    [2] = 5,    -- R  → 5 玉壁
+    [3] = 15,   -- SR → 15 玉壁
+    [4] = 60,   -- SSR → 60 玉壁
 }
 
 -- 保底机制
 Config.PITY_SSR_COUNT = 75   -- 75次保底SSR
 
--- 抽卡费用 (虎符)
+-- 抽卡费用 (玉壁)
 Config.GACHA_COST_SINGLE = 30     -- 单抽费用 (×3)
 Config.GACHA_COST_TEN    = 270    -- 十连费用 (9折)
-Config.INITIAL_JADE      = 10     -- 初始虎符
-Config.JADE_PER_WIN_MIN  = 50     -- 胜利虎符最小值 (×10)
-Config.JADE_PER_WIN_MAX  = 80     -- 胜利虎符最大值 (×10)
-Config.JADE_PER_LOSE     = 3      -- 失败获得虎符 (原8)
+Config.INITIAL_JADE      = 10     -- 初始玉壁
+Config.JADE_PER_WIN_MIN  = 50     -- 胜利玉壁最小值 (×10)
+Config.JADE_PER_WIN_MAX  = 80     -- 胜利玉壁最大值 (×10)
+Config.JADE_PER_LOSE     = 3      -- 失败获得玉壁 (原8)
 
 -- ============================================================================
 -- 广告激励配置
 -- ============================================================================
-Config.AD_JADE_MIN       = 10     -- 广告奖励虎符最小值
-Config.AD_JADE_MAX       = 50     -- 广告奖励虎符最大值
+Config.AD_JADE_MIN       = 10     -- 广告奖励玉壁最小值
+Config.AD_JADE_MAX       = 50     -- 广告奖励玉壁最大值
 Config.AD_FREE_REFRESH   = true   -- 广告免费刷新商店
-Config.AD_REVIVE_BONUS_JADE = 20  -- 失败后看广告额外虎符
+Config.AD_REVIVE_BONUS_JADE = 20  -- 失败后看广告额外玉壁
 Config.AD_BATTLE_GOLD    = 5      -- 战斗中看广告获得军资
 
 
 -- ============================================================================
 -- 初始拥有的武灵 (开局自带)
 -- ============================================================================
--- 战争版: 初始10武将 (各阵营均衡分布)
+-- 战争版: 初始8武将 (各阵营均衡2人)
 Config.INITIAL_HEROES = {
     4,   -- 廖化  (蜀/步兵/N)
     6,   -- 糜竺  (蜀/弓兵-治/N)
@@ -86,8 +86,6 @@ Config.INITIAL_HEROES = {
     8,   -- 李典  (魏/步兵/N)
     9,   -- 张任  (群/弓兵/N)
     10,  -- 纪灵  (群/枪兵/N)
-    5,   -- 周仓  (蜀/步兵-盾/N)
-    2,   -- 黄盖  (吴/特殊/N)
 }
 
 -- ============================================================================
@@ -97,8 +95,20 @@ Config.BASE_HP_MAX     = 500   -- 双方营寨最大血量
 Config.INITIAL_GOLD    = 20    -- 战斗初始军资
 Config.GOLD_INTERVAL   = 2.0   -- 每隔多少秒自动增加1军资
 Config.GOLD_PER_TICK   = 1     -- 每次自动增加的军资数
-Config.SOLDIER_STAT_SCALE = 0.25 -- 士兵继承武灵属性的缩放比例
-Config.LEVEL_GROWTH_RATE = 0.15  -- 每级属性成长率
+Config.SOLDIER_STAT_SCALE = 0.25 -- 士兵继承武灵属性的缩放比例 (旧公式备用)
+Config.LEVEL_GROWTH_RATE = 0.05  -- 每级属性成长率 (降低防溢出, lv4=1.15x)
+
+-- 新士兵属性公式: 最终 = 保底值 + 武将属性 * 加成系数
+-- 设计目标: 武将属性是小兵强度的主要来源(占比>85%), 保底值仅防止0属性
+-- TTK目标: 同等级近战对砍约20-30秒, 弓兵被贴脸约10-15秒
+-- 例: 程普 atk=720 → 士兵ATK = 10 + 720*0.08 = 67.6
+-- 例: 程普 hp=6500 → 士兵HP = 160 + 6500*0.14 = 1070
+Config.SOLDIER_BASE_HP  = 160     -- 士兵保底血量 (提高耐久)
+Config.SOLDIER_BASE_ATK = 10      -- 士兵保底攻击
+Config.SOLDIER_BASE_DEF = 12      -- 士兵保底防御 (大幅提高, 拉长TTK)
+Config.SOLDIER_HP_SCALE  = 0.14   -- 武将HP→士兵HP (程普hp=6500 → +910)
+Config.SOLDIER_ATK_SCALE = 0.08   -- 武将ATK→士兵ATK (程普atk=720 → +57.6)
+Config.SOLDIER_DEF_SCALE = 0.12   -- 武将DEF→士兵DEF (程普def=350 → +42)
 
 -- 费卡费用 (按品质: 人/地/天/神)
 Config.CARD_COST    = { [1] = 3, [2] = 5, [3] = 8, [4] = 12 }
@@ -171,7 +181,7 @@ Config.STAGE_DROP_RATES = {
     0.26, 0.27, 0.28, 0.29, 0.30, 0.31, 0.32, 0.33, 0.34, 0.35,
 }
 
--- 宝箱掉落表 (按格子大小) — 虎符略降15%
+-- 宝箱掉落表 (按格子大小) — 玉壁略降15%
 Config.EXPLORATION_DROP_RATES = {
     [4] = { equipment = 0.08, jade_min = 7,   jade_max = 14,  frag = 1 },
     [5] = { equipment = 0.13, jade_min = 9,   jade_max = 15,  frag = 2 },
@@ -224,7 +234,7 @@ Config.TOTAL_SKILL_COUNT = 36
 -- ============================================================================
 Config.RESOURCE_DUNGEON = {
     gridSize = 7,           -- 7×7=49格
-    entryCost = 270,        -- 门票270虎符
+    entryCost = 270,        -- 门票270玉壁
     encounterRate = 0.30,   -- 空格遭遇战触发率30%
     eventRatio = 0.18,      -- 事件格比例提高到18% (更多机遇)
     chestCount = 8,         -- 宝箱增加到8个
@@ -243,7 +253,7 @@ Config.RESOURCE_DUNGEON = {
             -- 产出控制: 装备为主, 碎片减少
             dropRateBonus = 0.15,       -- 装备爆率+15%
             fragMultiplier = 0.5,       -- 碎片产出减半
-            jadeMultiplier = 0.8,       -- 虎符产出略降
+            jadeMultiplier = 0.8,       -- 玉壁产出略降
             maxTier = 6,                -- 最高帝品
             highTierMultiplier = 1,     -- 高品级概率正常 (0.5% 帝品)
         },
@@ -304,116 +314,116 @@ Config.BATTLE_PASS = {
         2900, 3100, 3300, 3500, 3700, 3900, 4100, 4400, 4700, 5000, -- Lv41-50
     },
 
-    -- 普通奖励 (免费轨道) — 虎符×3，每5级一个可观奖品，其余小奖
+    -- 普通奖励 (免费轨道) — 玉壁×3，每5级一个可观奖品，其余小奖
     freeRewards = {
         { jade = 60 },                                           -- Lv1  小奖 (20×3)
         { frag = 1 },                                            -- Lv2  小奖
         { jade = 90 },                                           -- Lv3  小奖 (30×3)
         { frag = 1 },                                            -- Lv4  小奖
-        { jade = 900, equipDrop = 1, equipTier = 2 },            -- Lv5  ★可观: 900虎符+良品装备
+        { jade = 900, equipDrop = 1, equipTier = 2 },            -- Lv5  ★可观: 900玉壁+良品装备
         { jade = 60 },                                           -- Lv6  小奖
         { frag = 2 },                                            -- Lv7  小奖
         { jade = 90 },                                           -- Lv8  小奖
         { equipDrop = 1, equipTier = 1 },                        -- Lv9  小奖: 凡品装备
-        { jade = 900, frag = 3 },                                -- Lv10 ★可观: 900虎符+3残片
+        { jade = 900, frag = 3 },                                -- Lv10 ★可观: 900玉壁+3残片
         { jade = 75 },                                           -- Lv11 小奖 (25×3)
         { frag = 1 },                                            -- Lv12 小奖
         { jade = 90 },                                           -- Lv13 小奖
         { frag = 2 },                                            -- Lv14 小奖
-        { jade = 900, equipDrop = 1, equipTier = 3 },            -- Lv15 ★可观: 900虎符+优品装备
+        { jade = 900, equipDrop = 1, equipTier = 3 },            -- Lv15 ★可观: 900玉壁+优品装备
         { jade = 90 },                                           -- Lv16 小奖
         { frag = 2 },                                            -- Lv17 小奖
         { jade = 120 },                                          -- Lv18 小奖 (40×3)
         { frag = 2 },                                            -- Lv19 小奖
-        { jade = 1050, equipDrop = 1, equipTier = 3, frag = 3 },-- Lv20 ★可观: 1050虎符+优品装备+3残片
+        { jade = 1050, equipDrop = 1, equipTier = 3, frag = 3 },-- Lv20 ★可观: 1050玉壁+优品装备+3残片
         { jade = 90 },                                           -- Lv21 小奖
         { frag = 2 },                                            -- Lv22 小奖
         { jade = 120 },                                          -- Lv23 小奖
         { equipDrop = 1, equipTier = 1 },                        -- Lv24 小奖: 凡品装备
-        { jade = 1200, equipDrop = 1, equipTier = 4, frag = 5 },-- Lv25 ★可观: 1200虎符+将品装备+5残片
+        { jade = 1200, equipDrop = 1, equipTier = 4, frag = 5 },-- Lv25 ★可观: 1200玉壁+将品装备+5残片
         { jade = 120 },                                          -- Lv26 小奖
         { frag = 3 },                                            -- Lv27 小奖
         { jade = 150 },                                          -- Lv28 小奖 (50×3)
         { frag = 3 },                                            -- Lv29 小奖
-        { jade = 1500, equipDrop = 1, equipTier = 5, frag = 8 },-- Lv30 ★终极: 1500虎符+王品装备+8残片
+        { jade = 1500, equipDrop = 1, equipTier = 5, frag = 8 },-- Lv30 ★终极: 1500玉壁+王品装备+8残片
         -- Lv31-40 扩充
         { jade = 150 },                                          -- Lv31 小奖
         { frag = 3 },                                            -- Lv32 小奖
         { jade = 180 },                                          -- Lv33 小奖
         { frag = 3 },                                            -- Lv34 小奖
-        { jade = 1500, equipDrop = 1, equipTier = 4, frag = 6 },-- Lv35 ★可观: 1500虎符+将品装备+6残片
+        { jade = 1500, equipDrop = 1, equipTier = 4, frag = 6 },-- Lv35 ★可观: 1500玉壁+将品装备+6残片
         { jade = 180 },                                          -- Lv36 小奖
         { frag = 4 },                                            -- Lv37 小奖
         { jade = 210 },                                          -- Lv38 小奖
         { frag = 4 },                                            -- Lv39 小奖
-        { jade = 1800, equipDrop = 1, equipTier = 5, frag = 10},-- Lv40 ★里程碑: 1800虎符+王品装备+10残片
+        { jade = 1800, equipDrop = 1, equipTier = 5, frag = 10},-- Lv40 ★里程碑: 1800玉壁+王品装备+10残片
         -- Lv41-50 扩充
         { jade = 210 },                                          -- Lv41 小奖
         { frag = 4 },                                            -- Lv42 小奖
         { jade = 240 },                                          -- Lv43 小奖
         { frag = 5 },                                            -- Lv44 小奖
-        { jade = 2100, equipDrop = 1, equipTier = 5, frag = 8 },-- Lv45 ★可观: 2100虎符+王品装备+8残片
+        { jade = 2100, equipDrop = 1, equipTier = 5, frag = 8 },-- Lv45 ★可观: 2100玉壁+王品装备+8残片
         { jade = 240 },                                          -- Lv46 小奖
         { frag = 5 },                                            -- Lv47 小奖
         { jade = 300 },                                          -- Lv48 小奖
         { frag = 6 },                                            -- Lv49 小奖
-        { jade = 3000, equipDrop = 2, equipTier = 6, frag = 15},-- Lv50 ★★终极: 3000虎符+2帝品装备+15残片
+        { jade = 3000, equipDrop = 2, equipTier = 6, frag = 15},-- Lv50 ★★终极: 3000玉壁+2帝品装备+15残片
     },
 
-    -- 高级奖励 (看广告解锁) — 虎符×3，每级都好
+    -- 高级奖励 (看广告解锁) — 玉壁×3，每级都好
     premiumRewards = {
-        { jade = 1500 },                                          -- Lv1  1500虎符
-        { jade = 1500, frag = 3 },                                -- Lv2  1500虎符+3残片
-        { jade = 1500, equipDrop = 1, equipTier = 2 },            -- Lv3  1500虎符+良品装备
-        { jade = 1500, frag = 3 },                                -- Lv4  1500虎符+3残片
-        { jade = 1800, equipDrop = 1, equipTier = 3, frag = 5 },  -- Lv5  ★1800虎符+优品装备+5残片
-        { jade = 1500, frag = 3 },                                -- Lv6  1500虎符+3残片
-        { jade = 1500, equipDrop = 1, equipTier = 2 },            -- Lv7  1500虎符+良品装备
-        { jade = 1500, frag = 4 },                                -- Lv8  1500虎符+4残片
-        { jade = 1500, equipDrop = 1, equipTier = 3 },            -- Lv9  1500虎符+优品装备
-        { jade = 2400, equipDrop = 1, equipTier = 4, frag = 6 },  -- Lv10 ★里程碑: 2400虎符+将品装备+6残片
-        { jade = 1500, frag = 4 },                                -- Lv11 1500虎符+4残片
-        { jade = 1500, equipDrop = 1, equipTier = 3 },            -- Lv12 1500虎符+优品装备
-        { jade = 1500, frag = 5 },                                -- Lv13 1500虎符+5残片
-        { jade = 1500, equipDrop = 1, equipTier = 3 },            -- Lv14 1500虎符+优品装备
-        { jade = 2100, equipDrop = 1, equipTier = 4, frag = 6 },  -- Lv15 ★2100虎符+将品装备+6残片
-        { jade = 1500, frag = 5 },                                -- Lv16 1500虎符+5残片
-        { jade = 1500, equipDrop = 1, equipTier = 3 },            -- Lv17 1500虎符+优品装备
-        { jade = 1800, frag = 6 },                                -- Lv18 1800虎符+6残片
-        { jade = 1500, equipDrop = 1, equipTier = 4 },            -- Lv19 1500虎符+将品装备
-        { jade = 3000, equipDrop = 2, equipTier = 5, frag = 8 },  -- Lv20 ★大里程碑: 3000虎符+2王品装备+8残片
-        { jade = 1500, frag = 6 },                                -- Lv21 1500虎符+6残片
-        { jade = 1800, equipDrop = 1, equipTier = 4 },            -- Lv22 1800虎符+将品装备
-        { jade = 1500, frag = 6 },                                -- Lv23 1500虎符+6残片
-        { jade = 1800, equipDrop = 1, equipTier = 4 },            -- Lv24 1800虎符+将品装备
-        { jade = 2400, equipDrop = 1, equipTier = 5, frag = 8 },  -- Lv25 ★2400虎符+王品装备+8残片
-        { jade = 1800, frag = 8 },                                -- Lv26 1800虎符+8残片
-        { jade = 1800, equipDrop = 1, equipTier = 5 },            -- Lv27 1800虎符+王品装备
-        { jade = 2100, frag = 8 },                                -- Lv28 2100虎符+8残片
-        { jade = 2400, equipDrop = 2, equipTier = 5, frag = 10 }, -- Lv29 ★2400虎符+2王品装备+10残片
-        { jade = 4500, equipDrop = 2, equipTier = 6, frag = 15},  -- Lv30 ★★终极: 4500虎符+2帝品装备+15残片
+        { jade = 1500 },                                          -- Lv1  1500玉壁
+        { jade = 1500, frag = 3 },                                -- Lv2  1500玉壁+3残片
+        { jade = 1500, equipDrop = 1, equipTier = 2 },            -- Lv3  1500玉壁+良品装备
+        { jade = 1500, frag = 3 },                                -- Lv4  1500玉壁+3残片
+        { jade = 1800, equipDrop = 1, equipTier = 3, frag = 5 },  -- Lv5  ★1800玉壁+优品装备+5残片
+        { jade = 1500, frag = 3 },                                -- Lv6  1500玉壁+3残片
+        { jade = 1500, equipDrop = 1, equipTier = 2 },            -- Lv7  1500玉壁+良品装备
+        { jade = 1500, frag = 4 },                                -- Lv8  1500玉壁+4残片
+        { jade = 1500, equipDrop = 1, equipTier = 3 },            -- Lv9  1500玉壁+优品装备
+        { jade = 2400, equipDrop = 1, equipTier = 4, frag = 6 },  -- Lv10 ★里程碑: 2400玉壁+将品装备+6残片
+        { jade = 1500, frag = 4 },                                -- Lv11 1500玉壁+4残片
+        { jade = 1500, equipDrop = 1, equipTier = 3 },            -- Lv12 1500玉壁+优品装备
+        { jade = 1500, frag = 5 },                                -- Lv13 1500玉壁+5残片
+        { jade = 1500, equipDrop = 1, equipTier = 3 },            -- Lv14 1500玉壁+优品装备
+        { jade = 2100, equipDrop = 1, equipTier = 4, frag = 6 },  -- Lv15 ★2100玉壁+将品装备+6残片
+        { jade = 1500, frag = 5 },                                -- Lv16 1500玉壁+5残片
+        { jade = 1500, equipDrop = 1, equipTier = 3 },            -- Lv17 1500玉壁+优品装备
+        { jade = 1800, frag = 6 },                                -- Lv18 1800玉壁+6残片
+        { jade = 1500, equipDrop = 1, equipTier = 4 },            -- Lv19 1500玉壁+将品装备
+        { jade = 3000, equipDrop = 2, equipTier = 5, frag = 8 },  -- Lv20 ★大里程碑: 3000玉壁+2王品装备+8残片
+        { jade = 1500, frag = 6 },                                -- Lv21 1500玉壁+6残片
+        { jade = 1800, equipDrop = 1, equipTier = 4 },            -- Lv22 1800玉壁+将品装备
+        { jade = 1500, frag = 6 },                                -- Lv23 1500玉壁+6残片
+        { jade = 1800, equipDrop = 1, equipTier = 4 },            -- Lv24 1800玉壁+将品装备
+        { jade = 2400, equipDrop = 1, equipTier = 5, frag = 8 },  -- Lv25 ★2400玉壁+王品装备+8残片
+        { jade = 1800, frag = 8 },                                -- Lv26 1800玉壁+8残片
+        { jade = 1800, equipDrop = 1, equipTier = 5 },            -- Lv27 1800玉壁+王品装备
+        { jade = 2100, frag = 8 },                                -- Lv28 2100玉壁+8残片
+        { jade = 2400, equipDrop = 2, equipTier = 5, frag = 10 }, -- Lv29 ★2400玉壁+2王品装备+10残片
+        { jade = 4500, equipDrop = 2, equipTier = 6, frag = 15},  -- Lv30 ★★终极: 4500玉壁+2帝品装备+15残片
         -- Lv31-40 扩充
-        { jade = 1800, frag = 8 },                                -- Lv31 1800虎符+8残片
-        { jade = 2100, equipDrop = 1, equipTier = 4 },            -- Lv32 2100虎符+将品装备
-        { jade = 1800, frag = 8 },                                -- Lv33 1800虎符+8残片
-        { jade = 2100, equipDrop = 1, equipTier = 5 },            -- Lv34 2100虎符+王品装备
-        { jade = 3000, equipDrop = 1, equipTier = 5, frag = 10 }, -- Lv35 ★3000虎符+王品装备+10残片
-        { jade = 2100, frag = 10 },                               -- Lv36 2100虎符+10残片
-        { jade = 2100, equipDrop = 1, equipTier = 5 },            -- Lv37 2100虎符+王品装备
-        { jade = 2400, frag = 10 },                               -- Lv38 2400虎符+10残片
-        { jade = 2400, equipDrop = 2, equipTier = 5 },            -- Lv39 2400虎符+2王品装备
-        { jade = 4500, equipDrop = 2, equipTier = 6, frag = 15 }, -- Lv40 ★★里程碑: 4500虎符+2帝品装备+15残片
+        { jade = 1800, frag = 8 },                                -- Lv31 1800玉壁+8残片
+        { jade = 2100, equipDrop = 1, equipTier = 4 },            -- Lv32 2100玉壁+将品装备
+        { jade = 1800, frag = 8 },                                -- Lv33 1800玉壁+8残片
+        { jade = 2100, equipDrop = 1, equipTier = 5 },            -- Lv34 2100玉壁+王品装备
+        { jade = 3000, equipDrop = 1, equipTier = 5, frag = 10 }, -- Lv35 ★3000玉壁+王品装备+10残片
+        { jade = 2100, frag = 10 },                               -- Lv36 2100玉壁+10残片
+        { jade = 2100, equipDrop = 1, equipTier = 5 },            -- Lv37 2100玉壁+王品装备
+        { jade = 2400, frag = 10 },                               -- Lv38 2400玉壁+10残片
+        { jade = 2400, equipDrop = 2, equipTier = 5 },            -- Lv39 2400玉壁+2王品装备
+        { jade = 4500, equipDrop = 2, equipTier = 6, frag = 15 }, -- Lv40 ★★里程碑: 4500玉壁+2帝品装备+15残片
         -- Lv41-50 扩充
-        { jade = 2400, frag = 10 },                               -- Lv41 2400虎符+10残片
-        { jade = 2700, equipDrop = 1, equipTier = 5 },            -- Lv42 2700虎符+王品装备
-        { jade = 2400, frag = 12 },                               -- Lv43 2400虎符+12残片
-        { jade = 2700, equipDrop = 2, equipTier = 5 },            -- Lv44 2700虎符+2王品装备
-        { jade = 3600, equipDrop = 2, equipTier = 6, frag = 12 }, -- Lv45 ★3600虎符+2帝品装备+12残片
-        { jade = 2700, frag = 12 },                               -- Lv46 2700虎符+12残片
-        { jade = 3000, equipDrop = 2, equipTier = 5 },            -- Lv47 3000虎符+2王品装备
-        { jade = 3000, frag = 15 },                               -- Lv48 3000虎符+15残片
-        { jade = 3600, equipDrop = 2, equipTier = 6, frag = 15 }, -- Lv49 ★3600虎符+2帝品装备+15残片
-        { jade = 6000, equipDrop = 3, equipTier = 6, frag = 20 }, -- Lv50 ★★★满级终极: 6000虎符+3帝品装备+20残片
+        { jade = 2400, frag = 10 },                               -- Lv41 2400玉壁+10残片
+        { jade = 2700, equipDrop = 1, equipTier = 5 },            -- Lv42 2700玉壁+王品装备
+        { jade = 2400, frag = 12 },                               -- Lv43 2400玉壁+12残片
+        { jade = 2700, equipDrop = 2, equipTier = 5 },            -- Lv44 2700玉壁+2王品装备
+        { jade = 3600, equipDrop = 2, equipTier = 6, frag = 12 }, -- Lv45 ★3600玉壁+2帝品装备+12残片
+        { jade = 2700, frag = 12 },                               -- Lv46 2700玉壁+12残片
+        { jade = 3000, equipDrop = 2, equipTier = 5 },            -- Lv47 3000玉壁+2王品装备
+        { jade = 3000, frag = 15 },                               -- Lv48 3000玉壁+15残片
+        { jade = 3600, equipDrop = 2, equipTier = 6, frag = 15 }, -- Lv49 ★3600玉壁+2帝品装备+15残片
+        { jade = 6000, equipDrop = 3, equipTier = 6, frag = 20 }, -- Lv50 ★★★满级终极: 6000玉壁+3帝品装备+20残片
     },
 
     -- 战令任务定义

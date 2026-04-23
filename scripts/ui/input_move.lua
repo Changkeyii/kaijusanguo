@@ -230,19 +230,6 @@ function HandleMoveLogic(sx, sy, touchId)
         return
     end
 
-    -- 编队界面滚动拖拽
-    if gameState.phase == "FORMATION" and formationUI and formationUI.isDragging then
-        local _, dy = ScreenToDesign(sx, sy)
-        if formationUI.dragLastY then
-            local delta = formationUI.dragLastY - dy
-            formationUI.scrollY = (formationUI.scrollY or 0) + delta
-            formationUI.scrollVel = delta / (1 / 60)
-            if formationUI.scrollY < 0 then formationUI.scrollY = 0 end
-        end
-        formationUI.dragLastY = dy
-        return
-    end
-
     -- 天命赐福滚动拖拽（下方内容区）
     -- 阵营成员列表滚动拖拽
     if gameState.phase == "FACTION" and factionUI.scroll.isDragging then
@@ -408,8 +395,6 @@ function HandleMoveLogic(sx, sy, touchId)
         local curScroll
         if welfareState.rankTab == "realm" then
             curScroll = welfareState.realmScroll
-        elseif welfareState.rankTab == "dummy" then
-            curScroll = welfareState.dummyScroll
         elseif welfareState.rankTab == "faction" then
             curScroll = welfareState.factionRankScroll
         else curScroll = welfareState.powerScroll end
@@ -528,17 +513,7 @@ function HandleMoveLogic(sx, sy, touchId)
         return
     end
 
-    -- 打桩选将滚动拖拽
-    if gameState.phase == "DUMMY_SELECT" and dummyState.isDragging then
-        local _, dy = ScreenToDesign(sx, sy)
-        if dummyState.dragLastY then
-            local delta = dy - dummyState.dragLastY
-            dummyState.scrollY = dummyState.scrollY - delta
-            dummyState.scrollVel = -delta * 15
-        end
-        dummyState.dragLastY = dy
-        return
-    end
+
 
     -- 天命赐福无滚动，不需要拖拽处理
 
@@ -555,9 +530,9 @@ function HandleMoveLogic(sx, sy, touchId)
         longPressState.pressing = false
         longPressState.active = false
 
-        -- 石台己方卡牌 >> 拖拽移位 (SHOP和FIGHT阶段均可)
+        -- 石台己方卡牌 >> 拖拽移位 (DEPLOY: 换位, FIGHT: 换线/部署)
         if longPressState.card and longPressState.isSlot and not longPressState.isEnemy
-           and (gameState.battlePhase == "SHOP" or gameState.battlePhase == "FIGHT") then
+           and (gameState.battlePhase == "DEPLOY" or gameState.battlePhase == "FIGHT") then
             local slotIdx = longPressState.slotIdx
             local slot = PLAYER_SLOTS[slotIdx]
             if slot and slot.filled and slot.card then

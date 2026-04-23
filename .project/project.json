@@ -5,16 +5,18 @@
     "id": "04ac863d"
   },
   "entry": "main.lua",
-  "version": "1.0.69",
+  "version": "1.0.236",
   "taptap_publish": {
-    "title": "<game title, required>",
-    "description": "<game description>",
-    "category": "<game category: rpg, casual, action, strategy, simulation, trivia, arcade, adventure, card, sports, racing, puzzle, educational, music, word, board>",
+    "title": "从三国开始一统天下",
+    "description": "三国SLG策略战棋游戏",
+    "category": "strategy",
     "screen_orientation": "landscape",
     "collection_type": "sce",
-    "trial_note": "<developer's note>",
+    "trial_note": "SLG大地图+自走棋战斗",
     "app_platforms": "1,2",
-    "developer_id": 397455
+    "developer_id": 398400,
+    "app_id": 847370,
+    "miniapp_id": "tapmc2dsu4neguigcu"
   },
   "assets": {
     "icon": "",
@@ -22,5 +24,12 @@
     "promotional_image": ""
   },
   "entry@client": "main.lua",
-  "entry@server": "main.lua"
+  "entry@server": "network/Server.lua",
+  "test_qrcode": {
+    "url": "https://tapcode-sce.spark.xd.com/qrcode/p_j32d_1776851094869.png",
+    "generated_at": "2026-04-22T09:44:55.021Z"
+  },
+  "metadata": {
+    "updated_at": "2026-04-22T09:44:55.021Z"
+  }
 }

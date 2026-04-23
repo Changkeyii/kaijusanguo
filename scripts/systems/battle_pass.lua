@@ -212,7 +212,7 @@ function GrantBattlePassReward(reward)
     if reward.jade and reward.jade > 0 then
         playerInfo.jade = playerInfo.jade + reward.jade
         AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
-            "+" .. reward.jade .. " 虎符", 1.5, { 255, 220, 100 }, 16)
+            "+" .. reward.jade .. " 玉壁", 1.5, { 255, 220, 100 }, 16)
     end
     if reward.frag and reward.frag > 0 then
         for _ = 1, reward.frag do

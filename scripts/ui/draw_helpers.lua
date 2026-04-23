@@ -149,6 +149,28 @@ function DrawWhiteInkText(x, y, text)
 end
 
 
+--- 文本省略号截断: 若 text 超过 maxW 像素则截断并追加 "…"
+--- 返回截断后的文本(或原文), 调用前须已设置 nvgFontSize/nvgFontFaceId
+function TruncateText(text, maxW)
+    if not text or maxW <= 0 then return text or "" end
+    local tw = nvgTextBounds(vg, 0, 0, text, nil)
+    if tw <= maxW then return text end
+    local ellipsis = "…"
+    local ellW = nvgTextBounds(vg, 0, 0, ellipsis, nil)
+    local avail = maxW - ellW
+    if avail <= 0 then return ellipsis end
+    -- 逐字符截断 (UTF-8 安全)
+    local chars = {}
+    for _, c in utf8.codes(text) do chars[#chars + 1] = utf8.char(c) end
+    for i = #chars, 1, -1 do
+        local sub = table.concat(chars, "", 1, i)
+        local sw = nvgTextBounds(vg, 0, 0, sub, nil)
+        if sw <= avail then return sub .. ellipsis end
+    end
+    return ellipsis
+end
+
+
 -- 转圈 loading 动画（资源下载中占位）
 function DrawSpinner(cx, cy, radius)
     local t = gameState.gameTime or 0
@@ -289,7 +311,7 @@ function DrawEquipTierBg(x, y, iconW, iconH, tier, radius)
 end
 
 
-function DrawCardImage(x, y, w, h, sheet, row, col, gridCols, gridRows)
+function DrawCardImage(x, y, w, h, sheet, row, col, gridCols, gridRows, coverTop)
     -- 图片未就绪时显示转圈
     if not sheet or sheet < 0 then
         nvgBeginPath(vg); nvgRoundedRect(vg, x, y, w, h, 3)
@@ -313,17 +335,23 @@ function DrawCardImage(x, y, w, h, sheet, row, col, gridCols, gridRows)
     local cellAspect = cellW / cellH   -- 图片格子的宽高比
     local drawAspect = w / h           -- 绘制区域的宽高比
     local fitW, fitH
-    if cellAspect > drawAspect then
-        -- 图片格子更宽: 以宽度为基准, 高度按比例缩放
-        fitW = w
-        fitH = w / cellAspect
+    if coverTop then
+        -- Cover模式: 填满绘制区域, 顶部对齐(显示头部, 裁切底部)
+        if cellAspect > drawAspect then
+            fitH = h; fitW = h * cellAspect
+        else
+            fitW = w; fitH = w / cellAspect
+        end
     else
-        -- 图片格子更高或相同: 以高度为基准
-        fitH = h
-        fitW = h * cellAspect
+        -- Contain模式: 完整显示图片, 居中对齐
+        if cellAspect > drawAspect then
+            fitW = w; fitH = w / cellAspect
+        else
+            fitH = h; fitW = h * cellAspect
+        end
     end
     local fitX = x + (w - fitW) / 2
-    local fitY = y + (h - fitH) / 2
+    local fitY = coverTop and y or (y + (h - fitH) / 2)
     local totalW = fitW * cols
     local totalH = fitH * rows
     local ox = fitX - col * fitW
@@ -386,7 +414,7 @@ function DrawBPRewardContent(x, y, w, h, reward, claimed)
     local alpha = claimed and 100 or 255
     local lines = {}
     if reward.jade and reward.jade > 0 then
-        table.insert(lines, { text = reward.jade .. " 虎符", color = { 255, 220, 100 }, img = IMG.bpIconJade })
+        table.insert(lines, { text = reward.jade .. " 玉壁", color = { 255, 220, 100 }, img = IMG.bpIconJade })
     end
     if reward.frag and reward.frag > 0 then
         table.insert(lines, { text = reward.frag .. " 残片", color = { 180, 160, 255 }, img = IMG.bpIconFrag })
@@ -397,7 +425,7 @@ function DrawBPRewardContent(x, y, w, h, reward, claimed)
         local qc = QUALITY_COLORS[math.min(tier, #QUALITY_COLORS)] or { 200, 200, 200 }
         table.insert(lines, { text = reward.equipDrop .. "x" .. tierName, color = qc, img = IMG.bpIconEquip })
     end
-    local lineH = 18
+    local lineH = 24
     local iconSize = 14
     local startY = y + (h - #lines * lineH) / 2
     for i, ln in ipairs(lines) do
@@ -405,7 +433,7 @@ function DrawBPRewardContent(x, y, w, h, reward, claimed)
         -- 图标在左侧
         DrawBPIcon(ln.img, x + 14, ly, iconSize, alpha)
         -- 文字在图标右侧
-        nvgFontSize(vg, 13)
+        nvgFontSize(vg, 20)
         nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(ln.color[1], ln.color[2], ln.color[3], alpha))
         nvgText(vg, x + 23, ly, ln.text, nil)

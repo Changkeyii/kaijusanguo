@@ -64,12 +64,12 @@ function DrawSealGachaIdle(t)
     nvgFillColor(vg, nvgRGBA(200, 140, 255, math.floor(200 * textPulse)))
     nvgText(vg, cx, circleY, "咒 印 铭 刻", nil)
 
-    nvgFontSize(vg, 14)
+    nvgFontSize(vg, 22)
     DrawWhiteInkText(cx, circleY + 32, "满命武灵专属强化")
 
     -- 满命武灵数量提示
     local maxHeroes = GetMaxConstellationHeroes()
-    nvgFontSize(vg, 14)
+    nvgFontSize(vg, 22)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     DrawWhiteInkText(cx, circleY + 56, "可铭刻武灵: " .. #maxHeroes .. " 位")
 
@@ -98,8 +98,8 @@ function DrawSealGachaIdle(t)
         nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
         nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         DrawWhiteInkText(cx, btnY1 + btnH / 2 - 7, "十 连 铭 刻")
-        nvgFontSize(vg, 14)
-        DrawWhiteInkText(cx, btnY1 + btnH / 2 + 12, math.floor(unitCost * 10 * 0.9) .. " 虎符 (9折)")
+        nvgFontSize(vg, 22)
+        DrawWhiteInkText(cx, btnY1 + btnH / 2 + 12, math.floor(unitCost * 10 * 0.9) .. " 玉壁 (9折)")
         gachaSingleBtnRect = { x = b1x, y = btnY1, w = btnW, h = btnH }
 
         -- 50连
@@ -114,8 +114,8 @@ function DrawSealGachaIdle(t)
         nvgStrokeWidth(vg, 1.8); nvgStroke(vg)
         nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         DrawWhiteInkText(cx, btnY2 + btnH / 2 - 7, "五十连铭刻")
-        nvgFontSize(vg, 14)
-        DrawWhiteInkText(cx, btnY2 + btnH / 2 + 12, math.floor(unitCost * 50 * 0.9) .. " 虎符 (9折)")
+        nvgFontSize(vg, 22)
+        DrawWhiteInkText(cx, btnY2 + btnH / 2 + 12, math.floor(unitCost * 50 * 0.9) .. " 玉壁 (9折)")
         gachaTenBtnRect = { x = b2x, y = btnY2, w = btnW, h = btnH }
 
         -- 100连
@@ -130,8 +130,8 @@ function DrawSealGachaIdle(t)
         nvgStrokeWidth(vg, 2.0); nvgStroke(vg)
         nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         DrawWhiteInkText(cx, btnY3 + btnH / 2 - 7, "百 连 铭 刻")
-        nvgFontSize(vg, 14)
-        DrawWhiteInkText(cx, btnY3 + btnH / 2 + 12, math.floor(unitCost * 100 * 0.9) .. " 虎符 (9折)")
+        nvgFontSize(vg, 22)
+        DrawWhiteInkText(cx, btnY3 + btnH / 2 + 12, math.floor(unitCost * 100 * 0.9) .. " 玉壁 (9折)")
         gachaHundredBtnRect = { x = b3x, y = btnY3, w = btnW, h = btnH }
     else
         -- 原始模式: 2个按钮 (单抽/十连)
@@ -150,8 +150,8 @@ function DrawSealGachaIdle(t)
         nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
         nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         DrawWhiteInkText(cx, btnY1 + btnH / 2 - 10, "单 抽")
-        nvgFontSize(vg, 16)
-        DrawWhiteInkText(cx, btnY1 + btnH / 2 + 20, SEAL_GACHA_COST .. " 虎符")
+        nvgFontSize(vg, 24)
+        DrawWhiteInkText(cx, btnY1 + btnH / 2 + 20, SEAL_GACHA_COST .. " 玉壁")
         gachaSingleBtnRect = { x = b1x, y = btnY1, w = btnW, h = btnH }
 
         -- 十连按钮
@@ -166,8 +166,8 @@ function DrawSealGachaIdle(t)
         nvgStrokeWidth(vg, 1.8); nvgStroke(vg)
         nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         DrawWhiteInkText(cx, btnY2 + btnH / 2 - 10, "十 连 铭 刻")
-        nvgFontSize(vg, 16)
-        DrawWhiteInkText(cx, btnY2 + btnH / 2 + 20, SEAL_GACHA_TEN_COST .. " 虎符 (9折)")
+        nvgFontSize(vg, 24)
+        DrawWhiteInkText(cx, btnY2 + btnH / 2 + 20, SEAL_GACHA_TEN_COST .. " 玉壁 (9折)")
         gachaTenBtnRect = { x = b2x, y = btnY2, w = btnW, h = btnH }
     end
 
@@ -185,7 +185,7 @@ function DrawSealGachaIdle(t)
             end
         end
     end
-    nvgFontSize(vg, 14)
+    nvgFontSize(vg, 22)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     DrawWhiteInkText(cx, lastBtnBottom + 20, "已开启兵符孔: " .. totalSeals)
 
@@ -199,7 +199,7 @@ function DrawSealGachaIdle(t)
         end
     end
     if #expText > 0 then
-        nvgFontSize(vg, 13)
+        nvgFontSize(vg, 20)
         DrawWhiteInkText(cx, lastBtnBottom + 42, expText)
     end
 
@@ -218,13 +218,13 @@ function DrawSealGachaIdle(t)
 
     -- 兵符管理入口按钮（左下角）
     local mgrBtnW = 90
-    local mgrBtnH = 30
+    local mgrBtnH = 36
     local mgrBtnX = 12
     local mgrBtnY = bottomBtnY
     nvgBeginPath(vg); nvgRoundedRect(vg, mgrBtnX, mgrBtnY, mgrBtnW, mgrBtnH, 6)
     nvgFillColor(vg, nvgRGBA(35, 30, 50, 210)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(180, 100, 220, 160)); nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
-    nvgFontSize(vg, 14)
+    nvgFontSize(vg, 22)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     DrawWhiteInkText(mgrBtnX + mgrBtnW / 2, mgrBtnY + mgrBtnH / 2, "兵符管理")
     sealMgrBtnRect = { x = mgrBtnX, y = mgrBtnY, w = mgrBtnW, h = mgrBtnH }
@@ -395,7 +395,7 @@ function DrawSealResultCard(cx, cy, r, isBig)
         nvgText(vg, cx, tagY, "新!", nil)
 
     elseif r.type == "seal_dupe" then
-        -- 重复兵符: 返还虎符
+        -- 重复兵符: 返还玉壁
         local qc = SEAL_QUALITY_COLORS[r.sealQ] or { 180, 175, 165 }
 
         local iconR = isBig and 40 or 22
@@ -410,7 +410,7 @@ function DrawSealResultCard(cx, cy, r, isBig)
 
         nvgFontSize(vg, fontSize)
         nvgFillColor(vg, nvgRGBA(255, 215, 0, 220))
-        nvgText(vg, cx, tagY, "重复 +" .. r.refund .. " 虎符", nil)
+        nvgText(vg, cx, tagY, "重复 +" .. r.refund .. " 玉壁", nil)
 
     elseif r.type == "exp_item" then
         -- 经验道具 (正式图片渲染)
@@ -631,7 +631,7 @@ function DrawSealGachaRulesPopup()
     startY = startY + lineH
 
     local qualityNames = { "凡", "良", "优", "将", "侯", "王", "帝" }
-    nvgFontSize(vg, 17)
+    nvgFontSize(vg, 24)
     for si = 1, 6 do
         local eff = SEAL_SLOT_EFFECTS[si]
         local stc = SEAL_SLOT_THEME_COLORS[si]
@@ -642,7 +642,7 @@ function DrawSealGachaRulesPopup()
             nvgText(vg, leftX + 10, startY, "· " .. SEAL_SLOT_NAMES[si] .. " - " .. eff.theme, nil)
             startY = startY + lineH * 0.7
             -- 效果描述
-            nvgFontSize(vg, 15)
+            nvgFontSize(vg, 22)
             nvgFillColor(vg, nvgRGBA(210, 190, 230, 210))
             nvgText(vg, leftX + 18, startY, eff.desc, nil)
             startY = startY + lineH * 0.65
@@ -669,7 +669,7 @@ function DrawSealGachaRulesPopup()
                 startY = startY + lineH * 0.6
             end
             startY = startY + 4
-            nvgFontSize(vg, 17)
+            nvgFontSize(vg, 24)
         end
     end
     startY = startY + 4
@@ -687,9 +687,9 @@ function DrawSealGachaRulesPopup()
     startY = startY + lineH
 
     nvgFontSize(vg, 19)
-    DrawWhiteInkText(leftX + 10, startY, "· 已满 " .. SEAL_MAX_SLOTS .. " 孔再抽到兵符 → 返还 " .. SEAL_DUPE_REFUND .. " 虎符")
+    DrawWhiteInkText(leftX + 10, startY, "· 已满 " .. SEAL_MAX_SLOTS .. " 孔再抽到兵符 → 返还 " .. SEAL_DUPE_REFUND .. " 玉壁")
     startY = startY + lineH * 0.75
-    DrawWhiteInkText(leftX + 10, startY, "· 单抽 " .. SEAL_GACHA_COST .. " 虎符 / 十连 " .. SEAL_GACHA_TEN_COST .. " 虎符(9折)")
+    DrawWhiteInkText(leftX + 10, startY, "· 单抽 " .. SEAL_GACHA_COST .. " 玉壁 / 十连 " .. SEAL_GACHA_TEN_COST .. " 玉壁(9折)")
 
     -- 关闭按钮
     local closeBtnW = 120

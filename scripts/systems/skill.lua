@@ -211,8 +211,8 @@ function CastSkill(skillIdx, targetX, targetY)
     if not skill or not skill.unlocked then return end
     if skill.cooldown > 0 then return end
 
-    -- 设置冷却
-    skill.cooldown = skill.maxCooldown
+    -- 设置冷却 (INT加成: 缩减冷却时间)
+    skill.cooldown = skill.maxCooldown * (1 - (battleIntCdReduction or 0))
 
     -- 释放音效
     if skill.skillType == "line" then
@@ -307,6 +307,8 @@ function UpdateSkillEffects(dt)
             -- 飞行过程中持续检测命中 (横向宽度内的单位)
             local halfW = (skill.lineWidth or 50) / 2
             local lineLayerMul = 1 + ((skillLayers[eff.skillIdx] or 1) - 1) * 0.2
+            -- INT加成: 仅玩家技能享受智力伤害加成
+            if not eff.isEnemySkill then lineLayerMul = lineLayerMul * (battleIntSkillMult or 1) end
             local targetUnits = eff.isEnemySkill and playerUnits or enemyUnits
             for _, u in ipairs(targetUnits) do
                 if u.alive and not eff.hitUnits[u] then
@@ -403,7 +405,7 @@ function UpdateSkillEffects(dt)
             if not eff.lastHealTime then eff.lastHealTime = 0 end
             if eff.timer - eff.lastHealTime >= skill.healInterval then
                 eff.lastHealTime = eff.timer
-                local healAmt = skill.healPerTick
+                local healAmt = math.ceil(skill.healPerTick * (battleIntSkillMult or 1))
                 local sc = skill.color
                 for _, u in ipairs(playerUnits) do
                     if u.alive then
@@ -412,7 +414,7 @@ function UpdateSkillEffects(dt)
                         if math.sqrt(ddx * ddx + ddy * ddy) <= skill.radius then
                             u.hp = math.min(u.maxHp or u.hp + healAmt, u.hp + healAmt)
                             -- 绿色回血浮字
-                            AddFloatText(u.x, u.y - 12, "+" .. healAmt, 0.6, { 80, 230, 80 }, 16)
+                            AddFloatText(u.x, u.y - 12, "+" .. healAmt, 0.6, { 80, 230, 80 }, 18)
                         end
                     end
                 end
@@ -463,6 +465,8 @@ function UpdateSkillEffects(dt)
             if eff.timer - eff.lastZoneTick >= skill.tickInterval then
                 eff.lastZoneTick = eff.timer
                 local zoneLayerMul = 1 + ((skillLayers[eff.skillIdx] or 1) - 1) * 0.2
+                -- INT加成: 仅玩家技能享受智力伤害加成
+                if not eff.isEnemySkill then zoneLayerMul = zoneLayerMul * (battleIntSkillMult or 1) end
                 local dmg = math.ceil(skill.dmgPerTick * zoneLayerMul)
                 local sc = skill.color
                 local zoneTargets = eff.isEnemySkill and playerUnits or enemyUnits
@@ -472,7 +476,7 @@ function UpdateSkillEffects(dt)
                         local ddy = u.y - eff.y
                         if math.sqrt(ddx * ddx + ddy * ddy) <= skill.radius then
                             u.hp = u.hp - dmg
-                            AddFloatText(u.x, u.y - 12, "-" .. dmg, 0.6, { 100, 180, 255 }, 14)
+                            AddFloatText(u.x, u.y - 12, "-" .. dmg, 0.6, { 100, 180, 255 }, 18)
                             -- 标记减速 (每帧会被重置,只在zone存活期间生效)
                             u.zoneSlowUntil = gameState.gameTime + skill.tickInterval + 0.1
                             u.zoneSlowFactor = skill.slowFactor
@@ -528,9 +532,11 @@ function UpdateSkillEffects(dt)
                             local ddy = math.abs(u.y - eff.y)
                             if ddx <= halfW and ddy <= halfH then
                                 local rectLayerMul = 1 + ((skillLayers[eff.skillIdx] or 1) - 1) * 0.2
+                                -- INT加成: 仅玩家技能享受智力伤害加成
+                                if not eff.isEnemySkill then rectLayerMul = rectLayerMul * (battleIntSkillMult or 1) end
                                 local rectDmg = math.ceil(skill.dmgPerTick * rectLayerMul)
                                 u.hp = u.hp - rectDmg
-                                AddFloatText(u.x, u.y - 12, "-" .. rectDmg, 0.6, { 160, 80, 220 }, 14)
+                                AddFloatText(u.x, u.y - 12, "-" .. rectDmg, 0.6, { 160, 80, 220 }, 18)
                                 if u.hp <= 0 then u.hp = 0; u.alive = false end
                             end
                         end
@@ -578,6 +584,8 @@ function ApplySkillDamage(cx, cy, skill, skillIdx, isEnemySkill)
         local layer = skillLayers[skillIdx] or 1
         layerMul = 1 + (layer - 1) * 0.2  -- 每层+20%伤害
     end
+    -- INT加成: 仅玩家技能享受智力伤害加成
+    if not isEnemySkill then layerMul = layerMul * (battleIntSkillMult or 1) end
     local baseDmg = math.ceil(skill.damage * layerMul)
     local hitCount = 0
     local isRect = skill.skillType == "rect"
@@ -655,7 +663,7 @@ function ApplySkillDamage(cx, cy, skill, skillIdx, isEnemySkill)
     if hitCount > 0 then
         AddFloatText(cx, cy - 80, "命中 " .. hitCount .. " 个目标!", 1.5, { 255, 200, 80 }, 18)
     else
-        AddFloatText(cx, cy - 50, "未命中", 1.0, { 180, 160, 140 }, 14)
+        AddFloatText(cx, cy - 50, "未命中", 1.0, { 180, 160, 140 }, 18)
     end
 end
 
@@ -666,14 +674,14 @@ function TryComposeSkillFrag(skillIdx)
     if cnt < SKILL_FRAG_EXCHANGE then return false end
     local layer = UnlockOrUpgradeSkill(skillIdx)
     if not layer then
-        -- 已满层: 消耗残片, 返还虎符
+        -- 已满层: 消耗残片, 返还玉壁
         skillFragments[skillIdx] = cnt - SKILL_FRAG_EXCHANGE
         if skillFragments[skillIdx] <= 0 then skillFragments[skillIdx] = nil end
         local refund = SKILL_MAX_REFUND_JADE or 30
         playerInfo.jade = playerInfo.jade + refund
         local tech = SKILL_TECHNIQUES[skillIdx]
         local skName = tech and tech.name or ("武技#" .. skillIdx)
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, skName .. " 已满层! 返还 " .. refund .. " 虎符", 2.0, { 255, 215, 0 }, 18)
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, skName .. " 已满层! 返还 " .. refund .. " 玉壁", 2.0, { 255, 215, 0 }, 18)
         PlaySFX(AUDIO.sfx_click)
         SaveGameProgress()
         return true
@@ -752,7 +760,7 @@ function OneKeyCompose()
             skillFragments[skillIdx] = skillFragments[skillIdx] - SKILL_FRAG_EXCHANGE
             if skillFragments[skillIdx] <= 0 then skillFragments[skillIdx] = nil end
             if not layer then
-                -- 已满层，返还虎符
+                -- 已满层，返还玉壁
                 local refund = SKILL_MAX_REFUND_JADE or 30
                 playerInfo.jade = playerInfo.jade + refund
                 totalJadeRefund = totalJadeRefund + refund
@@ -766,7 +774,7 @@ function OneKeyCompose()
         local msg = "一键合成完成! "
         if heroCount > 0 then msg = msg .. "武灵×" .. heroCount .. " " end
         if skillCount > 0 then msg = msg .. "武技×" .. skillCount .. " " end
-        if totalJadeRefund > 0 then msg = msg .. "(返还" .. totalJadeRefund .. "虎符)" end
+        if totalJadeRefund > 0 then msg = msg .. "(返还" .. totalJadeRefund .. "玉壁)" end
         AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, msg, 2.5, { 255, 220, 80 }, 18)
         PlaySFX(AUDIO.sfx_click)
         SaveGameProgress()

@@ -55,21 +55,22 @@ function DrawCodexScreen()
     end
 
     -- ===========================
-    -- 3. 英雄网格 (3列大卡牌, 可滚动) — 先绘制，在底层
+    -- 3. 英雄网格 (3列卡牌, 可滚动) — 一屏显示6张完整 + 下排露半
     -- ===========================
     local cols = 3
-    local gap = 12
-    local cardW = math.floor((W - 28 - (cols - 1) * gap) / cols)
-    local cardH = cardW / CARD_RATIO
+    local gap = 10
+    local startY = 110  -- 为标签页留空间
+    local bottomPad = 10  -- 底部留白
+    local visibleH = H - startY - bottomPad
+    -- 反推卡片高度: 2.5行 × (cardH + gap) = visibleH
+    local cardH = math.floor((visibleH - 2.5 * gap) / 2.5)
+    local cardW = math.floor(cardH * CARD_RATIO)
     local gridW = cols * cardW + (cols - 1) * gap
     local startX = cx - gridW / 2
-    local startY = 110  -- 为标签页留空间
-    local bottomPad = 40  -- 底部留白
 
     -- 计算内容总高度和滚动边界
     local totalRows = math.ceil(#filteredCards / cols)
     local contentH = totalRows * (cardH + gap + 4) - (gap + 4)
-    local visibleH = H - startY - bottomPad
     local maxScrollY = 0
     local minScrollY = math.min(0, -(contentH - visibleH))
 
@@ -139,7 +140,7 @@ function DrawCodexScreen()
                 local uTagH = 13
                 nvgBeginPath(vg); nvgRoundedRect(vg, x + 2, y + 2, uTagW, uTagH, 2)
                 nvgFillColor(vg, nvgRGBA(uqc[1], uqc[2], uqc[3], 140)); nvgFill(vg)
-                nvgFontSize(vg, 16)
+                nvgFontSize(vg, 24)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 DrawWhiteInkText(x + 2 + uTagW / 2, y + 2 + uTagH / 2, uqTag)
 
@@ -193,7 +194,7 @@ function DrawCodexScreen()
     -- 4. 品质标签页按钮
     -- ===========================
     local tabY = topBarY + backH + 8
-    local tabH = 30
+    local tabH = 36
     local tabTotalW = W - 20
     local tabCount = #TAB_DEFS
     local tabGap = 6
@@ -250,7 +251,7 @@ function DrawCodexScreen()
             end
         end
         if tabQCount > 0 and not isActive then
-            nvgFontSize(vg, 16)
+            nvgFontSize(vg, 24)
             nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
             nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 140))
             nvgText(vg, tx + tabW - 2, tabY + 1, tostring(tabQCount), nil)
@@ -360,26 +361,16 @@ function DrawHeroDetailScreen()
     DrawWhiteInkText(leftCX, infoY, card.name)
 
     -- 品质 | 兵种 | 站位
-    local posTag = ""
-    if card.unitClass == "SHIELD" or card.unitClass == "CAVALRY" or card.unitClass == "LANCER" then
-        posTag = "前排"
-    elseif card.unitClass == "ARCHER" or card.unitClass == "MAGE" then
+    local posTag = "前排"
+    if uc and uc.isRanged then
         posTag = "后排"
-    elseif card.unitClass == "HEALER" then
-        posTag = "后排"
-    elseif card.unitClass == "ASSASSIN" then
-        posTag = "任意"
-    elseif card.unitClass == "BEAST" then
-        posTag = "前排"
-    else
-        posTag = "前排"
     end
     nvgFontSize(vg, 18)
     DrawWhiteInkText(leftCX, infoY + 22, qName .. " | " .. (uc and uc.name or "未知") .. " | " .. posTag)
 
     -- 兵种描述
     if uc then
-        nvgFontSize(vg, 16)
+        nvgFontSize(vg, 24)
         DrawWhiteInkText(leftCX, infoY + 42, uc.desc)
     end
 
@@ -404,31 +395,16 @@ function DrawHeroDetailScreen()
 
         -- 预计算特性数据
         local traits = {}
-        local ucKey = card.unitClass
-        if ucKey == "CAVALRY" then
-            traits[#traits + 1] = { icon = "速", color = {255,200,80}, text = "冲锋突进: 不停留，沿途撞击伤害(120%ATK)" }
-        elseif ucKey == "ASSASSIN" then
-            traits[#traits + 1] = { icon = "隐", color = {180,100,255}, text = "绕后暗杀: 跨越路线包抄后排，背刺伤害x1.5" }
-        elseif ucKey == "HEALER" then
-            traits[#traits + 1] = { icon = "疗", color = {80,255,120}, text = "随军治疗: 跟随友军推进，沿途治疗最低血量友军" }
-        elseif ucKey == "BEAST" then
-            traits[#traits + 1] = { icon = "震", color = {255,160,50}, text = "范围震击: 边推进边打击前方所有挡路敌人(80%ATK)" }
-        elseif ucKey == "LANCER" then
-            traits[#traits + 1] = { icon = "贯", color = {200,220,255}, text = "贯穿攻击: 边推进边攻击，同时穿刺2个敌人" }
-        elseif ucKey == "SHIELD" then
-            traits[#traits + 1] = { icon = "盾", color = {100,200,255}, text = "铁壁防御: 不进攻，在己方半场站岗拦截过路敌人" }
-        elseif ucKey == "ARCHER" then
-            traits[#traits + 1] = { icon = "箭", color = {200,255,150}, text = "远程射击: 远距离锁定目标(120)，驻足瞄准射击" }
-        elseif ucKey == "MAGE" then
-            traits[#traits + 1] = { icon = "法", color = {200,150,255}, text = "法术轰击: 远距离锁定目标(110)，驻足施法轰击" }
-        elseif ucKey == "TALISMAN" then
-            traits[#traits + 1] = { icon = "符", color = {255,200,50}, text = "火牛冲阵: 全速冲锋，接触敌人后引爆造成250%范围伤害" }
-        elseif ucKey == "PUPPETEER" then
-            traits[#traits + 1] = { icon = "兽", color = {160,80,200}, text = "驱兽助战: 缓步推进，每4秒召唤1只走兽(上限4只)" }
-        elseif ucKey == "ICE_MAGE" then
-            traits[#traits + 1] = { icon = "冰", color = {80,200,255}, text = "霜冻减速: 远程攻击附带40%减速效果，持续2秒" }
-        elseif ucKey == "SWARM" then
-            traits[#traits + 1] = { icon = "蜂", color = {240,180,40}, text = "灵蜂涌袭: 一次派出6只，血薄但攻速极快(0.3s)" }
+        local bt = uc.baseTroop or "infantry"
+        local tierName = ({ "轻装", "重装", "精锐" })[uc.tier or 1] or "轻装"
+        if bt == "infantry" then
+            traits[#traits + 1] = { icon = "剑", color = {255,220,180}, text = tierName .. "步兵: 攻守均衡，边推进边斩杀挡路敌人" }
+        elseif bt == "archer" then
+            traits[#traits + 1] = { icon = "箭", color = {200,255,150}, text = tierName .. "弓兵: 远距离锁定目标，驻足瞄准射击" }
+        elseif bt == "cavalry" then
+            traits[#traits + 1] = { icon = "速", color = {255,200,80}, text = tierName .. "骑兵: 高速冲锋突进，机动性强" }
+        elseif bt == "spear" then
+            traits[#traits + 1] = { icon = "枪", color = {200,220,255}, text = tierName .. "枪兵: 长兵器攻击，克制骑兵" }
         else
             traits[#traits + 1] = { icon = "剑", color = {255,220,180}, text = "近战输出: 攻速快伤害均衡，边推进边斩杀挡路敌人" }
         end
@@ -455,7 +431,7 @@ function DrawHeroDetailScreen()
         nvgText(vg, traitPanelX + 10, traitY + 14, "战斗特性", nil)
 
         -- 绘制特性
-        nvgFontSize(vg, 17)
+        nvgFontSize(vg, 24)
         for i, tr in ipairs(traits) do
             local ty = traitY + 28 + (i - 1) * 20
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
@@ -467,24 +443,12 @@ function DrawHeroDetailScreen()
         end
         -- 数值行
         local numY = traitY + 28 + #traits * 20
-        nvgFontSize(vg, 15)
+        nvgFontSize(vg, 22)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(160, 170, 190, 160))
         nvgText(vg, rightCX, numY, statsLine, nil)
 
-        -- 通用规则
-        local ruleY = numY + 18
-        nvgFontSize(vg, 14)
-        nvgFillColor(vg, nvgRGBA(180, 160, 120, 140))
-        local ruleText = "武灵首要目标: 进攻敌方基地"
-        if ucKey == "SHIELD" then
-            ruleText = "铁盾重卫驻守己方半场，不主动进攻"
-        elseif ucKey == "TALISMAN" then
-            ruleText = "火牛突袭全速冲锋，引爆后消亡"
-        elseif ucKey == "PUPPETEER" then
-            ruleText = "驯兽使缓步推进，召唤走兽代为作战"
-        end
-        nvgText(vg, rightCX, ruleY, ruleText, nil)
+
 
         traitY = traitY + traitPanelH + 4
     end
@@ -511,7 +475,7 @@ function DrawHeroDetailScreen()
         local sx = panelX + (si - 0.5) * sCol
         local sy = statsY + 22
         -- 标签
-        nvgFontSize(vg, 17)
+        nvgFontSize(vg, 24)
         DrawWhiteInkText(sx, sy, st.label)
         -- 数值
         local finalVal = math.floor(st.base * st.mult)
@@ -533,7 +497,7 @@ function DrawHeroDetailScreen()
     end
     local extraY = statsY + panelH + 6
     if #extraParts > 0 then
-        nvgFontSize(vg, 17)
+        nvgFontSize(vg, 24)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         DrawWhiteInkText(rightCX, extraY, table.concat(extraParts, "  |  "))
         extraY = extraY + 18
@@ -603,13 +567,13 @@ function DrawHeroDetailScreen()
         nvgText(vg, sealPanelX + 10, extraY + 14, "兵符总加成", nil)
 
         -- 汇总行
-        nvgFontSize(vg, 17)
+        nvgFontSize(vg, 24)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(100, 255, 130, 220))
         nvgText(vg, rightCX, extraY + 38, table.concat(summaryParts, "  "), nil)
 
         -- 详情行
-        nvgFontSize(vg, 15)
+        nvgFontSize(vg, 22)
         nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
         for ei, se in ipairs(sealEntries) do
             local ey = extraY + 50 + (ei - 1) * 18
@@ -681,7 +645,7 @@ function DrawHeroDetailScreen()
         nvgStroke(vg)
 
         -- 节点文字
-        nvgFontSize(vg, 17)
+        nvgFontSize(vg, 24)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         if isActive then
             DrawWhiteInkText(nx, ny, "C" .. c)
@@ -693,7 +657,7 @@ function DrawHeroDetailScreen()
         -- 下方加成标注
         local bonusC = GameConfig.CONSTELLATION_BONUS[c]
         if bonusC then
-            nvgFontSize(vg, 10)
+            nvgFontSize(vg, 18)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
             local atkPct = math.floor((bonusC.atkMult - 1) * 100)
             local label = atkPct > 0 and ("+" .. atkPct .. "%") or "基础"
@@ -838,7 +802,7 @@ function DrawPlayerDetailScreen()
     end
 
     -- 编辑资料按钮 (头像右侧)
-    local editBtnW, editBtnH = 64, 26
+    local editBtnW, editBtnH = 70, 32
     local editBtnX = avatarX + avatarSize + 8
     local editBtnY = avatarY + avatarSize / 2 - editBtnH / 2
     nvgBeginPath(vg); nvgRoundedRect(vg, editBtnX, editBtnY, editBtnW, editBtnH, 5)
@@ -913,7 +877,7 @@ function DrawPlayerDetailScreen()
     nvgBeginPath(vg); nvgCircle(vg, qBtnX, powerY, qBtnR)
     nvgFillColor(vg, nvgRGBA(80, 70, 55, 200)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(200, 180, 120, 180)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-    nvgFontSize(vg, 15)
+    nvgFontSize(vg, 22)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     nvgFillColor(vg, nvgRGBA(255, 220, 120, 230))
     nvgText(vg, qBtnX, powerY, "?", nil)
@@ -952,7 +916,7 @@ function DrawPlayerDetailScreen()
     end
 
     local stats = {
-        { label = "虎符", value = FormatJade(playerInfo.jade) },
+        { label = "玉壁", value = FormatJade(playerInfo.jade) },
         { label = "武灵收集", value = ownedCount .. "/" .. #HERO_CARDS },
         { label = "总命格", value = tostring(totalConst) },
     }
@@ -1009,7 +973,7 @@ function DrawPlayerDetailScreen()
                 nvgStrokeColor(vg, nvgRGBA(stc[1], stc[2], stc[3], 150)); nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
 
                 -- 武技名 (限制宽度, 截断显示)
-                nvgFontSize(vg, 17)
+                nvgFontSize(vg, 24)
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
                 local maxTextW = skSlotW - 4
                 local displayName = sk.name

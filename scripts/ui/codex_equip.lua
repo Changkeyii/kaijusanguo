@@ -105,7 +105,7 @@ function DrawEquipScreen()
     nvgText(vg, W - 18, 36, "军资: " .. (playerInfo.lingshi or 0), nil)
 
     -- 分解按钮区域（右上角军资下方: 筛选分解 + 选中分解）
-    local batchBtnW, batchBtnH = 100, 30
+    local batchBtnW, batchBtnH = 100, 36
     local batchBtnGap = 8
     local batchBtnY = 52
     -- 统计可分解数量
@@ -361,7 +361,7 @@ function DrawEquipScreen()
             end
             -- 右侧状态 (含等阶效力百分比)
             nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
-            nvgFontSize(vg, 16)
+            nvgFontSize(vg, 24)
             if active then
                 -- 计算套装效力百分比 (按最差等阶)
                 local maxTMul = EQUIP_TIERS[#EQUIP_TIERS].multiplier
@@ -473,9 +473,9 @@ function DrawEquipScreen()
 
         -- 阶级标签（自适应icon大小）
         local iconSize = itemH - 8
-        local badgeW = math.floor(iconSize * 0.30)
-        local badgeH = math.floor(iconSize * 0.16)
-        local badgeFs = math.floor(iconSize * 0.15)
+        local badgeW = math.floor(iconSize * 0.35)
+        local badgeH = math.floor(iconSize * 0.22)
+        local badgeFs = math.floor(iconSize * 0.20)
         local tierBadgeX = listX + 4
         local tierBadgeY = iy + 4
         nvgBeginPath(vg); nvgRoundedRect(vg, tierBadgeX, tierBadgeY, badgeW, badgeH, 2)
@@ -559,7 +559,7 @@ function DrawEquipScreen()
                 nvgStrokeWidth(vg, 2.5); nvgStroke(vg)
             elseif isEquipped then
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-                nvgFontSize(vg, 16)
+                nvgFontSize(vg, 24)
                 nvgFillColor(vg, nvgRGBA(100, 100, 100, 150))
                 nvgText(vg, cbX + cbSize / 2, cbY + cbSize / 2, "装备中", nil)
             end
@@ -567,7 +567,7 @@ function DrawEquipScreen()
         elseif isEquipped then
             -- 已装备 → 显示"卸下"按钮
             local unequipBtnW = 68
-            local unequipBtnH = 30
+            local unequipBtnH = 36
             local unequipBtnX = listX + listW - unequipBtnW - 8
             local unequipBtnY = iy + (itemH - unequipBtnH) / 2
             nvgBeginPath(vg); nvgRoundedRect(vg, unequipBtnX, unequipBtnY, unequipBtnW, unequipBtnH, 4)
@@ -580,7 +580,7 @@ function DrawEquipScreen()
         else
             -- "装备" 按钮
             local equipBtnW = 68
-            local equipBtnH = 30
+            local equipBtnH = 36
             local equipBtnX = listX + listW - equipBtnW - 8
             local equipBtnY = iy + 10
             nvgBeginPath(vg); nvgRoundedRect(vg, equipBtnX, equipBtnY, equipBtnW, equipBtnH, 4)
@@ -593,7 +593,7 @@ function DrawEquipScreen()
 
             -- "分解" 按钮
             local decBtnW = 68
-            local decBtnH = 30
+            local decBtnH = 36
             local decBtnX = listX + listW - decBtnW - 8
             local decBtnY = iy + itemH - decBtnH - 10
             local dEnhLv2 = op.enhanceLv or 0
@@ -730,7 +730,7 @@ function DrawEquipScreen()
         nvgFontSize(vg, 20)
         nvgFillColor(vg, nvgRGBA(180, 220, 255, 220))
         nvgText(vg, dW / 2, py + 102, "预计获得 " .. sdc.gain .. " 军资", nil)
-        nvgFontSize(vg, 17)
+        nvgFontSize(vg, 24)
         nvgFillColor(vg, nvgRGBA(255, 130, 100, 180))
         nvgText(vg, dW / 2, py + 126, "此操作不可撤销!", nil)
 
@@ -795,7 +795,7 @@ function DrawEquipScreen()
         nvgFillColor(vg, nvgRGBA(180, 210, 240, 200))
         if dc.enhLv and dc.enhLv > 0 then
             nvgText(vg, dW / 2, py + 112, string.format("强化+%d  分解可获得 %d 军资", dc.enhLv, dc.gain), nil)
-            nvgFontSize(vg, 17)
+            nvgFontSize(vg, 24)
             nvgFillColor(vg, nvgRGBA(255, 200, 100, 180))
             nvgText(vg, dW / 2, py + 134, "(含强化返还" .. (dc.enhRefund or 0) .. "军资)", nil)
         else
@@ -965,11 +965,11 @@ function DrawEquipScreen()
         nvgFillColor(vg, nvgRGBA(180, 220, 255, 220))
         nvgText(vg, dW / 2, filterY + 75, "预计获得 " .. bdc.gain .. " 军资", nil)
         if bdc.count == 0 then
-            nvgFontSize(vg, 17)
+            nvgFontSize(vg, 24)
             nvgFillColor(vg, nvgRGBA(255, 180, 100, 180))
             nvgText(vg, dW / 2, filterY + 98, "当前筛选无可分解物品", nil)
         else
-            nvgFontSize(vg, 17)
+            nvgFontSize(vg, 24)
             nvgFillColor(vg, nvgRGBA(255, 130, 100, 180))
             nvgText(vg, dW / 2, filterY + 98, "此操作不可撤销!", nil)
         end
@@ -1173,7 +1173,7 @@ function DrawProfileScreen()
     -- 左栏底部提示
     local avEndY = avStartY + 2 * (avSize + avGap)
     nvgFontFaceId(vg, fontId)
-    nvgFontSize(vg, 13)
+    nvgFontSize(vg, 20)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
     nvgFillColor(vg, nvgRGBA(180, 165, 130, 140))
     nvgText(vg, leftCx, avEndY + 6, "点击头像选择你的形象", nil)
@@ -1320,11 +1320,11 @@ function DrawProfileScreen()
 
     -- 底部提示 (居中)
     nvgFontFaceId(vg, fontId)
-    nvgFontSize(vg, 14)
+    nvgFontSize(vg, 22)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
     nvgFillColor(vg, nvgRGBA(180, 165, 130, 160))
     nvgText(vg, cx, H - 32, "首次加载较慢，请耐心等待资源刷新", nil)
-    nvgFontSize(vg, 12)
+    nvgFontSize(vg, 20)
     nvgFillColor(vg, nvgRGBA(255, 200, 80, 140))
     nvgText(vg, cx, H - 16, "华为个别机型可能存在兼容性问题，敬请谅解", nil)
 
@@ -1454,12 +1454,12 @@ function DrawEquipCodexScreen()
         -- 收集进度小点（右上角）
         if ownedCount == 7 then
             -- 全收集：金色小勾
-            nvgFontSize(vg, 14)
+            nvgFontSize(vg, 22)
             nvgFillColor(vg, nvgRGBA(255, 210, 80, 230))
             nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
             nvgText(vg, tx + tabW - 3, ty + 2, "★", nil)
         elseif ownedCount > 0 then
-            nvgFontSize(vg, 12)
+            nvgFontSize(vg, 20)
             nvgFillColor(vg, nvgRGBA(200, 195, 180, 160))
             nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
             nvgText(vg, tx + tabW - 3, ty + 2, ownedCount .. "/7", nil)
@@ -1533,7 +1533,7 @@ function DrawEquipCodexScreen()
             nvgRGBA(sc[1], sc[2], sc[3], 200), nvgRGBA(255, 220, 120, 200))
         nvgFillPaint(vg, barGrad); nvgFill(vg)
     end
-    nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
+    nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
     nvgFillColor(vg, nvgRGBA(200, 195, 180, 180))
     nvgText(vg, hdrX + hdrW - 12, barBgY + barBgH / 2, ownedTotal .. "/7", nil)
 

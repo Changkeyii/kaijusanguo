@@ -21,10 +21,10 @@ function DrawTradeScreen()
     nvgFontSize(vg, 30); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     DrawWhiteInkText(cx, 32, "交易行")
 
-    -- 虎符显示
+    -- 玉壁显示
     nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
     nvgFillColor(vg, nvgRGBA(255, 220, 100, 255))
-    nvgText(vg, W - 14, 32, "虎符: " .. tostring(playerInfo.jade or 0), nil)
+    nvgText(vg, W - 14, 32, "玉壁: " .. tostring(playerInfo.jade or 0), nil)
 
     -- Tab 栏
     local pad = 14
@@ -50,20 +50,20 @@ function DrawTradeScreen()
     -- ======== 市场 Tab ========
     if tradeState.tab == "market" then
         -- 刷新按钮
-        local rfW, rfH = 80, 32
+        local rfW, rfH = 80, 38
         local rfX = W - pad - rfW
         local rfY = bodyTop
         nvgBeginPath(vg); nvgRoundedRect(vg, rfX, rfY, rfW, rfH, 6)
         local isLoading = TradeManager.state.marketLoading
         nvgFillColor(vg, isLoading and nvgRGBA(40, 40, 50, 180) or nvgRGBA(50, 80, 120, 220)); nvgFill(vg)
         nvgStrokeColor(vg, nvgRGBA(80, 140, 200, 150)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-        nvgFontSize(vg, 17); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(200, 220, 255, isLoading and 120 or 255))
         nvgText(vg, rfX + rfW / 2, rfY + rfH / 2, isLoading and "加载中" or "刷新", nil)
         tradeState.btnRects.refresh = { x = rfX, y = rfY, w = rfW, h = rfH }
 
         -- 规则提示
-        nvgFontSize(vg, 14); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+        nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(255, 200, 100, 200))
         nvgText(vg, pad, rfY + rfH / 2, "交易规则: 将品及以上可交易 · 手续费5% · 上架3天", nil)
 
@@ -140,11 +140,11 @@ function DrawTradeScreen()
 
                     -- 品阶角标
                     local tierName = EQUIP_TIER_NAMES[eq.tier] or "?"
-                    local badgeW, badgeH = 28, 14
+                    local badgeW, badgeH = 32, 20
                     nvgBeginPath(vg)
                     nvgRoundedRect(vg, cellX + mCellSize - badgeW - 2, cellY + 2, badgeW, badgeH, 3)
                     nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 180)); nvgFill(vg)
-                    nvgFontSize(vg, 10); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                    nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(255, 255, 255, 240))
                     nvgText(vg, cellX + mCellSize - badgeW / 2 - 2, cellY + 2 + badgeH / 2, tierName, nil)
 
@@ -152,7 +152,7 @@ function DrawTradeScreen()
                     local lvStr = "Lv." .. (eq.level or 1)
                     if (eq.enhanceLv or 0) > 0 then lvStr = lvStr .. "+" .. eq.enhanceLv end
                     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
-                    nvgFontSize(vg, 11)
+                    nvgFontSize(vg, 18)
                     nvgFillColor(vg, nvgRGBA(255, 225, 130, 220))
                     nvgText(vg, cellX + 3, cellY + 3, lvStr, nil)
 
@@ -161,16 +161,16 @@ function DrawTradeScreen()
                     local setData = EQUIPMENT_SETS[eq.setIdx]
                     local pieceName = setData and setData.pieces[eq.slotIdx] and setData.pieces[eq.slotIdx].name or "?"
                     -- 装备名（品阶色）
-                    nvgFontSize(vg, 11); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                    nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                     nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 240))
                     local shortPiece = pieceName
                     if utf8.len(shortPiece) > 4 then shortPiece = string.sub(shortPiece, 1, utf8.offset(shortPiece, 5) - 1) .. ".." end
                     nvgText(vg, cellX + mCellSize / 2, infoY + 8, shortPiece, nil)
                     -- 价格
-                    nvgFontSize(vg, 11); nvgFillColor(vg, nvgRGBA(255, 220, 100, 240))
+                    nvgFontSize(vg, 18); nvgFillColor(vg, nvgRGBA(255, 220, 100, 240))
                     nvgText(vg, cellX + mCellSize / 2, infoY + 20, tostring(item.price) .. "符", nil)
                     -- 卖家名
-                    nvgFontSize(vg, 9); nvgFillColor(vg, nvgRGBA(140, 180, 200, 160))
+                    nvgFontSize(vg, 18); nvgFillColor(vg, nvgRGBA(140, 180, 200, 160))
                     local sName = item.sellerName or ""
                     if utf8.len(sName) > 5 then sName = string.sub(sName, 1, utf8.offset(sName, 6) - 1) .. ".." end
                     nvgText(vg, cellX + mCellSize / 2, infoY + 34, sName, nil)
@@ -192,7 +192,7 @@ function DrawTradeScreen()
         local scrollOff = tradeState.scroll.offset or 0
         local curY = bodyTop - scrollOff
 
-        -- 待领取虎符
+        -- 待领取玉壁
         local pendingJade = TradeManager.state.myData.pendingJade or 0
         local soldCount = TradeManager.state.myData.soldCount or 0
         nvgBeginPath(vg); nvgRoundedRect(vg, pad, curY, W - pad * 2, 50, 8)
@@ -201,8 +201,8 @@ function DrawTradeScreen()
 
         nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(255, 220, 100, 255))
-        nvgText(vg, pad + 10, curY + 16, "待领取: " .. pendingJade .. " 虎符", nil)
-        nvgFontSize(vg, 14); nvgFillColor(vg, nvgRGBA(160, 160, 160, 180))
+        nvgText(vg, pad + 10, curY + 16, "待领取: " .. pendingJade .. " 玉壁", nil)
+        nvgFontSize(vg, 22); nvgFillColor(vg, nvgRGBA(160, 160, 160, 180))
         nvgText(vg, pad + 10, curY + 36, "累计售出: " .. soldCount .. "件", nil)
 
         if pendingJade > 0 then
@@ -212,7 +212,7 @@ function DrawTradeScreen()
             nvgBeginPath(vg); nvgRoundedRect(vg, cjX, cjY, cjW, cjH, 6)
             nvgFillColor(vg, nvgRGBA(180, 120, 30, 220)); nvgFill(vg)
             nvgStrokeColor(vg, nvgRGBA(255, 200, 80, 180)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-            nvgFontSize(vg, 17); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 255, 255, 255))
             nvgText(vg, cjX + cjW / 2, cjY + cjH / 2, "领取", nil)
             tradeState.btnRects.claimJade = { x = cjX, y = cjY, w = cjW, h = cjH }
@@ -223,7 +223,7 @@ function DrawTradeScreen()
         -- 在售装备
         local active = TradeManager.GetActiveListings()
         if #active > 0 then
-            nvgFontSize(vg, 17); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(200, 200, 200, 200))
             nvgText(vg, pad, curY + 10, "在售 (" .. #active .. "/" .. GameConfig.TRADE.MAX_LISTINGS .. ")", nil)
             curY = curY + 28
@@ -244,7 +244,7 @@ function DrawTradeScreen()
             end
             curY = curY + #active * (cardH + cardGap)
         else
-            nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(140, 140, 140, 180))
             nvgText(vg, pad, curY + 10, "暂无在售装备", nil)
             curY = curY + 30
@@ -254,7 +254,7 @@ function DrawTradeScreen()
         local expired = TradeManager.GetExpiredListings()
         if #expired > 0 then
             curY = curY + 6
-            nvgFontSize(vg, 17); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 120, 80, 200))
             nvgText(vg, pad, curY + 10, "已过期 (" .. #expired .. "件, 点击领回)", nil)
             curY = curY + 28
@@ -278,15 +278,15 @@ function DrawTradeScreen()
                         nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
                         nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 255))
                         nvgText(vg, pad + 10, cy + 18, EQUIP_TIER_NAMES[eq.tier] .. " " .. pieceName, nil)
-                        nvgFontSize(vg, 14); nvgFillColor(vg, nvgRGBA(180, 180, 180, 180))
-                        nvgText(vg, pad + 10, cy + 40, "原价 " .. listing.price .. " 虎符 · 已过期", nil)
+                        nvgFontSize(vg, 22); nvgFillColor(vg, nvgRGBA(180, 180, 180, 180))
+                        nvgText(vg, pad + 10, cy + 40, "原价 " .. listing.price .. " 玉壁 · 已过期", nil)
 
                         -- 领回按钮
                         local btnW = 52
                         local btnX = W - pad - btnW - 6
                         nvgBeginPath(vg); nvgRoundedRect(vg, btnX, cy + 10, btnW, cardH - 20, 6)
                         nvgFillColor(vg, nvgRGBA(120, 70, 30, 220)); nvgFill(vg)
-                        nvgFontSize(vg, 15); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                        nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                         nvgFillColor(vg, nvgRGBA(255, 220, 150, 255))
                         nvgText(vg, btnX + btnW / 2, cy + cardH / 2, "领回", nil)
                     end
@@ -304,7 +304,7 @@ function DrawTradeScreen()
         curY = curY + 10
 
         -- 小标题
-        nvgFontSize(vg, 17); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+        nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(255, 200, 100, 220))
         nvgText(vg, pad, curY + 10, "可交易装备 (将品及以上)", nil)
         curY = curY + 30
@@ -324,7 +324,7 @@ function DrawTradeScreen()
         end
 
         if #tradeableItems == 0 then
-            nvgFontSize(vg, 15); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(120, 120, 120, 160))
             nvgText(vg, pad, curY + 10, "暂无可交易装备", nil)
             curY = curY + 30
@@ -375,17 +375,17 @@ function DrawTradeScreen()
 
                 -- 品阶角标
                 local tierName = EQUIP_TIER_NAMES[item.tier] or "?"
-                local badgeW, badgeH = 28, 14
+                local badgeW, badgeH = 32, 20
                 nvgBeginPath(vg)
                 nvgRoundedRect(vg, cx2 + tCellSize - badgeW - 2, cy2 + 2, badgeW, badgeH, 3)
                 nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 180)); nvgFill(vg)
-                nvgFontSize(vg, 10); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(255, 255, 255, 240))
                 nvgText(vg, cx2 + tCellSize - badgeW / 2 - 2, cy2 + 2 + badgeH / 2, tierName, nil)
 
                 -- 强化角标
                 if (item.enhanceLv or 0) > 0 then
-                    nvgFontSize(vg, 10); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+                    nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
                     nvgFillColor(vg, nvgRGBA(255, 220, 100, 220))
                     nvgText(vg, cx2 + 3, cy2 + 3, "+" .. item.enhanceLv, nil)
                 end
@@ -394,7 +394,7 @@ function DrawTradeScreen()
                 local infoY2 = cy2 + tCellSize
                 local setData2 = EQUIPMENT_SETS[item.setIdx]
                 local pieceName2 = setData2 and setData2.pieces[item.slotIdx] and setData2.pieces[item.slotIdx].name or "?"
-                nvgFontSize(vg, 10); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                nvgFontSize(vg, 18); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 240))
                 local shortP2 = pieceName2
                 if utf8.len(shortP2) > 4 then shortP2 = string.sub(shortP2, 1, utf8.offset(shortP2, 5) - 1) .. ".." end
@@ -403,7 +403,7 @@ function DrawTradeScreen()
                 local lvP2 = {}
                 if (item.enhanceLv or 0) > 0 then lvP2[#lvP2 + 1] = "强+" .. item.enhanceLv end
                 lvP2[#lvP2 + 1] = "Lv" .. (item.level or 1)
-                nvgFontSize(vg, 9); nvgFillColor(vg, nvgRGBA(120, 220, 255, 210))
+                nvgFontSize(vg, 18); nvgFillColor(vg, nvgRGBA(120, 220, 255, 210))
                 nvgText(vg, cx2 + tCellSize / 2, infoY2 + 18, table.concat(lvP2, " "), nil)
 
                 -- 保存格子rect用于点击
@@ -450,19 +450,19 @@ function DrawTradeScreen()
             nvgText(vg, cx, py2 + 58, tierName2 .. " " .. pieceName2, nil)
 
             -- 品质信息
-            nvgFontSize(vg, 14); nvgFillColor(vg, nvgRGBA(180, 180, 180, 180))
+            nvgFontSize(vg, 22); nvgFillColor(vg, nvgRGBA(180, 180, 180, 180))
             local info2 = "品质" .. (d.quality or 0) .. " · Lv" .. (d.level or 1)
             if (d.enhanceLv or 0) > 0 then info2 = info2 .. " · 强化+" .. d.enhanceLv end
             nvgText(vg, cx, py2 + 80, info2, nil)
 
             -- 手续费提示
-            nvgFontSize(vg, 13); nvgFillColor(vg, nvgRGBA(200, 180, 120, 160))
+            nvgFontSize(vg, 20); nvgFillColor(vg, nvgRGBA(200, 180, 120, 160))
             local commPct = math.floor(GameConfig.TRADE.COMMISSION * 100)
             nvgText(vg, cx, py2 + 100, "交易行抽成" .. commPct .. "% · 上架3天", nil)
 
             -- 价格区域
             local priceY = py2 + 125
-            nvgFontSize(vg, 15); nvgFillColor(vg, nvgRGBA(180, 180, 180, 200))
+            nvgFontSize(vg, 22); nvgFillColor(vg, nvgRGBA(180, 180, 180, 200))
             nvgText(vg, cx, priceY, "价格范围: " .. d.minPrice .. " ~ " .. d.maxPrice, nil)
 
             -- [-] 价格 [+]
@@ -490,8 +490,8 @@ function DrawTradeScreen()
 
             -- 到手收入
             local netIncome = TradeManager.CalcNetIncome(d.price)
-            nvgFontSize(vg, 15); nvgFillColor(vg, nvgRGBA(120, 200, 120, 200))
-            nvgText(vg, cx, priceRowY + adjBtnH + 16, "到手: " .. netIncome .. " 虎符", nil)
+            nvgFontSize(vg, 22); nvgFillColor(vg, nvgRGBA(120, 200, 120, 200))
+            nvgText(vg, cx, priceRowY + adjBtnH + 16, "到手: " .. netIncome .. " 玉壁", nil)
 
             -- 确认/取消
             local lbW, lbH = 120, 38
@@ -546,7 +546,7 @@ function DrawTradeScreen()
                     local hpVal  = (piece.hpPct + qBonus + lvBonus) * tierMul * enhMul
                     popDesc = popDesc .. "\n" .. string.format("攻+%.1f%%  防+%.1f%%  血+%.1f%%", atkVal, defVal, hpVal)
                 end
-                popDesc = popDesc .. "\n售价: " .. d.price .. " 虎符\n卖家: " .. (d.sellerName or "?")
+                popDesc = popDesc .. "\n售价: " .. d.price .. " 玉壁\n卖家: " .. (d.sellerName or "?")
             elseif pop.type == "unlist" then
                 popTitle = "确认下架"
                 local listing = pop.data.listing
@@ -565,7 +565,7 @@ function DrawTradeScreen()
             nvgText(vg, cx, py + 30, popTitle, nil)
 
             -- 多行描述
-            nvgFontSize(vg, 17); nvgFillColor(vg, nvgRGBA(210, 210, 210, 230))
+            nvgFontSize(vg, 24); nvgFillColor(vg, nvgRGBA(210, 210, 210, 230))
             local descLines = {}
             for line in popDesc:gmatch("[^\n]+") do table.insert(descLines, line) end
             for li, line in ipairs(descLines) do
@@ -622,7 +622,7 @@ function DrawTradeCard(x, y, w, h, item, idx, isMine)
     local tagW = 42
     nvgBeginPath(vg); nvgRoundedRect(vg, x + 6, y + 6, tagW, 20, 4)
     nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 60)); nvgFill(vg)
-    nvgFontSize(vg, 13); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 255))
     nvgText(vg, x + 6 + tagW / 2, y + 16, tierName, nil)
 
@@ -632,19 +632,19 @@ function DrawTradeCard(x, y, w, h, item, idx, isMine)
     nvgText(vg, x + 6 + tagW + 8, y + 16, pieceName, nil)
 
     -- 槽位 + 套装名
-    nvgFontSize(vg, 13); nvgFillColor(vg, nvgRGBA(160, 160, 160, 200))
+    nvgFontSize(vg, 20); nvgFillColor(vg, nvgRGBA(160, 160, 160, 200))
     local setName = setData and setData.name or ""
     nvgText(vg, x + 10, y + 36, slotName .. " · " .. setName, nil)
 
     -- 强化等级 + 装备等级 (同一行)
     local infoLineX = x + 10
     if eq.enhanceLv and eq.enhanceLv > 0 then
-        nvgFontSize(vg, 13); nvgFillColor(vg, nvgRGBA(120, 220, 255, 220))
+        nvgFontSize(vg, 20); nvgFillColor(vg, nvgRGBA(120, 220, 255, 220))
         nvgText(vg, infoLineX, y + 52, "强化+" .. eq.enhanceLv, nil)
         infoLineX = infoLineX + 70
     end
     if eq.level and eq.level > 1 then
-        nvgFontSize(vg, 13); nvgFillColor(vg, nvgRGBA(180, 220, 160, 200))
+        nvgFontSize(vg, 20); nvgFillColor(vg, nvgRGBA(180, 220, 160, 200))
         nvgText(vg, infoLineX, y + 52, "Lv." .. eq.level, nil)
     end
 
@@ -658,7 +658,7 @@ function DrawTradeCard(x, y, w, h, item, idx, isMine)
         local atkVal = (piece.atkPct + qBonus + lvBonus) * tierMul * enhMul
         local defVal = (piece.defPct + qBonus + lvBonus) * tierMul * enhMul
         local hpVal  = (piece.hpPct + qBonus + lvBonus) * tierMul * enhMul
-        nvgFontSize(vg, 12); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+        nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(255, 160, 80, 220))
         local attrStr = string.format("攻+%.1f%%  防+%.1f%%  血+%.1f%%", atkVal, defVal, hpVal)
         nvgText(vg, x + 10, y + 68, attrStr, nil)
@@ -669,15 +669,15 @@ function DrawTradeCard(x, y, w, h, item, idx, isMine)
     nvgFillColor(vg, nvgRGBA(255, 220, 100, 255))
     local priceX = isMine and (x + w - 70) or (x + w - 80)
     nvgText(vg, priceX, y + 18, tostring(item.price), nil)
-    nvgFontSize(vg, 12); nvgFillColor(vg, nvgRGBA(200, 180, 120, 180))
-    nvgText(vg, priceX, y + 34, "虎符", nil)
+    nvgFontSize(vg, 20); nvgFillColor(vg, nvgRGBA(200, 180, 120, 180))
+    nvgText(vg, priceX, y + 34, "玉壁", nil)
 
     -- 剩余时间
     if item.remainSec then
         local hrs = math.floor(item.remainSec / 3600)
         local mins = math.floor((item.remainSec % 3600) / 60)
         local timeStr = hrs > 0 and (hrs .. "h" .. mins .. "m") or (mins .. "m")
-        nvgFontSize(vg, 12); nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
+        nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, hrs < 6 and nvgRGBA(255, 120, 80, 200) or nvgRGBA(140, 140, 140, 180))
         nvgText(vg, priceX, y + 50, "剩" .. timeStr, nil)
     end
@@ -692,12 +692,12 @@ function DrawTradeCard(x, y, w, h, item, idx, isMine)
         nvgBeginPath(vg); nvgRoundedRect(vg, btnX, btnY2, btnW, btnH2, 6)
         nvgFillColor(vg, nvgRGBA(80, 40, 40, 220)); nvgFill(vg)
         nvgStrokeColor(vg, nvgRGBA(200, 80, 80, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-        nvgFontSize(vg, 15); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(255, 180, 160, 255))
         nvgText(vg, btnX + btnW / 2, y + h / 2, "下架", nil)
     else
         -- 卖家名
-        nvgFontSize(vg, 13); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+        nvgFontSize(vg, 20); nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(140, 180, 200, 180))
         nvgText(vg, x + 10, y + h - 12, item.sellerName or "", nil)
         -- 购买按钮
@@ -707,7 +707,7 @@ function DrawTradeCard(x, y, w, h, item, idx, isMine)
         local pulse = 0.85 + 0.15 * math.sin((menuAnimTimer or 0) * 2.5 + idx)
         nvgFillColor(vg, nvgRGBA(math.floor(160 * pulse), math.floor(100 * pulse), 20, 230)); nvgFill(vg)
         nvgStrokeColor(vg, nvgRGBA(255, 200, 60, math.floor(150 * pulse))); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
-        nvgFontSize(vg, 17); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(255, 255, 255, 255))
         nvgText(vg, buyX + buyW / 2, y + h / 2, "购买", nil)
     end

@@ -1,10 +1,10 @@
 -- ============================================================================
--- systems/tasks.lua - 涓夊浗姝︾伒褰?"
+-- systems/tasks.lua - 三国武灵录
 -- ============================================================================
 
 
---- 妫€鏌ュ苟鎵ц姣忓懆鎺掕姒滃鍔辩粨绠?"
---- 鍦ㄦ父鎴忓惎鍔?瀛樻。鍔犺浇鍚庤皟鐢ㄤ竴娆?"
+--- 检查并执行每周排行榜奖励结算
+--- 在游戏启动/存档加载后调用一次
 local function _getRankItemUserId(item)
     if rawget(_G, "ResolveRankListUserId") then
         return ResolveRankListUserId(item)
@@ -18,7 +18,7 @@ function CheckWeeklyRankRewards()
     local weekKey = GetWeekKey()
     -- 宸茬粨绠楀垯璺宠繃
     if welfareState.lastWeeklySettled == weekKey then
-        print("[鍛ㄥ鍔盷 鏈懆宸茬粨绠? " .. weekKey)
+        print("[周奖励] 本周已结算: " .. weekKey)
         return
     end
 
@@ -29,7 +29,7 @@ function CheckWeeklyRankRewards()
     for _, cfg in ipairs(WEEKLY_RANK_REWARDS) do
         CloudAPI:GetRankList(cfg.key, 0, 20, {
             ok = function(rankList)
-                -- 鎵惧埌鑷繁鐨勬帓鍚?"
+                -- 找到自己的排名
                 local myRank = 0
                 for ri, item in ipairs(rankList) do
                     if _getRankItemUserId(item) == myUid then
@@ -39,34 +39,34 @@ function CheckWeeklyRankRewards()
                 end
 
                 if myRank > 0 then
-                    -- 鏍规嵁鎺掑悕纭畾濂栧姳
+                    -- 根据排名确定奖励
                     for _, tier in ipairs(cfg.tiers) do
                         if myRank <= tier.maxRank then
                             local mailId = "weekly_" .. weekKey .. "_" .. cfg.key
-                            local rankDesc = (myRank == 1) and "绗?鍚?" or ("绗?" .. myRank .. "鍚?")
+                            local rankDesc = (myRank == 1) and "第1名" or ("第" .. myRank .. "名")
                             table.insert(generatedMails, {
                                 id = mailId,
-                                title = cfg.name .. "鍛ㄦ濂栧姳",
-                                sender = "鎺掕姒滅粨绠?",
-                                content = "鎭枩姝︾伒澶т汉鍦ㄦ湰鍛?" .. cfg.name .. "涓崳鑾?" .. rankDesc .. "锛佺壒姝ゅ彂鏀惧鍔憋紝璇锋煡鏀躲€傛帓鍚嶈秺楂樺鍔辫秺涓板帤锛屼笅鍛ㄧ户缁姞娌癸紒",
+                                title = cfg.name .. "周榜奖励",
+                                sender = "排行榜结算",
+                                content = "恭喜武灵大人在本周" .. cfg.name .. "中荣获" .. rankDesc .. "！特此发放奖励，请查收。排名越高奖励越丰厚，下周继续加油！",
                                 rewards = tier.rewards,
                             })
-                            break  -- 鍙彇鏈€楂樻。濂栧姳
+                            break  -- 只取最高档奖励
                         end
                     end
                 end
 
                 pendingChecks = pendingChecks - 1
                 if pendingChecks <= 0 then
-                    -- 鎵€鏈夋帓琛屾妫€鏌ュ畬鎴?"
+                    -- 所有排行榜检查完成
                     if #generatedMails > 0 then
                         for _, mail in ipairs(generatedMails) do
                             table.insert(welfareState.mailDefs, mail)
                         end
-                        print("[鍛ㄥ鍔盷 鐢熸垚 " .. #generatedMails .. " 灏佸鍔遍偖浠?")
-                        if rawget(_G, "ShowToast") then ShowToast("鏈懆鎺掕姒滃鍔卞凡鍙戞斁锛岃鏌ョ湅閭欢锛?") end
+                        print("[周奖励] 生成 " .. #generatedMails .. " 封奖励邮件")
+                        if rawget(_G, "ShowToast") then ShowToast("本周排行榜奖励已发放，请查看邮件！") end
                     else
-                        print("[鍛ㄥ鍔盷 鏈懆鏈笂姒? 鏃犲鍔?")
+                        print("[周奖励] 本周未上榜, 无奖励")
                     end
                     welfareState.lastWeeklySettled = weekKey
                     SaveGameProgress()
@@ -84,7 +84,7 @@ function CheckWeeklyRankRewards()
 end
 
 
--- 姣忔棩浠诲姟绾㈢偣: 鏈夊彲棰嗗彇浣嗘湭棰嗗彇鐨勪换鍔?"
+-- 每日任务红点: 有可领取但未领取的任务
 function HasDailyTaskRedDot()
     for _, task in ipairs(DAILY_TASKS) do
         if not dailyTaskState.claimed[task.id] then
@@ -96,7 +96,7 @@ function HasDailyTaskRedDot()
 end
 
 
--- 鍛ㄤ换鍔＄孩鐐? 鏈夊彲棰嗗彇浣嗘湭棰嗗彇鐨勫懆浠诲姟
+-- 周任务红点: 有可领取但未领取的周任务
 function HasWeeklyTaskRedDot()
     for _, task in ipairs(WEEKLY_TASKS) do
         if not weeklyTaskState.claimed[task.id] then
@@ -108,7 +108,7 @@ function HasWeeklyTaskRedDot()
 end
 
 
--- 鎴愬氨绾㈢偣: 鏈夊彲棰嗗彇浣嗘湭棰嗗彇鐨勬垚灏?"
+-- 成就红点: 有可领取但未领取的成就
 function HasAchievementRedDot()
     for _, ach in ipairs(ACHIEVEMENTS) do
         if not achievementClaimed[ach.id] then
@@ -120,7 +120,7 @@ function HasAchievementRedDot()
 end
 
 
--- 淇鏃ュ綍鎸夐挳绾㈢偣 (鏍戠姸: 浠讳竴瀛愰〉绛句寒 >> 鐖惰妭鐐逛寒)
+-- 修行日录按钮红点 (树状: 任一子页签亮 >> 父节点亮)
 function HasProgressRedDot()
     return HasDailyTaskRedDot() or HasWeeklyTaskRedDot() or HasAchievementRedDot()
 end
@@ -152,7 +152,7 @@ function ClaimDailyAllBonus()
     end
     dailyTaskState.allClaimedBonus = true
     playerInfo.jade = playerInfo.jade + 500
-    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "鍏ㄥ嫟濂栧姳 +500铏庣", 2.0, { 255, 220, 80 }, 16)
+    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "全勤奖励 +500玉壁", 2.0, { 255, 220, 80 }, 18)
     SaveGameProgress()
     return true
 end
@@ -165,7 +165,7 @@ function CheckWeeklyReset()
         weeklyTaskState.progress = {}
         weeklyTaskState.claimed = {}
         weeklyTaskState.allClaimedBonus = false
-        print("[鍛ㄤ换鍔 宸查噸缃? " .. week)
+        print("[周任务] 已重置: " .. week)
     end
 end
 
@@ -196,14 +196,14 @@ function ClaimWeeklyAllBonus()
     end
     weeklyTaskState.allClaimedBonus = true
     playerInfo.jade = playerInfo.jade + 1300
-    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "鍛ㄥ叏鍕ゅ鍔?+1300铏庣", 2.0, { 255, 200, 60 }, 17)
+    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "周全勤奖励 +1300玉壁", 2.0, { 255, 200, 60 }, 18)
     SaveGameProgress()
     return true
 end
 
 
 -- ============================================================================
--- 鎴愬氨缁熻鑾峰彇
+-- 成就统计获取
 -- ============================================================================
 function GetAchievementStatValue(statName)
     if statName == "totalWins" then

@@ -1,35 +1,42 @@
--- ui/input_begin_press.lua - 涓夊浗姝︾伒褰?(浠?input.lua 鎷嗗垎)
+-- ui/input_begin_press.lua - 三国武灵录 (从 input.lua 拆分)
 ---@diagnostic disable: undefined-global
 function BeginPress(sx, sy, touchId)
     local curFrame = time:GetFrameNumber()
     if curFrame == _lastPressFrame then return end
     _lastPressFrame = curFrame
 
-    -- === LOADING 闃舵鐐瑰嚮鎻愮ず ===
+    -- 按钮按压反馈: 统一记录点击位置(设计坐标)
+    do
+        local _adx, _ady = ScreenToDesign(sx, sy)
+        local _Anim = require("ui.anim")
+        _Anim.OnBtnPress(_adx, _ady, gameState.gameTime or 0)
+    end
+
+    -- === LOADING 阶段点击提示 ===
     if gameState.phase == "LOADING" then
         loadingClickTipTimer = 2.5
         return
     end
 
-    -- === 涓汉璧勬枡鐣岄潰杈撳叆 ===
+    -- === 个人资料界面输入 ===
     if gameState.phase == "PROFILE" then
         local dx, dy = ScreenToDesign(sx, sy)
         local function HitRect(r)
             return r and dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h
         end
-        -- 澶村儚閫夋嫨
+        -- 头像选择
         for i, rect in ipairs(profileAvatarRects) do
             if HitRect(rect) then
                 profileState.selectedAvatar = i
                 return
             end
         end
-        -- 鍚嶅瓧閫夋嫨 (鍚嚜瀹氫箟閫夐」)
+        -- 名字选择 (含自定义选项)
         for i, rect in ipairs(profileNameRects) do
             if HitRect(rect) then
                 profileState.selectedName = i
                 if i == CUSTOM_NAME_IDX then
-                    -- 鐐瑰嚮鑷畾涔? 鍚姩鏂囨湰杈撳叆
+                    -- 点击自定义: 启动文本输入
                     profileState.isInputActive = true
                     input:SetScreenKeyboardVisible(true)
                 else
@@ -39,35 +46,35 @@ function BeginPress(sx, sy, touchId)
                 return
             end
         end
-        -- 纭鎸夐挳
+        -- 确认按钮
         if HitRect(profileConfirmBtnRect) then
-            -- (鏁欑▼璧勬簮妫€鏌ュ凡绉婚櫎锛屾棤闇€绛夊緟涓嬭浇)
+            -- (教程资源检查已移除，无需等待下载)
             playerInfo.avatarIdx = AVATAR_OPTIONS[profileState.selectedAvatar] or 1
             if profileState.selectedName == CUSTOM_NAME_IDX and #profileState.customName > 0 then
                 playerInfo.name = profileState.customName
             else
-                playerInfo.name = PRESET_NAMES[profileState.selectedName] or "鏃犲悕姝︾伒"
+                playerInfo.name = PRESET_NAMES[profileState.selectedName] or "无名武灵"
             end
             playerInfo.profileSet = true
             profileState.isInputActive = false
             input:SetScreenKeyboardVisible(false)
-            -- 绔嬪嵆淇濆瓨锛岀‘淇?profileSet 鐘舵€佹寔涔呭寲
+            -- 立即保存，确保 profileSet 状态持久化
             SaveGameProgress()
-            -- 妯″潡涓嬭浇宸插湪闃诲鍔犺浇瀹屾垚鍚庤嚜鍔ㄥ惎鍔紙InitModuleDownloads锛?"
+            -- 模块下载已在阻塞加载完成后自动启动（InitModuleDownloads）
             if profileState.editMode then
-                -- 缂栬緫妯″紡锛氱洿鎺ヨ繑鍥烇紝涓嶈Е鍙戞柊鎵嬪紩瀵?"
+                -- 编辑模式：直接返回，不触发新手引导
                 profileState.editMode = false
                 PopPhase()
-                print("=== 璧勬枡缂栬緫瀹屾垚: " .. playerInfo.name .. " ===")
+                print("=== 资料编辑完成: " .. playerInfo.name .. " ===")
             else
                 gameState.phase = "MENU"
-                print("=== 璧勬枡璁剧疆瀹屾垚: " .. playerInfo.name .. " ===")
+                print("=== 资料设置完成: " .. playerInfo.name .. " ===")
             end
         end
         return
     end
 
-    -- ======== 缁熶竴瑙勫垯寮圭獥浜や簰 (鍏ㄥ眬鏈€楂樹紭鍏堢骇) ========
+    -- ======== 统一规则弹窗交互 (全局最高优先级) ========
     if phaseRulePopup.show then
         local dx, dy = ScreenToDesign(sx, sy)
         local function HitRectG(r)
@@ -92,7 +99,7 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- ======== 缁熶竴 "?" 鎸夐挳鐐瑰嚮妫€娴?(鍏ㄥ眬) ========
+    -- ======== 统一 "?" 按钮点击检测 (全局) ========
     if phaseRulePopup.helpBtnRect and gameState.phase ~= "BATTLE" then
         local dx, dy = ScreenToDesign(sx, sy)
         local _hbr = phaseRulePopup.helpBtnRect
@@ -108,18 +115,19 @@ function BeginPress(sx, sy, touchId)
         end
     end
 
-    -- 棣栭〉鎸夐挳鐐瑰嚮妫€娴?"
+    -- 首页按钮点击检测
     if gameState.phase == "MENU" then
-        -- 闃茬┛閫忥細鍒氫粠鍏朵粬鐣岄潰杩斿洖鏃跺拷鐣ョ偣鍑?"
+        -- 防穿透：刚从其他界面返回时忽略点击
         if phaseChangeCooldown > 0 then return end
+
         local dx, dy = ScreenToDesign(sx, sy)
-        -- 杈呭姪: 妫€娴嬬偣鏄惁鍦ㄧ煩褰㈠唴
+        -- 辅助: 检测点是否在矩形内
         local function HitRect(r)
             return r and dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h
         end
-        -- ======== 鎸夐挳浣嶇疆璋冩暣妯″紡浜や簰 (鏈€楂樹紭鍏堢骇锛屽繀椤诲湪鎵€鏈夊叾浠栨娴嬩箣鍓? ========
+    -- ======== 统一规则弹窗交互 (全局最高优先级) ========
         if settingsPage.btnAdjustMode then
-            -- 缁勫垏鎹㈡爣绛剧偣鍑?"
+            -- 组切换标签点击
             if settingsPage.adjGroupBtnRects then
                 for _, gr in ipairs(settingsPage.adjGroupBtnRects) do
                     if HitRect(gr) then
@@ -129,7 +137,7 @@ function BeginPress(sx, sy, touchId)
                     end
                 end
             end
-            -- 淇濆瓨鎸夐挳 (淇濆瓨鎵€鏈夌粍)
+        -- 名字选择 (含自定义选项)
             if HitRect(settingsPage.adjSaveBtnRect) then
                 gameSettings.btnOffsetX = settingsPage.adjOffsetX
                 gameSettings.btnOffsetY = settingsPage.adjOffsetY
@@ -145,7 +153,7 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 閲嶇疆鎸夐挳 (閲嶇疆褰撳墠閫変腑缁?"
+        -- 名字选择 (含自定义选项)
             if HitRect(settingsPage.adjResetBtnRect) then
                 local ag = settingsPage.adjActiveGroup or "skill"
                 if ag == "skill" then
@@ -165,13 +173,13 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 杩斿洖鎸夐挳
+            -- 返回按钮
             if HitRect(settingsPage.adjBackBtnRect) then
                 settingsPage.btnAdjustMode = false
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 缂╂斁婊戞潯鎷栨嫿寮€濮?(浠呮妧鑳界粍)
+            -- 缩放滑条拖拽开始 (仅技能组)
             if settingsPage.adjScaleSliderRect and HitRect(settingsPage.adjScaleSliderRect) then
                 settingsPage.adjDraggingScale = true
                 local r = settingsPage.adjScaleSliderRect
@@ -179,27 +187,27 @@ function BeginPress(sx, sy, touchId)
                 settingsPage.adjScale = 0.5 + ratio * 1.5  -- 0.5~2.0
                 return
             end
-            -- 鎷栨嫿褰撳墠閫変腑缁勶紙鐐瑰嚮鎴樻枟鍖哄煙鍐呬换鎰忎綅缃紑濮嬫嫋鎷斤級
+            -- 拖拽当前选中组（点击战斗区域内任意位置开始拖拽）
             settingsPage.adjDragging = true
             settingsPage.adjDragStartX = dx
             settingsPage.adjDragStartY = dy
             return
         end
 
-        -- 鐜╁闈㈡澘鐐瑰嚮 >> 杩涘叆鐜╁璇︽儏
+        -- 玩家面板点击 >> 进入玩家详情
         if HitRect(playerDetailBtnRect) then
             playerDetailScroll.y = 0; playerDetailScroll.vel = 0
             PushPhase("PLAYER_DETAIL")
-            print("=== 杩涘叆鐜╁璇︽儏 ===")
+            print("=== 进入玩家详情 ===")
             return
         end
-        -- 骞垮憡鑾峰彇铏庣
+        -- 广告获取玉壁
         if HitRect(adRects.jade) then
             WatchAdForJade()
             return
         end
 
-        -- ======== CDK 寮圭獥浜や簰 (鏈€楂樹紭鍏堢骇) ========
+        -- ======== CDK 弹窗交互 (最高优先级) ========
         if cdkState.inputOpen then
             if HitRect(cdkState.redeemBtnRect) then
                 TryRedeemCDK()
@@ -218,29 +226,29 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 绮樿创鎸夐挳
+            -- 粘贴按钮
             if cdkState.pasteBtnRect and HitRect(cdkState.pasteBtnRect) then
                 local clipText = SafeGetClipboard()
-                print("=== CDK绮樿创: clipText=[" .. tostring(clipText) .. "] ===")
+                print("=== CDK粘贴: clipText=[" .. tostring(clipText) .. "] ===")
                 if clipText and #clipText > 0 then
                     local cleaned = clipText:upper():gsub("[^A-Z0-9%-]", "")
                     if #cleaned > 20 then cleaned = cleaned:sub(1, 20) end
                     cdkState.inputText = cleaned
-                    print("=== 绮樿创鍏戞崲鐮? " .. cleaned .. " ===")
+                    print("=== 粘贴兑换码: " .. cleaned .. " ===")
                 else
                     input:SetScreenKeyboardVisible(true)
-                    cdkState.resultText = "璇峰湪閿洏涓暱鎸夎緭鍏ユ绮樿创"
+                    cdkState.resultText = "请在键盘中长按输入框粘贴"
                     cdkState.resultTimer = 3.0
                     cdkState.resultOk = false
                 end
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 鐐瑰嚮寮圭獥鍖哄煙鍐呮秷璐逛簨浠?鍘熺敓閿洏澶勭悊杈撳叆)
+            -- 点击弹窗区域内消费事件(原生键盘处理输入)
             return
         end
 
-        -- ======== 鎴樺姏璇存槑寮圭獥浜や簰 ========
+        -- ======== 战力说明弹窗交互 ========
         if powerExplainPopup.show then
             local cr = powerExplainPopup.closeBtnRect
             if cr and HitRect(cr) then
@@ -248,7 +256,7 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 鐐瑰嚮寮圭獥澶栧叧闂?"
+            -- 点击弹窗外关闭
             local pr = powerExplainPopup.panelRect
             if not (pr and HitRect(pr)) then
                 powerExplainPopup.show = false
@@ -256,16 +264,9 @@ function BeginPress(sx, sy, touchId)
             return
         end
 
-        -- ======== 璁剧疆鐣岄潰浜や簰 (浼樺厛鎷︽埅) ========
+        -- ======== 设置界面交互 (优先拦截) ========
         if settingsPage.isOpen then
-            -- 淇濆瓨鎸夐挳
-            if HitRect(settingsPage.saveBtnRect) then
-                SaveSettings()
-                settingsPage.isOpen = false
-                PlaySFX(AUDIO.sfx_click)
-                return
-            end
-            -- 鍏抽棴鎸夐挳
+            -- 关闭按钮
             if HitRect(settingsPage.closeBtnRect) then
                 settingsPage.isOpen = false
                 settingsPage.draggingMusic = false
@@ -273,104 +274,31 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 鑷姩琛屽啗寮€鍏?"
-            if HitRect(settingsPage.autoMarchToggleRect) then
-                gameSettings.defaultAutoMarch = not gameSettings.defaultAutoMarch
-                PlaySFX(AUDIO.sfx_click)
-                return
-            end
-            -- 瀛椾綋鍒囨崲: 4绉嶅瓧浣?"
-            for _, fkey in ipairs({"misans", "kuaile", "wenkai", "xingshu"}) do
-                local rect = settingsPage["font_" .. fkey .. "_rect"]
-                if rect and HitRect(rect) then
-                    gameSettings.fontStyle = fkey
-                    SaveGameProgress()
-                    PlaySFX(AUDIO.sfx_click)
-                    return
-                end
-            end
-            -- 榛樿鎴樺満鍒囨崲
-            if settingsPage.battlefieldBtnRect and HitRect(settingsPage.battlefieldBtnRect) then
-                local cur = gameSettings.defaultBattlefield or 1
-                gameSettings.defaultBattlefield = (cur % 8) + 1
-                PlaySFX(AUDIO.sfx_click)
-                return
-            end
-            -- 璋冩暣浣嶇疆鎸夐挳 >> 杩涘叆鎴樻枟鍦烘櫙璋冩暣妯″紡
-            if HitRect(settingsPage.adjustPosBtnRect) then
-                settingsPage.isOpen = false
-                settingsPage.btnAdjustMode = true
-                settingsPage.adjActiveGroup = "skill"
-                settingsPage.adjOffsetX = gameSettings.btnOffsetX
-                settingsPage.adjOffsetY = gameSettings.btnOffsetY
-                settingsPage.adjScale = gameSettings.btnScale or 1.0
-                settingsPage.adjRightBtnOffsetX = gameSettings.rightBtnOffsetX or 0
-                settingsPage.adjRightBtnOffsetY = gameSettings.rightBtnOffsetY or 0
-                settingsPage.adjInfoPanelOffsetX = gameSettings.infoPanelOffsetX or 0
-                settingsPage.adjInfoPanelOffsetY = gameSettings.infoPanelOffsetY or 0
-                settingsPage.adjHudOffsetX = gameSettings.hudOffsetX or 0
-                settingsPage.adjHudOffsetY = gameSettings.hudOffsetY or 0
-                PlaySFX(AUDIO.sfx_click)
-                return
-            end
 
-            -- UID 澶嶅埗鎸夐挳
+
+
+            -- UID 复制按钮
             if settingsPage.uidCopyBtnRect and HitRect(settingsPage.uidCopyBtnRect) then
                 local uidStr = settingsPage.uidValue or ""
                 if uidStr ~= "" and uidStr ~= "---" then
                     local sysOk = SafeSetClipboard(uidStr)
                     settingsPage.uidCopyTimer = 2.5
                     if sysOk then
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "UID宸插鍒? " .. uidStr, 1.5, { 100, 220, 160 }, 16)
+                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "UID已复制: " .. uidStr, 1.5, { 100, 220, 160 }, 18)
                     else
-                        -- 绯荤粺鍓创鏉夸笉鍙敤锛屽凡瀛樺叆娓告垙鍐呭壀璐存澘锛屽悓鏃舵彁绀烘埅鍥?"
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.30, "UID宸插鍒?娓告垙鍐?", 2.5, { 100, 220, 160 }, 16)
+                        -- 系统剪贴板不可用，已存入游戏内剪贴板，同时提示截图
+                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.30, "UID已复制(游戏内)", 2.5, { 100, 220, 160 }, 18)
                         AddFloatText(DESIGN_W / 2, DESIGN_H * 0.36, uidStr, 3.0, { 255, 220, 80 }, 22)
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.42, "鍙戦偖浠跺彲鐩存帴绮樿创 / 鎴浘淇濆瓨", 2.5, { 180, 180, 180 }, 14)
+                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.42, "发邮件可直接粘贴 / 截图保存", 2.5, { 180, 180, 180 }, 18)
                     end
                 end
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
 
-            -- 鍏嶅箍鍛婂崱 - 鐪嬪箍鍛婃寜閽?"
-            if settingsPage.adCardBtnRect and HitRect(settingsPage.adCardBtnRect) then
-                PlaySFX(AUDIO.sfx_click)
-                if not IsMobilePlatform() then
-                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "浠呯Щ鍔ㄧ鍙鐪嬪箍鍛?", 1.5, { 200, 150, 100 }, 14)
-                    return
-                end
-                -- 鐪嬪箍鍛婂苟璁″叆鍏嶅箍鍛婂崱
-                local function onAdCardSuccess()
-                    local today = os.date("%Y-%m-%d")
-                    if gameSettings.dailyAdDate ~= today then
-                        gameSettings.dailyAdCount = 0
-                        gameSettings.dailyAdDate = today
-                    end
-                    gameSettings.dailyAdCount = gameSettings.dailyAdCount + 1
-                    print("[鍏嶅箍鍛婂崱] 鐪嬪箍鍛婅鍏? " .. gameSettings.dailyAdCount .. "/3")
-                    if gameSettings.dailyAdCount >= 3 then
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.25,
-                            "浠婃棩鍏嶅箍鍛婂崱宸叉縺娲?", 2.0, { 100, 255, 200 }, 18)
-                    else
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
-                            "骞垮憡瑙傜湅鎴愬姛 (" .. gameSettings.dailyAdCount .. "/3)", 1.5, { 200, 200, 100 }, 14)
-                    end
-                    SaveSettings()
-                end
-                if sdk then
-                    ShowAdSafe(SafeAdCallback(function(result)
-                        if result.success then
-                            onAdCardSuccess()
-                        end
-                    end))
-                else
-                    onAdCardSuccess()
-                end
-                return
-            end
 
-            -- CDK 鍏戞崲鎸夐挳
+
+            -- CDK 兑换按钮
             if HitRect(settingsPage.cdkBtnRect) then
                 cdkState.inputOpen = true
                 cdkState.inputText = ""
@@ -379,7 +307,7 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 闊充箰婊戞潯鎷栨嫿寮€濮?"
+            -- 音乐滑条拖拽开始
             if HitRect(settingsPage.musicSliderRect) then
                 settingsPage.draggingMusic = true
                 local r = settingsPage.musicSliderRect
@@ -388,7 +316,7 @@ function BeginPress(sx, sy, touchId)
                 if audioState.bgmSource then audioState.bgmSource.gain = ratio end
                 return
             end
-            -- 闊虫晥婊戞潯鎷栨嫿寮€濮?"
+            -- 音效滑条拖拽开始
             if HitRect(settingsPage.sfxSliderRect) then
                 settingsPage.draggingSfx = true
                 local r = settingsPage.sfxSliderRect
@@ -396,7 +324,7 @@ function BeginPress(sx, sy, touchId)
                 gameSettings.sfxVolume = ratio
                 return
             end
-            -- 鐐瑰嚮閬僵鍖哄煙 >> 娑堣垂浜嬩欢涓嶇┛閫?"
+            -- 点击遮罩区域 >> 消费事件不穿透
             return
         end
 
@@ -406,58 +334,36 @@ function BeginPress(sx, sy, touchId)
             return
         end
 
-        -- 鍙充晶鍗疯酱闈㈡澘鎸夐挳
+        -- 右侧卷轴面板按钮
         if menuBtnRects.rpBattle and HitRect(menuBtnRects.rpBattle) then
-            -- 涔变笘寰侀€?(澶嶇敤 battle 閫昏緫)
+            -- 天下征途
             if not moduleState.battle.ready then
                 local pct = math.floor(moduleState.battle.progress * 100)
-                ShowToast("鎴樻枟璧勬簮涓嬭浇涓?" .. pct .. "%)锛岃绋嶅€?")
+                ShowToast("战斗资源下载中(" .. pct .. "%)，请稍候")
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
             PlaySFX(AUDIO.sfx_click)
             WorldMap.Init()
             PushPhase("WORLD_MAP")
-            print("=== 鍙充晶闈㈡澘: 杩涘叆涔变笘寰侀€?===")
-            return
-        end
-        if menuBtnRects.rpCodex and HitRect(menuBtnRects.rpCodex) then
-            -- 瑙掕壊鍏绘垚 (姝︾伒褰?"
-            if not moduleState.heroes.ready then
-                local pct = math.floor(moduleState.heroes.progress * 100)
-                ShowToast("姝︾伒璧勬簮涓嬭浇涓?" .. pct .. "%)锛岃绋嶅€?")
-                PlaySFX(AUDIO.sfx_click)
-                return
-            end
-            PushPhase("CODEX")
-            codexScroll.y = 0
-            codexScroll.vel = 0
-            phaseChangeCooldown = 0.3
-            PlaySFX(AUDIO.sfx_click)
-            print("=== 鍙充晶闈㈡澘: 杩涘叆瑙掕壊鍏绘垚(姝︾伒褰? ===")
+            print("=== 右侧面板: 进入天下征途 ===")
             return
         end
         if menuBtnRects.rpSettings and HitRect(menuBtnRects.rpSettings) then
-            -- 璁剧疆
+            -- 打开设置页
+            PlaySFX(AUDIO.sfx_click)
             settingsPage.isOpen = true
-            PlaySFX(AUDIO.sfx_click)
             return
         end
-        if menuBtnRects.rpExit and HitRect(menuBtnRects.rpExit) then
-            -- 閫€鍑烘父鎴?"
-            PlaySFX(AUDIO.sfx_click)
-            engine:Exit()
-            return
-        end
-        -- 鎴樺姏璇存槑"?"鎸夐挳 (鍦ㄧ帺瀹堕潰鏉跨偣鍑讳箣鍓嶆嫤鎴?"
+        -- 战力说明"?"按钮 (在玩家面板点击之前拦截)
         if menuBtnRects.powerHelp and HitRect(menuBtnRects.powerHelp) then
             powerExplainPopup.show = true
             PlaySFX(AUDIO.sfx_click)
             return
         end
-        -- 涓嬭浇闈㈡澘浜や簰
+        -- 下载面板交互
         if downloadUI.panelOpen and downloadUI.panelRect and HitRect(downloadUI.panelRect) then
-            -- 鐐瑰嚮闈㈡澘鍐呴儴 >> 娑堣垂浜嬩欢涓嶇┛閫?"
+            -- 点击面板内部 >> 消费事件不穿透
             return
         end
         if downloadUI.btnRect and HitRect(downloadUI.btnRect) then
@@ -465,34 +371,34 @@ function BeginPress(sx, sy, touchId)
             PlaySFX(AUDIO.sfx_click)
             return
         end
-        -- 鐐瑰嚮鍏朵粬鍖哄煙鏃舵敹璧烽潰鏉?"
+        -- 点击其他区域时收起面板
         if downloadUI.panelOpen then
             downloadUI.panelOpen = false
         end
 
-        -- ======== 宸︿晶鏍忔嫋鎷?鐐瑰嚮澶勭悊 ========
+        -- ======== 左侧栏拖拽/点击处理 ========
         if leftSidebarScroll.areaRect then
             local ar = leftSidebarScroll.areaRect
             if dx >= ar.x and dx <= ar.x + ar.w and dy >= ar.y and dy <= ar.y + ar.h then
                 local maxScroll = math.max(0, leftSidebarScroll.contentH - leftSidebarScroll.viewH)
                 if maxScroll > 0 then
-                    -- 鏈夋粴鍔ㄩ渶姹?鈫?璁板綍鎷栨嫿璧风偣锛孍ndPress 鍒ゆ柇鏄偣鍑昏繕鏄嫋鎷?"
+                    -- 有滚动需求 → 记录拖拽起点，EndPress 判断是点击还是拖拽
                     leftSidebarScroll.isDragging = true
                     leftSidebarScroll.dragStartY = dy
                     leftSidebarScroll.dragLastY = dy
                     leftSidebarScroll.vel = 0
-                    return  -- 闃绘绌块€忓埌涓嬫柟鎸夐挳鐐瑰嚮
+            return  -- 弹窗打开时拦截所有其他点击
                 else
-                    -- 鏃犳粴鍔?鈫?鐩存帴澶勭悊鎸夐挳鐐瑰嚮
+                    -- 无滚动 → 直接处理按钮点击
                     HandleSidebarButtonClick(dx, dy)
                     return
                 end
             end
         end
 
-        -- ======== 涓栫晫鑱婂ぉ鐐瑰嚮澶勭悊 ========
+        -- ======== 世界聊天点击处理 ========
         if worldChatUI.expanded then
-            -- 灞曞紑妯″紡: 浼樺厛鎷︽埅鎵€鏈夌偣鍑?"
+            -- 展开模式: 优先拦截所有点击
             if menuBtnRects.worldChatClose and HitRect(menuBtnRects.worldChatClose) then
                 worldChatUI.expanded = false
                 worldChatUI.inputActive = false
@@ -500,17 +406,17 @@ function BeginPress(sx, sy, touchId)
                 input:SetScreenKeyboardVisible(false)
                 PlaySFX(AUDIO.sfx_click); return
             end
-            -- 娣诲姞濂藉弸寮瑰嚭鎸夐挳
+            -- 添加好友弹出按钮
             if menuBtnRects.worldChatAddFriend and HitRect(menuBtnRects.worldChatAddFriend) then
                 local targetUid = menuBtnRects.worldChatAddFriend.uid
                 local targetName = menuBtnRects.worldChatAddFriend.name or "?"
                 local myUid = CloudAPI.GetUserId()
                 if targetUid == myUid then
-                    ShowToast("涓嶈兘娣诲姞鑷繁涓哄ソ鍙?")
+                    ShowToast("不能添加自己为好友")
                 else
                     CloudManager.SendFriendRequest(targetUid, "")
                     playerInfo.totalFriendReqs = (playerInfo.totalFriendReqs or 0) + 1
-                    ShowToast("宸插悜銆?" .. targetName .. "銆嶅彂閫佸ソ鍙嬭姹?")
+                    ShowToast("已向「" .. targetName .. "」发送好友请求")
                 end
                 worldChatUI.namePopup = nil
                 PlaySFX(AUDIO.sfx_click); return
@@ -518,7 +424,7 @@ function BeginPress(sx, sy, touchId)
             if menuBtnRects.worldChatSend and HitRect(menuBtnRects.worldChatSend) then
                 if worldChatUI.chatInput and #worldChatUI.chatInput > 0 then
                     local filteredText = FilterBannedWords(worldChatUI.chatInput)
-                    local senderName = CloudManager._myTapNickname or factionUI.myNickname or playerInfo.name or "鏃犲悕"
+                    local senderName = CloudManager._myTapNickname or factionUI.myNickname or playerInfo.name or "无名"
                     CloudManager.SendWorldChat(filteredText, senderName)
                     worldChatUI.chatInput = ""
                     worldChatUI.inputActive = false
@@ -533,16 +439,16 @@ function BeginPress(sx, sy, touchId)
                 input:SetScreenKeyboardVisible(true)
                 PlaySFX(AUDIO.sfx_click); return
             end
-            -- 鐐瑰嚮寮圭獥鍖哄煙鍐呬笉鍏抽棴
+            -- 点击弹窗区域内不关闭
             if menuBtnRects.worldChatPopupArea and HitRect(menuBtnRects.worldChatPopupArea) then
                 PlaySFX(AUDIO.sfx_click); return
             end
-            -- 鐐瑰嚮澶村儚寮瑰嚭鐜╁淇℃伅
+            -- 点击头像弹出玩家信息
             if worldChatUI._avatarRects then
                 for _, nr in ipairs(worldChatUI._avatarRects) do
                     if HitRect(nr) then
                         if worldChatUI.namePopup and worldChatUI.namePopup.uid == nr.uid then
-                            worldChatUI.namePopup = nil  -- 鍐嶆鐐瑰嚮鍚屼竴澶村儚鍏抽棴
+                            worldChatUI.namePopup = nil  -- 再次点击同一头像关闭
                         else
                             worldChatUI.namePopup = { uid = nr.uid, name = nr.name, x = nr.x, y = nr.y, av = nr.av }
                         end
@@ -550,7 +456,7 @@ function BeginPress(sx, sy, touchId)
                     end
                 end
             end
-            -- 鐐瑰嚮绐楀彛澶栭儴鍏抽棴
+            -- 点击窗口外部关闭
             worldChatUI.expanded = false
             worldChatUI.inputActive = false
             worldChatUI.chatInput = ""
@@ -560,44 +466,25 @@ function BeginPress(sx, sy, touchId)
         end
         if menuBtnRects.worldChatMini and HitRect(menuBtnRects.worldChatMini) then
             worldChatUI.expanded = true
-            worldChatUI.lastMsgCount = 0  -- 瑙﹀彂鑷姩婊氬埌搴?"
-            CloudManager.PollWorldChat()  -- 绔嬪嵆鎷夊彇
+            worldChatUI.lastMsgCount = 0  -- 触发自动滚到底
+            CloudManager.PollWorldChat()  -- 立即拉取
             PlaySFX(AUDIO.sfx_click); return
         end
 
-        if HitRect(menuBtnRects.battle) then
-            -- 涔变笘寰侀€?>> 澶у湴鍥撅紙闇€瑕佹垬鏂楁ā鍧楋級
-            if not moduleState.battle.ready then
-                local pct = math.floor(moduleState.battle.progress * 100)
-                ShowToast("鎴樻枟璧勬簮涓嬭浇涓?" .. pct .. "%)锛岃绋嶅€?")
-                PlaySFX(AUDIO.sfx_click)
-                return
-            end
+        if menuBtnRects.ranked and HitRect(menuBtnRects.ranked) then
+            -- 排位入口（暂未开放）
             PlaySFX(AUDIO.sfx_click)
-            WorldMap.Init()
-            PushPhase("WORLD_MAP")
-            print("=== 杩涘叆澶у湴鍥?===")
+            ShowToast("排位赛即将开放，敬请期待")
         elseif HitRect(menuBtnRects.gachaSeal) then
-            -- 鍏电鍙敜锛堢洿鎺ヨ繘鍏ュ叺绗︾鐞嗭級
+            -- 兵符召唤（直接进入兵符管理）
             PushPhase("SEAL_MGR")
             PlaySFX(AUDIO.sfx_click)
-            print("=== 杩涘叆鍏电鍙敜 ===")
-        elseif HitRect(menuBtnRects.gachaSkill) then
-            -- 姝︽妧鍙敜锛堣繘鍏ユ鎶€鍥惧綍锛?"
-            if not moduleState.skills.ready then
-                local pct = math.floor(moduleState.skills.progress * 100)
-                ShowToast("姝︽妧璧勬簮涓嬭浇涓?" .. pct .. "%)锛岃绋嶅€?")
-                PlaySFX(AUDIO.sfx_click)
-                return
-            end
-            PushPhase("SKILL_CODEX")
-            PlaySFX(AUDIO.sfx_click)
-            print("=== 杩涘叆姝︽妧鍙敜 ===")
+            print("=== 进入玩家详情 ===")
         elseif HitRect(menuBtnRects.codex) then
-            -- 姝︾伒褰曪紙闇€瑕佹鐏垫ā鍧楋級
+            -- 武灵录（需要武灵模块）
             if not moduleState.heroes.ready then
                 local pct = math.floor(moduleState.heroes.progress * 100)
-                ShowToast("姝︾伒璧勬簮涓嬭浇涓?" .. pct .. "%)锛岃绋嶅€?")
+                ShowToast("武灵资源下载中(" .. pct .. "%)，请稍候")
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
@@ -605,47 +492,47 @@ function BeginPress(sx, sy, touchId)
             codexScroll.y = 0
             codexScroll.vel = 0
             phaseChangeCooldown = 0.3
-            print("=== 杩涘叆姝︾伒褰?===")
+            print("=== 进入武灵录 ===")
         elseif HitRect(menuBtnRects.equip) then
-            -- 鍏电敳锛堥渶瑕佸叺鐢叉ā鍧楋級
+            -- 兵甲（需要兵甲模块）
             if not moduleState.equipment.ready then
                 local pct = math.floor(moduleState.equipment.progress * 100)
-                ShowToast("鍏电敳璧勬簮涓嬭浇涓?" .. pct .. "%)锛岃绋嶅€?")
+                ShowToast("兵甲资源下载中(" .. pct .. "%)，请稍候")
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
             PushPhase("EQUIP")
-            -- 鑷姩閫変腑鏈夌孩鐐圭殑妲戒綅锛堝府鍔╃帺瀹舵壘鍒版柊瑁呭锛?"
+            -- 自动选中有红点的槽位（帮助玩家找到新装备）
             local autoSlot = 1
             for si = 1, 7 do
                 if HasEquipSlotRedDot(si) then autoSlot = si; break end
             end
             equipScreenState.selectedSlot = autoSlot
             equipScreenState.scrollY = 0
-            -- 浼犻€?NanoVG 涓婁笅鏂囧拰绮剧伒鍥惧彞鏌勭粰瑕嗙洊灞?"
+            -- 传递 NanoVG 上下文和精灵图句柄给覆盖层
             EquipUI._vg = vg
             EquipUI._equipSheet = IMG.equipmentSheet
             EquipUI._sheetCols = EQUIP_SHEET_COLS
             EquipUI._sheetRows = EQUIP_SHEET_ROWS
-            -- 鏄剧ずNanoVG缃戞牸浠撳簱
+            -- 显示NanoVG网格仓库
             EquipUI.Show()
-            -- 涓嶅啀绔嬪嵆娑堥櫎鎵€鏈夌孩鐐癸紝鏀逛负鐐瑰嚮妲戒綅鏃堕€愪釜娑堥櫎
-            print("=== 杩涘叆鍏电敳 ===")
+            -- 不再立即消除所有红点，改为点击槽位时逐个消除
+            print("=== 进入玩家详情 ===")
         elseif HitRect(menuBtnRects.equipCodex) then
-            -- 鍏电敳鍥惧綍锛堥渶瑕佸叺鐢叉ā鍧楋級
+            -- 兵甲图录（需要兵甲模块）
             if not moduleState.equipment.ready then
                 local pct = math.floor(moduleState.equipment.progress * 100)
-                ShowToast("鍏电敳璧勬簮涓嬭浇涓?" .. pct .. "%)锛岃绋嶅€?")
+                ShowToast("兵甲资源下载中(" .. pct .. "%)，请稍候")
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
             PushPhase("EQUIP_CODEX")
-            print("=== 杩涘叆鍏电敳鍥惧綍 ===")
+            print("=== 进入玩家详情 ===")
         elseif HitRect(menuBtnRects.skillCodex) then
-            -- 姝︽妧锛堥渶瑕佹鎶€妯″潡锛?"
+            -- 武技（需要武技模块）
             if not moduleState.skills.ready then
                 local pct = math.floor(moduleState.skills.progress * 100)
-                ShowToast("姝︽妧璧勬簮涓嬭浇涓?" .. pct .. "%)锛岃绋嶅€?")
+                ShowToast("武技资源下载中(" .. pct .. "%)，请稍候")
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
@@ -654,24 +541,24 @@ function BeginPress(sx, sy, touchId)
             skillCodexState.scrollVel = 0
             phaseChangeCooldown = 0.3
             DismissSkillRedDots()
-            print("=== 杩涘叆姝︽妧 ===")
+            print("=== 进入玩家详情 ===")
         elseif HitRect(menuBtnRects.welfare) then
-            -- 澶╁懡璧愮
+            -- 天命赐福
             PushPhase("WELFARE")
             phaseChangeCooldown = 0.3
-            welfareState.contribLoaded = false  -- 姣忔杩涘叆鍒锋柊璐＄尞姒?"
-            welfareState.contribLoading = false -- 閲嶇疆鍔犺浇閿侊紝闃叉鍗′綇
-            welfareState.powerLoaded = false    -- 姣忔杩涘叆鍒锋柊鎴樺姏姒?"
-            welfareState.powerLoading = false   -- 閲嶇疆鍔犺浇閿?"
+            welfareState.contribLoaded = false  -- 每次进入刷新贡献榜
+            welfareState.contribLoading = false -- 重置加载锁，防止卡住
+            welfareState.powerLoaded = false    -- 每次进入刷新战力榜
+            welfareState.powerLoading = false   -- 重置加载锁
             welfareState.contribScroll = { offset = 0, vel = 0, dragStartY = nil, dragLastY = nil, isDragging = false }
             welfareState.powerScroll = { offset = 0, vel = 0, dragStartY = nil, dragLastY = nil, isDragging = false }
             welfareState.scroll = { offset = 0, vel = 0, dragStartY = nil, dragLastY = nil, isDragging = false }
             LoadContribRank()
             ReportPowerScore()
             LoadPowerRank()
-            print("=== 杩涘叆澶╁懡璧愮 ===")
+            print("=== 进入玩家详情 ===")
         elseif menuBtnRects.trade and HitRect(menuBtnRects.trade) then
-            -- 浜ゆ槗琛?"
+            -- 交易行
             PushPhase("TRADE")
             phaseChangeCooldown = 0.3
             tradeState.tab = "market"
@@ -680,12 +567,12 @@ function BeginPress(sx, sy, touchId)
             tradeState.confirmPopup = nil
             tradeState.btnRects = {}
             TradeManager.Init()
-            TradeManager.ResetCheckSalesCD()  -- 杩涘叆浜ゆ槗琛屾椂绔嬪嵆妫€鏌ユ敹娆?"
+            TradeManager.ResetCheckSalesCD()  -- 进入交易行时立即检查收款
             TradeManager.RefreshMarket()
             PlaySFX(AUDIO.sfx_click)
-            print("=== 杩涘叆浜ゆ槗琛?===")
+            print("=== 进入交易行 ===")
         elseif menuBtnRects.mailBox and HitRect(menuBtnRects.mailBox) then
-            -- 閭欢绯荤粺
+            -- 邮件系统
             PushPhase("MAIL_BOX")
             phaseChangeCooldown = 0.3
             welfareState.mail.scroll = { offset = 0, vel = 0, dragStartY = nil, dragLastY = nil, isDragging = false }
@@ -695,24 +582,24 @@ function BeginPress(sx, sy, touchId)
             welfareState.mail.composing = false
             welfareState.mail.composeData = nil
             welfareState.mail.adminPanel = false
-            -- 棣栨杩涘叆鏃惰疆璇簯閭欢
+            -- 首次进入时轮询云邮件
             CloudManager.PollInbox()
             PlaySFX(AUDIO.sfx_click)
-            print("=== 杩涘叆閭欢 ===")
+            print("=== 进入玩家详情 ===")
         elseif menuBtnRects.faction and HitRect(menuBtnRects.faction) then
-            -- 闃佃惀绯荤粺
+            -- 阵营系统
             PushPhase("FACTION")
             phaseChangeCooldown = 0.3
             PlaySFX(AUDIO.sfx_click)
-            print("=== 杩涘叆闃佃惀 ===")
+            print("=== 进入玩家详情 ===")
         elseif menuBtnRects.friends and HitRect(menuBtnRects.friends) then
-            -- 濂藉弸绯荤粺
+            -- 好友系统
             PushPhase("FRIENDS")
             phaseChangeCooldown = 0.3
             PlaySFX(AUDIO.sfx_click)
-            print("=== 杩涘叆濂藉弸 ===")
+            print("=== 进入玩家详情 ===")
         elseif menuBtnRects.powerRank and HitRect(menuBtnRects.powerRank) then
-            -- 鎴樺姏鎺掕姒滅嫭绔嬬晫闈?"
+            -- 战力排行榜独立界面
             PushPhase("POWER_RANK")
             phaseChangeCooldown = 0.3
             welfareState.powerLoaded = false
@@ -722,18 +609,14 @@ function BeginPress(sx, sy, touchId)
             welfareState.realmLoading = false
             welfareState.realmScroll = { offset = 0, vel = 0, dragStartY = nil, dragLastY = nil, isDragging = false }
             welfareState.rankTab = "power"
-            welfareState.dummyLoaded = false
-            welfareState.dummyLoading = false
-            welfareState.dummyScroll = { offset = 0, vel = 0, dragStartY = nil, dragLastY = nil, isDragging = false }
             ReportPowerScore()
             ReportRealmScore()
             LoadPowerRank()
             LoadRealmRank()
-            LoadDummyRank()
             PlaySFX(AUDIO.sfx_click)
-            print("=== 杩涘叆鎴樺姏鎺掕姒?===")
+            print("=== 进入战力排行榜 ===")
         elseif menuBtnRects.progress and HitRect(menuBtnRects.progress) then
-            -- 姣忔棩浠诲姟 / 鍛ㄤ换鍔?/ 鎴愬氨
+            -- 每日任务 / 周任务 / 成就
             CheckDailyReset()
             CheckWeeklyReset()
             progressUIState.tab = 1
@@ -741,9 +624,9 @@ function BeginPress(sx, sy, touchId)
             PushPhase("PROGRESS")
             phaseChangeCooldown = 0.3
             PlaySFX(AUDIO.sfx_click)
-            print("=== 杩涘叆姣忔棩浠诲姟 ===")
+            print("=== 进入玩家详情 ===")
         elseif menuBtnRects.battlepass and HitRect(menuBtnRects.battlepass) then
-            -- 鎴樹护閫氳璇?"
+            -- 战令通行证
             CheckBattlePassSeason()
             CheckBattlePassDailyReset()
             CheckBattlePassWeeklyReset()
@@ -753,8 +636,8 @@ function BeginPress(sx, sy, touchId)
             PushPhase("BATTLE_PASS")
             phaseChangeCooldown = 0.3
             PlaySFX(AUDIO.sfx_click)
-            print("=== 杩涘叆鎴樹护閫氳璇?===")
-        --[=[ 宸茬Щ闄? 璁ㄤ紣/鍓湰/鎺㈢储 鍏ュ彛
+            print("=== 进入战令通行证 ===")
+        --[=[ 已移除: 讨伐/副本/探索 入口
         elseif abyssState.btnRect and HitRect(abyssState.btnRect) then
             PushPhase("ABYSS_SELECT")
         elseif dailyDungeonState.btnRect and HitRect(dailyDungeonState.btnRect) then
@@ -762,33 +645,7 @@ function BeginPress(sx, sy, touchId)
         elseif resourceDungeonState.btnRect and HitRect(resourceDungeonState.btnRect) then
             PushPhase("RESOURCE_DUNGEON")
         --]=]
-        elseif dummyState.btnRect and HitRect(dummyState.btnRect) then
-            -- 30s鎵撴々妯″紡锛堥渶瑕佹垬鏂楁ā鍧楋級
-            if not moduleState.battle.ready then
-                local pct = math.floor(moduleState.battle.progress * 100)
-                ShowToast("鎴樻枟璧勬簮涓嬭浇涓?" .. pct .. "%)锛岃绋嶅€?")
-                PlaySFX(AUDIO.sfx_click)
-                return
-            end
-            -- 妫€鏌ユ槸鍚︽湁瓒冲鐨勬鐏?"
-            local ownedCount = 0
-            for _, h in pairs(playerHeroes) do
-                if h.owned then ownedCount = ownedCount + 1 end
-            end
-            if ownedCount < 1 then
-                ShowToast("鑷冲皯鎷ユ湁1鍚嶆鐏垫墠鑳芥寫鎴?")
-                PlaySFX(AUDIO.sfx_click)
-                return
-            end
-            PushPhase("DUMMY_SELECT")
-            dummyState.selected = {}
-            dummyState.cardRects = {}
-            dummyState.scrollY = 0
-            dummyState.scrollVel = 0
-            phaseChangeCooldown = 0.3
-            PlaySFX(AUDIO.sfx_click)
-            print("=== 杩涘叆30s鎵撴々閫夊皢 ===")
-        --[=[ 宸茬Щ闄? 鐖/鎺掍綅 鍏ュ彛
+        --[=[ 已移除: 爬塔/排位 入口
         elseif towerState.btnRect and HitRect(towerState.btnRect) then
             PushPhase("TOWER_SELECT")
         elseif rankedState.btnRect and HitRect(rankedState.btnRect) then
@@ -798,93 +655,9 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- === 30s鎵撴々閫夊皢鐣岄潰杈撳叆 ===
-    if gameState.phase == "DUMMY_SELECT" then
-        if phaseChangeCooldown > 0 then return end
-        local dx, dy = ScreenToDesign(sx, sy)
-        local function HitRect(r)
-            return r and dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h
-        end
-        -- 杩斿洖鎸夐挳
-        if HitRect(dummyState.backBtnRect) then
-            PopPhase("MENU")
-            phaseChangeCooldown = 0.3
-            PlaySFX(AUDIO.sfx_click)
-            print("=== 鎵撴々閫夊皢杩斿洖涓婁竴椤?===")
-            return
-        end
-        -- 寮€濮嬫寫鎴樻寜閽?"
-        if HitRect(dummyState.startBtnRect) and #dummyState.selected > 0 then
-            -- 鍒濆鍖栨墦妗╂垬鏂楋紙杩涘叆鍑嗗闃舵锛岀瓑鐜╁鎵嬪姩寮€濮嬶級
-            InitBattle()
-            gameState.isDummy = true
-            dummyState.totalDamage = 0
-            dummyState.timer = 30
-            dummyState.prepPhase = true  -- 鍑嗗闃舵鏍囪
 
-            -- 娓呯┖榛樿鏁屾柟閮ㄧ讲锛堢煶鍙颁笂涓嶆斁姝︾伒锛?"
-            for _, slot in ipairs(ENEMY_SLOTS) do
-                slot.filled = false; slot.card = nil
-            end
 
-            -- 闅忔満璁ㄤ紣鑳屾櫙
-            if not gameState.abyssFloor then
-                gameState.abyssFloor = math.random(1, 7)
-            end
-
-            -- 灏嗛€夊畾姝︾伒鑷姩鏀惧叆鐜╁鐭冲彴
-            for i, ci in ipairs(dummyState.selected) do
-                if i <= #PLAYER_SLOTS then
-                    local heroData = HERO_CARDS[ci]
-                    local card = DeepCopy(heroData)
-                    card.level = playerHeroes[ci] and playerHeroes[ci].level or 1
-                    card.constellation = playerHeroes[ci] and playerHeroes[ci].constellation or 0
-                    card.cardIdx = ci
-                    SetupSlotHero(PLAYER_SLOTS[i], card)
-                end
-            end
-
-            -- 璁剧疆瓒呴珮鏁屾柟鍩哄湴HP
-            gameState.enemyBaseHP = 999999
-            gameState.enemyBaseMax = 999999
-
-            -- 杩涘叆SHOP闃舵锛堝噯澶囬樁娈碉級锛岃鐜╁璋冩暣甯冮樀
-            gameState.battlePhase = "SHOP"
-            gameState.phase = "BATTLE"
-            phaseChangeCooldown = 0.3
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "鎽嗘斁姝︾伒锛屽噯澶囧紑濮?", 1.5, { 255, 220, 80 }, 18)
-            print("=== 30s鎵撴々 鍑嗗闃舵 ===")
-            return
-        end
-        -- 璁板綍鎷栨嫿璧峰浣嶇疆锛堝崱鐗岀偣鍑诲欢杩熷埌TouchEnd鍒ゆ柇锛?"
-        dummyState.dragStartY = dy
-        dummyState.dragLastY = dy
-        dummyState.isDragging = true
-        dummyState.scrollVel = 0
-        return
-    end
-
-    -- === 30s鎵撴々缁撴灉鐣岄潰杈撳叆 ===
-    if gameState.phase == "DUMMY_RESULT" then
-        local dx, dy = ScreenToDesign(sx, sy)
-        local function HitRect(r)
-            return r and dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h
-        end
-        if HitRect(dummyState.resultBackRect) then
-            PopPhase("MENU")
-            gameState.isDummy = false
-            gameState.abyssFloor = nil
-            gameState.towerFloor = nil
-            gameState.isRanked = false
-            dummyState.prepPhase = false
-            phaseChangeCooldown = 0.3
-            PlaySFX(AUDIO.sfx_click)
-            print("=== 鎵撴々缁撴灉杩斿洖涓婁竴椤?===")
-        end
-        return
-    end
-
-    -- === 姝︽妧鐣岄潰杈撳叆 ===
+    -- === 个人资料界面输入 ===
     if gameState.phase == "SKILL_CODEX" then
         if phaseChangeCooldown > 0 then return end
         local dx, dy = ScreenToDesign(sx, sy)
@@ -894,10 +667,10 @@ function BeginPress(sx, sy, touchId)
         if HitRect(skillCodexBackBtnRect) then
             PopPhase("MENU")
             phaseChangeCooldown = 0.3
-            print("=== 杩斿洖涓婁竴椤?===")
+            print("=== 返回上一页 ===")
             return
         end
-        -- 璁板綍鎷栨嫿璧峰浣嶇疆锛堢敤浜庢粴鍔紝鐐瑰嚮寤惰繜鍒癊ndPress鍒ゆ柇锛?"
+        -- 记录拖拽起始位置（用于滚动，点击延迟到EndPress判断）
         skillCodexState.dragStartY = dy
         skillCodexState.dragLastY = dy
         skillCodexState.isDragging = true
@@ -905,7 +678,7 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- === 姝︽妧璇︽儏椤佃緭鍏?===
+    -- === 武技详情页输入 ===
     if gameState.phase == "SKILL_DETAIL" then
         local dx, dy = ScreenToDesign(sx, sy)
         local function HitRect(r)
@@ -914,55 +687,55 @@ function BeginPress(sx, sy, touchId)
         if HitRect(skillDetailBackBtnRect) then
             PopPhase("SKILL_CODEX")
             phaseChangeCooldown = 0.3
-            print("=== 杩斿洖涓婁竴椤?===")
+            print("=== 返回上一页 ===")
         elseif skillDetailEquipBtnRect and HitRect(skillDetailEquipBtnRect) then
-            -- 瑁呭/鍗镐笅鎸夐挳 (鍗曟寜閽ā寮?"
+            -- 装备/卸下按钮 (单按钮模式)
             local curIdx = skillCodexState.selectedIdx
             if SKILL_DEFS[curIdx] and SKILL_DEFS[curIdx].notAvailable then
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "姝ゆ鎶€鏆傛湭寮€鏀?", 1.0, { 160, 150, 130 }, 14)
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "此武技暂未开放", 1.0, { 160, 150, 130 }, 18)
             elseif skillDetailEquipBtnRect.action == "unequip" then
                 local s = skillDetailEquipBtnRect.slot
                 table.remove(playerEquippedSkills, s)
-                print("=== 鍗镐笅姝︽妧: " .. SKILL_TECHNIQUES[curIdx].name .. " (妲戒綅" .. s .. ") ===")
+                print("=== 卸下武技: " .. SKILL_TECHNIQUES[curIdx].name .. " (槽位" .. s .. ") ===")
                 SaveGameProgress()
             else
                 playerEquippedSkills[#playerEquippedSkills + 1] = curIdx
-                print("=== 瑁呭姝︽妧: " .. SKILL_TECHNIQUES[curIdx].name .. " (妲戒綅" .. #playerEquippedSkills .. ") ===")
+                print("=== 装备武技: " .. SKILL_TECHNIQUES[curIdx].name .. " (槽位" .. #playerEquippedSkills .. ") ===")
                 SaveGameProgress()
             end
         elseif skillDetailEquipSlotBtns and #skillDetailEquipSlotBtns > 0 then
-            -- 涓や釜鏇挎崲鎸夐挳妯″紡 (涓や釜妲戒綅閮芥弧)
+        -- 名字选择 (含自定义选项)
             local curIdx = skillCodexState.selectedIdx
             if SKILL_DEFS[curIdx] and SKILL_DEFS[curIdx].notAvailable then
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "姝ゆ鎶€鏆傛湭寮€鏀?", 1.0, { 160, 150, 130 }, 14)
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "此武技暂未开放", 1.0, { 160, 150, 130 }, 18)
             end
             local handled = false
             for s, btn in ipairs(skillDetailEquipSlotBtns) do
                 if HitRect(btn) then
                     local old = playerEquippedSkills[btn.slot]
                     playerEquippedSkills[btn.slot] = curIdx
-                    print("=== 瑁呭姝︽妧: " .. SKILL_TECHNIQUES[curIdx].name .. " >> 妲戒綅" .. btn.slot .. " (鏇挎崲" .. SKILL_TECHNIQUES[old].name .. ") ===")
+                    print("=== 装备武技: " .. SKILL_TECHNIQUES[curIdx].name .. " >> 槽位" .. btn.slot .. " (替换" .. SKILL_TECHNIQUES[old].name .. ") ===")
                     SaveGameProgress()
                     handled = true
                     break
                 end
             end
             if not handled then
-                -- 娌＄偣涓浛鎹㈡寜閽紝妫€鏌ュ簳閮ㄥ悓闃堕瑙堟潯
+                -- 没点中替换按钮，检查底部同阶预览条
                 for _, mr in ipairs(skillDetailMiniRects) do
                     if HitRect(mr) and mr.idx ~= skillCodexState.selectedIdx then
                         skillCodexState.selectedIdx = mr.idx
-                        print("=== 鍒囨崲姝︽妧: " .. SKILL_TECHNIQUES[mr.idx].name .. " ===")
+                        print("=== 切换武技: " .. SKILL_TECHNIQUES[mr.idx].name .. " ===")
                         break
                     end
                 end
             end
         else
-            -- 搴曢儴鍚岄樁棰勮鏉＄偣鍑诲垏鎹?"
+            -- 底部同阶预览条点击切换
             for _, mr in ipairs(skillDetailMiniRects) do
                 if HitRect(mr) and mr.idx ~= skillCodexState.selectedIdx then
                     skillCodexState.selectedIdx = mr.idx
-                    print("=== 鍒囨崲姝︽妧: " .. SKILL_TECHNIQUES[mr.idx].name .. " ===")
+                        print("=== 切换武技: " .. SKILL_TECHNIQUES[mr.idx].name .. " ===")
                     break
                 end
             end
@@ -970,7 +743,7 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- === 澶╁懡璧愮杈撳叆 ===
+    -- === 天命赐福输入 ===
     if gameState.phase == "WELFARE" then
         local dx, dy = ScreenToDesign(sx, sy)
         local function HitRect(r)
@@ -979,19 +752,19 @@ function BeginPress(sx, sy, touchId)
         if HitRect(welfareState.backBtnRect) then
             PopPhase("MENU")
             phaseChangeCooldown = 0.3
-            print("=== 杩斿洖涓婁竴椤?===")
+            print("=== 返回上一页 ===")
             return
         end
-        -- 涓夋棩绛惧埌鎸夐挳 (绗?澶?姝︽妧18, 绗?澶?姝︽妧19, 绗?澶?20000铏庣)
-        local SIGN_SKILL_REWARDS = { 18, 19, nil }  -- 鍓嶄袱澶╅€佹鎶€(49娈嬬墖鐩存帴鍙厬鎹?"
-        local SIGN_JADE_REWARD = 20000  -- 绗?澶╅€佽檸绗?"
+        -- 三日签到按钮 (第1天=武技18, 第2天=武技19, 第3天=20000玉壁)
+        local SIGN_SKILL_REWARDS = { 18, 19, nil }  -- 前两天送武技(49残片直接可兑换)
+        local SIGN_JADE_REWARD = 20000  -- 第3天送玉壁
         for i = 1, 3 do
             if HitRect(welfareState.signInBtnRects[i]) then
-                -- 宸查鍙栧垯璺宠繃
+                -- 已领取则跳过
                 if welfareState.signInClaimed[i] then break end
-                -- 鍓嶄竴澶╁繀椤诲凡棰嗗彇
+                -- 前一天必须已领取
                 if i > 1 and not welfareState.signInClaimed[i - 1] then break end
-                -- 24灏忔椂闂撮殧妫€鏌? 鍓嶄竴澶╅鍙栧悗闇€绛夊緟24灏忔椂
+                -- 24小时间隔检查: 前一天领取后需等待24小时
                 if i > 1 then
                     local prevTs = welfareState.signInTimestamps[i - 1] or 0
                     if prevTs > 0 and (os.time() - prevTs) < 86400 then
@@ -999,7 +772,7 @@ function BeginPress(sx, sy, touchId)
                         local hrs = math.floor(remain / 3600)
                         local mins = math.floor((remain % 3600) / 60)
                         AddFloatText(DESIGN_W / 2, DESIGN_H * 0.25,
-                            "璺濅笅娆＄鍒拌繕闇€ " .. hrs .. "鏃?" .. mins .. "鍒?", 1.5, { 255, 180, 80 }, 18)
+                            "距下次签到还需 " .. hrs .. "时" .. mins .. "分", 1.5, { 255, 180, 80 }, 18)
                         break
                     end
                 end
@@ -1008,20 +781,20 @@ function BeginPress(sx, sy, touchId)
                     welfareState.signInClaimed[dayIdx] = true
                     welfareState.signInTimestamps[dayIdx] = os.time()
                     if SIGN_SKILL_REWARDS[dayIdx] then
-                        -- 閫佹鎶€娈嬬墖 (49涓? 鍙洿鎺ュ厬鎹?"
+                        -- 送武技残片 (49个, 可直接兑换)
                         local skIdx = SIGN_SKILL_REWARDS[dayIdx]
                         skillFragments[skIdx] = (skillFragments[skIdx] or 0) + SKILL_FRAG_EXCHANGE
                         local sk = SKILL_TECHNIQUES[skIdx]
-                        local skName = sk and sk.name or ("姝︽妧#" .. skIdx)
+                        local skName = sk and sk.name or ("武技#" .. skIdx)
                         AddFloatText(DESIGN_W / 2, DESIGN_H * 0.25,
-                            "鑾峰緱 " .. skName .. " 脳" .. SKILL_FRAG_EXCHANGE .. " 娈嬬墖", 1.5, { 200, 160, 255 }, 18)
-                        print("=== 绛惧埌绗?" .. dayIdx .. "澶? 鑾峰緱姝︽妧" .. skIdx .. " 娈嬬墖脳" .. SKILL_FRAG_EXCHANGE .. " ===")
+                            "获得 " .. skName .. " ×" .. SKILL_FRAG_EXCHANGE .. " 残片", 1.5, { 200, 160, 255 }, 18)
+                        print("=== 签到第" .. dayIdx .. "天: 获得武技" .. skIdx .. " 残片×" .. SKILL_FRAG_EXCHANGE .. " ===")
                     else
-                        -- 绗?澶╅€?0000铏庣
+                        -- 第3天送20000玉壁
                         playerInfo.jade = playerInfo.jade + SIGN_JADE_REWARD
                         AddFloatText(DESIGN_W / 2, DESIGN_H * 0.25,
-                            "鑾峰緱 铏庣 脳" .. SIGN_JADE_REWARD, 1.5, { 255, 220, 100 }, 18)
-                        print("=== 绛惧埌绗?" .. dayIdx .. "澶? +" .. SIGN_JADE_REWARD .. " 铏庣 ===")
+                            "获得 玉壁 ×" .. SIGN_JADE_REWARD, 1.5, { 255, 220, 100 }, 18)
+                        print("=== 签到第" .. dayIdx .. "天: +" .. SIGN_JADE_REWARD .. " 玉壁 ===")
                     end
                 end
                 if playerInfo.ad_free then
@@ -1037,7 +810,7 @@ function BeginPress(sx, sy, touchId)
                     end))
                 else
                     if not IsMobilePlatform() then
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.25, "浠呯Щ鍔ㄧ鍙鐪嬪箍鍛?", 1.5, { 200, 150, 100 }, 14)
+                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.25, "仅移动端可观看广告", 1.5, { 200, 150, 100 }, 18)
                         return
                     end
                     claimFunc()
@@ -1046,13 +819,13 @@ function BeginPress(sx, sy, touchId)
                 return
             end
         end
-        -- 鍗佹棩绛惧埌鎸夐挳锛堟瘡鏃ュ箍鍛婇5000铏庣锛?"
+        -- 十日签到按钮（每日广告领5000玉壁）
         for i = 1, 10 do
             if HitRect(welfareState.dailySignInBtnRects[i]) then
-                -- 蹇呴』鎸夐『搴忛鍙?"
+                -- 必须按顺序领取
                 if i > 1 and not welfareState.dailySignInClaimed[i - 1] then break end
                 if welfareState.dailySignInClaimed[i] then break end
-                -- 24灏忔椂闂撮殧妫€鏌? 鍓嶄竴澶╅鍙栧悗闇€绛夊緟24灏忔椂
+                -- 24小时间隔检查: 前一天领取后需等待24小时
                 if i > 1 then
                     local prevTs = welfareState.dailySignInTimestamps[i - 1] or 0
                     if prevTs > 0 and (os.time() - prevTs) < 86400 then
@@ -1060,7 +833,7 @@ function BeginPress(sx, sy, touchId)
                         local rh = math.floor(remain / 3600)
                         local rm = math.floor((remain % 3600) / 60)
                         AddFloatText(DESIGN_W / 2, DESIGN_H * 0.25,
-                            string.format("璺濅笅娆＄鍒拌繕闇€ %d鏃?d鍒?", rh, rm),
+                            string.format("距下次签到还需 %d时%d分", rh, rm),
                             1.5, { 200, 200, 200 }, 16)
                         break
                     end
@@ -1071,8 +844,8 @@ function BeginPress(sx, sy, touchId)
                     welfareState.dailySignInTimestamps[dayIdx] = os.time()
                     playerInfo.jade = playerInfo.jade + 5000
                     AddFloatText(DESIGN_W / 2, DESIGN_H * 0.25,
-                        "绗?" .. dayIdx .. "鏃ョ鍒?+5000 铏庣", 1.5, { 255, 220, 100 }, 18)
-                    print("=== 鍗佹棩绛惧埌绗?" .. dayIdx .. "澶? +5000 铏庣 ===")
+                        "第" .. dayIdx .. "日签到 +5000 玉壁", 1.5, { 255, 220, 100 }, 18)
+                    print("=== 十日签到第" .. dayIdx .. "天: +5000 玉壁 ===")
                 end
                 if playerInfo.ad_free then
                     claimFunc()
@@ -1087,7 +860,7 @@ function BeginPress(sx, sy, touchId)
                     end))
                 else
                     if not IsMobilePlatform() then
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.25, "浠呯Щ鍔ㄧ鍙鐪嬪箍鍛?", 1.5, { 200, 150, 100 }, 14)
+                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.25, "仅移动端可观看广告", 1.5, { 200, 150, 100 }, 18)
                         return
                     end
                     claimFunc()
@@ -1096,30 +869,30 @@ function BeginPress(sx, sy, touchId)
                 return
             end
         end
-        -- 鍦ㄧ嚎鏃堕暱濂栧姳鎸夐挳
+        -- 在线时长奖励按钮
         local OL_JADE = { 300, 500, 800, 1000 }
         for i = 1, 4 do
             if HitRect(welfareState.onlineBtnRects[i]) then
                 welfareState.onlineRewards[i] = true
                 playerInfo.jade = playerInfo.jade + OL_JADE[i]
                 AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4,
-                    "鍦ㄧ嚎濂栧姳 +" .. OL_JADE[i] .. " 铏庣", 1.5, { 130, 200, 255 }, 16)
-                print("=== 鍦ㄧ嚎鏃堕暱濂栧姳绗?" .. i .. "妗? +" .. OL_JADE[i] .. " 铏庣 ===")
+                    "在线奖励 +" .. OL_JADE[i] .. " 玉壁", 1.5, { 130, 200, 255 }, 18)
+                print("=== 在线时长奖励第" .. i .. "档: +" .. OL_JADE[i] .. " 玉壁 ===")
                 return
             end
         end
 
-        -- (澶ц浆鐩樺拰姣忔棩缈荤墝鐐瑰嚮澶勭悊宸茬Щ闄?"
+        -- (大转盘和每日翻牌点击处理已移除)
 
-        -- 璐＄尞姒?鏌ョ湅璇︽儏"鎸夐挳 鈫?璺宠浆鍒拌础鐚璇︽儏椤?"
+        -- 贡献榜"查看详情"按钮 → 跳转到贡献榜详情页
         if welfareState.contribDetailBtnRect and HitRect(welfareState.contribDetailBtnRect) then
-            welfareState.contribDetailScroll.offset = 0  -- 閲嶇疆婊氬姩
+            welfareState.contribDetailScroll.offset = 0  -- 重置滚动
             PushPhase("CONTRIB_RANK")
             PlaySFX(AUDIO.sfx_click)
             return
         end
-        -- 娌℃湁鍛戒腑浠讳綍鎸夐挳锛屽紑濮嬫粴鍔ㄦ嫋鎷?"
-        -- 鍒ゆ柇鏄湪璐＄尞姒滃尯鍩熻繕鏄笅鏂瑰唴瀹瑰尯鍩?"
+        -- 没有命中任何按钮，开始滚动拖拽
+        -- 判断是在贡献榜区域还是下方内容区域
         local contribBot = 72 + (welfareState.contribFixedH or 0)
         if dy >= 72 and dy < contribBot then
             local cs = welfareState.contribScroll
@@ -1137,19 +910,19 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- === 姣忔棩浠诲姟 / 鎴愬氨 鐣岄潰杈撳叆 ===
+    -- === 每日任务 / 成就 界面输入 ===
     if gameState.phase == "PROGRESS" then
         local dx, dy = ScreenToDesign(sx, sy)
         local function HitRect(r)
             return r and dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h
         end
-        -- 杩斿洖鎸夐挳
+        -- 返回按钮
         if HitRect(progressUIState.backBtnRect) then
             PopPhase("MENU")
             phaseChangeCooldown = 0.3
             return
         end
-        -- Tab鍒囨崲
+        -- Tab切换
         for i, r in ipairs(progressTabRects) do
             if HitRect(r) then
                 progressUIState.tab = i
@@ -1157,18 +930,18 @@ function BeginPress(sx, sy, touchId)
                 return
             end
         end
-        -- 姣忔棩浠诲姟棰嗗彇鎸夐挳
+        -- 每日任务领取按钮
         if progressUIState.tab == 1 then
             for i, r in ipairs(dailyTaskBtnRects) do
                 if HitRect(r) then
                     if ClaimDailyReward(i) then
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "浠诲姟濂栧姳宸查鍙?", 1.5, { 100, 255, 100 }, 16)
+                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "任务奖励已领取!", 1.5, { 100, 255, 100 }, 18)
                         PlaySFX(AUDIO.sfx_click)
                     end
                     return
                 end
             end
-            -- 鍏ㄥ嫟濂栧姳鎸夐挳
+            -- 全勤奖励按钮
             if HitRect(dailyTaskAllBtnRect) then
                 if ClaimDailyAllBonus() then
                     PlaySFX(AUDIO.sfx_click)
@@ -1176,18 +949,18 @@ function BeginPress(sx, sy, touchId)
                 return
             end
         end
-        -- 鍛ㄤ换鍔￠鍙栨寜閽?"
+        -- 周任务领取按钮
         if progressUIState.tab == 2 then
             for i, r in ipairs(weeklyTaskBtnRects) do
                 if HitRect(r) then
                     if ClaimWeeklyReward(i) then
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "鍛ㄤ换鍔″鍔卞凡棰嗗彇!", 1.5, { 100, 230, 255 }, 16)
+                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "周任务奖励已领取!", 1.5, { 100, 230, 255 }, 18)
                         PlaySFX(AUDIO.sfx_click)
                     end
                     return
                 end
             end
-            -- 鍛ㄥ叏鍕ゅ鍔辨寜閽?"
+            -- 周全勤奖励按钮
             if HitRect(weeklyTaskAllBtnRect) then
                 if ClaimWeeklyAllBonus() then
                     PlaySFX(AUDIO.sfx_click)
@@ -1195,20 +968,20 @@ function BeginPress(sx, sy, touchId)
                 return
             end
         end
-        -- 鎴愬氨棰嗗彇鎸夐挳
+        -- 成就领取按钮
         if progressUIState.tab == 3 then
             for i, r in ipairs(progressUIState.achBtnRects or {}) do
                 if HitRect(r) then
                     local origIdx = (progressUIState.achOrigIdx and progressUIState.achOrigIdx[i]) or i
                     if ClaimAchievement(origIdx) then
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "鎴愬氨濂栧姳宸查鍙?", 1.5, { 255, 220, 80 }, 16)
+                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "成就奖励已领取!", 1.5, { 255, 220, 80 }, 18)
                         PlaySFX(AUDIO.sfx_click)
                     end
                     return
                 end
             end
         end
-        -- 婊氬姩鎷栨嫿
+        -- 滚动拖拽
         progressUIState.isDragging = true
         progressUIState.dragStartY = dy
         progressUIState.dragLastY = dy
@@ -1216,21 +989,21 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- === 寮€鍙戣€呮垬鍦虹紪杈戝櫒杈撳叆 ===
+    -- === 个人资料界面输入 ===
     if gameState.phase == "DEV_EDITOR" then
         if phaseChangeCooldown > 0 then return end
         local dx, dy = ScreenToDesign(sx, sy)
         local function HitRect(r)
             return r and dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h
         end
-        -- 杩斿洖鎸夐挳
+        -- 返回按钮
         if HitRect(editorState.backBtnRect) then
             PopPhase("MENU")
             phaseChangeCooldown = 0.3
             PlaySFX(AUDIO.sfx_click)
             return
         end
-        -- Tab鍒囨崲
+        -- Tab切换
         for i, r in ipairs(editorState.tabRects) do
             if HitRect(r) then
                 editorState.tab = i
@@ -1240,9 +1013,9 @@ function BeginPress(sx, sy, touchId)
                 return
             end
         end
-        -- Tab 1: 鍏冲崱缂栬緫
+        -- Tab 1: 关卡编辑
         if editorState.tab == 1 then
-            -- 闅惧害鍑忓皯
+            -- 难度减少
             for si = 1, #STAGES do
                 if HitRect(editorState.btnRects["stage_minus_" .. si]) then
                     local sOver = editorState.stageOverrides[si] or { enemyScale = STAGES[si].enemyScale }
@@ -1258,22 +1031,22 @@ function BeginPress(sx, sy, touchId)
                     PlaySFX(AUDIO.sfx_click)
                     return
                 end
-                -- 鐐瑰嚮鍏冲崱鍗＄墖閫変腑
+                -- 点击关卡卡片选中
                 if HitRect(editorState.btnRects["stage_" .. si]) then
                     editorState.selectedStage = si
                     PlaySFX(AUDIO.sfx_click)
                     return
                 end
             end
-            -- 閲嶇疆鍏ㄩ儴闅惧害
+            -- 重置全部难度
             if HitRect(editorState.btnRects["reset_stages"]) then
                 editorState.stageOverrides = {}
                 PlaySFX(AUDIO.sfx_click)
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "宸查噸缃叏閮ㄩ毦搴?", 1.5, { 255, 200, 100 }, 16)
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "已重置全部难度", 1.5, { 255, 200, 100 }, 18)
                 return
             end
         end
-        -- Tab 2: 鎴樻枟鍙傛暟
+        -- Tab 2: 战斗参数
         if editorState.tab == 2 then
             local params = {
                 { key = "baseHpMax",        default = GameConfig.BASE_HP_MAX,       step = 50,   min = 100,  max = 5000 },
@@ -1300,20 +1073,20 @@ function BeginPress(sx, sy, touchId)
                     return
                 end
             end
-            -- 閲嶇疆鍏ㄩ儴鍙傛暟
+            -- 重置全部参数
             if HitRect(editorState.btnRects["reset_params"]) then
                 editorState.overrides = {
                     baseHpMax = nil, initialGold = nil, enemySpawnCd = nil,
                     playerSpawnCd = nil, battleTimeLimit = nil, soldierStatScale = nil, deployCd = nil,
                 }
                 PlaySFX(AUDIO.sfx_click)
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "宸查噸缃叏閮ㄥ弬鏁?", 1.5, { 255, 200, 100 }, 16)
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "已重置全部参数", 1.5, { 255, 200, 100 }, 18)
                 return
             end
         end
-        -- Tab 3: 蹇€熸祴璇?"
+        -- Tab 3: 快速测试
         if editorState.tab == 3 then
-            -- 閫夋嫨娴嬭瘯鍏冲崱
+            -- 选择测试关卡
             for si = 1, #STAGES do
                 if HitRect(editorState.btnRects["test_stage_" .. si]) then
                     editorState.testStage = si
@@ -1321,37 +1094,36 @@ function BeginPress(sx, sy, touchId)
                     return
                 end
             end
-            -- 寮€濮嬫祴璇曟垬鏂?"
+            -- 开始测试战斗
             if HitRect(editorState.btnRects["start_test"]) then
                 ApplyEditorOverrides()
                 stageState.currentStage = editorState.testStage
-                gameState.isDummy = false
                 InitBattle()
                 PushPhase("BATTLE")
                 phaseChangeCooldown = 0.3
                 PlaySFX(AUDIO.sfx_click)
-                print("=== 缂栬緫鍣? 寮€濮嬫祴璇曞叧鍗?" .. editorState.testStage .. " ===")
+                print("=== 编辑器: 开始测试关卡 " .. editorState.testStage .. " ===")
                 return
             end
         end
-        -- Tab 4: 鐭冲彴缂栬緫
+        -- Tab 4: 石台编辑
         if editorState.tab == 4 then
-            -- 瀵煎嚭澶嶅埗鎸夐挳
+            -- 导出复制按钮
             if HitRect(editorState.btnRects["slot_save"]) then
                 ExportBattleLayouts()
                 editorState.saveFlashT = os.clock()
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 鎾ら攢鎸夐挳
+            -- 撤销按钮
             if HitRect(editorState.btnRects["slot_undo"]) then
                 if UndoSlotEdit() then
-                    print("[甯冨眬缂栬緫鍣╙ 鎾ら攢鎴愬姛, 鍓╀綑 " .. #slotUndoStack .. " 姝?")
+                    print("[布局编辑器] 撤销成功, 剩余 " .. #slotUndoStack .. " 步")
                 end
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 蹇嵎閫夋嫨鎸夐挳: 閫夋垜鏂?/ 閫夋晫鏂?/ 娓呴櫎閫夋嫨
+            -- 快捷选择按钮: 选我方 / 选敌方 / 清除选择
             if HitRect(editorState.btnRects["sel_player"]) then
                 local lo = BATTLE_LAYOUTS[editorState.editLayoutIdx or 1]
                 if lo then for pi = 1, #lo.playerSlots do editorState.selectedSlots["player_" .. pi] = true end end
@@ -1376,7 +1148,7 @@ function BeginPress(sx, sy, touchId)
                     return
                 end
             end
-            -- 鐭冲彴鍦嗗湀鎸変笅 鈫?璁板綍鎸変笅淇℃伅 (HandleMoveLogic 涓垽鏂槸鍚︽嫋鎷?"
+            -- 石台圆圈按下 → 记录按下信息 (HandleMoveLogic 中判断是否拖拽)
             local lidx = editorState.editLayoutIdx or 1
             local layout = BATTLE_LAYOUTS[lidx]
             local sdx, sdy = ScreenToDesign(sx, sy)
@@ -1408,11 +1180,11 @@ function BeginPress(sx, sy, touchId)
                     end
                 end
             end
-            -- 鐐瑰嚮绌虹櫧鍖哄煙: 娓呴櫎閫夋嫨
+            -- 点击空白区域: 清除选择
             editorState.selectedSlots = {}
             return
         end
-        -- 婊氬姩鎷栨嫿
+        -- 滚动拖拽
         editorState.isDragging = true
         editorState.dragStartY = dy
         editorState.dragLastY = dy
@@ -1420,14 +1192,14 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- === 鎶藉崱鐣岄潰杈撳叆 === (宸茬Щ闄ゆ娊鍗＄郴缁?"
+    -- === 抽卡界面输入 === (已移除抽卡系统)
     --[=[ GACHA phase removed
     if gameState.phase == "GACHA" then
         return
     end
     --]=]
 
-    -- === 鍥鹃壌鐣岄潰杈撳叆 ===
+    -- === 个人资料界面输入 ===
     if gameState.phase == "CODEX" then
         if phaseChangeCooldown > 0 then return end
         local dx, dy = ScreenToDesign(sx, sy)
@@ -1437,21 +1209,21 @@ function BeginPress(sx, sy, touchId)
         if HitRect(codexBackBtnRect) then
             PopPhase("MENU")
             phaseChangeCooldown = 0.3
-            print("=== 杩斿洖涓婁竴椤?===")
+            print("=== 返回上一页 ===")
             return
         end
-        -- 鍝佽川鏍囩椤电偣鍑绘娴?"
+        -- 品质标签页点击检测
         for _, tr in ipairs(codexTabRects) do
             if HitRect(tr) then
                 if codexTab ~= tr.tabIdx then
                     codexTab = tr.tabIdx
-                    codexScroll.y = 0  -- 鍒囨崲鏍囩椤垫椂閲嶇疆婊氬姩浣嶇疆
+                    codexScroll.y = 0  -- 切换标签页时重置滚动位置
                     codexScroll.vel = 0
                 end
                 return
             end
         end
-        -- 璁板綍鎷栨嫿璧峰浣嶇疆锛堢敤浜庢粴鍔紝鐐瑰嚮寤惰繜鍒癊ndPress鍒ゆ柇锛?"
+        -- 记录拖拽起始位置（用于滚动，点击延迟到EndPress判断）
         codexScroll.dragStartY = dy
         codexScroll.dragLastY = dy
         codexScroll.isDragging = true
@@ -1459,7 +1231,7 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- === 姝︾伒璇︽儏椤佃緭鍏?===
+    -- === 武灵详情页输入 ===
     if gameState.phase == "HERO_DETAIL" then
         local dx, dy = ScreenToDesign(sx, sy)
         local function HitRect(r)
@@ -1468,10 +1240,10 @@ function BeginPress(sx, sy, touchId)
         if HitRect(heroDetailBackBtnRect) then
             PopPhase("CODEX")
             phaseChangeCooldown = 0.3
-            print("=== 杩斿洖涓婁竴椤?===")
+            print("=== 返回上一页 ===")
             return
         end
-        -- 寮€濮嬫嫋鎷芥粴鍔?"
+        -- 开始拖拽滚动
         heroDetailScroll.dragStartY = dy
         heroDetailScroll.dragLastY = dy
         heroDetailScroll.isDragging = true
@@ -1479,7 +1251,7 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- === 鐜╁璇︽儏椤佃緭鍏?===
+    -- === 玩家详情页输入 ===
     if gameState.phase == "PLAYER_DETAIL" then
         local dx, dy = ScreenToDesign(sx, sy)
         local function HitRect(r)
@@ -1489,22 +1261,22 @@ function BeginPress(sx, sy, touchId)
             powerExplainPopup.show = false
             PopPhase("MENU")
             phaseChangeCooldown = 0.3
-            print("=== 杩斿洖涓婁竴椤?===")
+            print("=== 返回上一页 ===")
             return
         end
-        -- 鐐瑰嚮宸茶澶囨鎶€ 鈫?璺宠浆姝︽妧璇︽儏
+        -- 点击已装备武技 → 跳转武技详情
         if playerDetailSkillRects then
             for _, sr in pairs(playerDetailSkillRects) do
                 if HitRect(sr) and sr.skIdx then
                     skillCodexState.selectedIdx = sr.skIdx
                     PushPhase("SKILL_DETAIL")
                     phaseChangeCooldown = 0.3
-                    print("=== 鏌ョ湅姝︽妧璇︽儏: " .. (SKILL_TECHNIQUES[sr.skIdx] and SKILL_TECHNIQUES[sr.skIdx].name or "") .. " ===")
+                    print("=== 查看武技详情: " .. (SKILL_TECHNIQUES[sr.skIdx] and SKILL_TECHNIQUES[sr.skIdx].name or "") .. " ===")
                     return
                 end
             end
         end
-        -- 鐐瑰嚮姝︾伒鍗＄墝 鈫?璺宠浆姝︾伒璇︽儏
+        -- 点击武灵卡牌 → 跳转武灵详情
         if playerDetailHeroRects then
             for _, hr in pairs(playerDetailHeroRects) do
                 if HitRect(hr) and hr.heroIdx then
@@ -1514,27 +1286,27 @@ function BeginPress(sx, sy, touchId)
                         heroDetailScroll.y = 0; heroDetailScroll.vel = 0
                         PushPhase("HERO_DETAIL")
                         phaseChangeCooldown = 0.3
-                        print("=== 鏌ョ湅姝︾伒璇︽儏: " .. HERO_CARDS[hr.heroIdx].name .. " ===")
+                        print("=== 查看武灵详情: " .. HERO_CARDS[hr.heroIdx].name .. " ===")
                         return
                     end
                 end
             end
         end
-        -- 鎴樺姏璇存槑寮圭獥浜や簰锛堜娇鐢ㄧ粺涓€鐨?powerExplainPopup锛?"
+        -- 战力说明弹窗交互（使用统一的 powerExplainPopup）
         if powerExplainPopup.show then
             local cr = powerExplainPopup.closeBtnRect
             if cr and HitRect(cr) then
                 powerExplainPopup.show = false
                 PlaySFX(AUDIO.sfx_click)
             end
-            -- 鐐瑰嚮寮圭獥澶栧叧闂?"
+            -- 点击弹窗外关闭
             local pr = powerExplainPopup.panelRect
             if not (pr and HitRect(pr)) then
                 powerExplainPopup.show = false
             end
-            return  -- 寮圭獥鎵撳紑鏃舵嫤鎴墍鏈夊叾浠栫偣鍑?"
+            return  -- 弹窗打开时拦截所有其他点击
         end
-        -- "?" 鎸夐挳鐐瑰嚮 鈫?鏄剧ず鎴樺姏璇存槑
+        -- "?" 按钮点击 → 显示战力说明
         if playerDetailPowerHelpRect and playerDetailPowerHelpRect.isCircle then
             local pdx, pdy = dx - playerDetailPowerHelpRect.cx, dy - playerDetailPowerHelpRect.cy
             if pdx * pdx + pdy * pdy <= playerDetailPowerHelpRect.r * playerDetailPowerHelpRect.r then
@@ -1543,9 +1315,9 @@ function BeginPress(sx, sy, touchId)
                 return
             end
         end
-        -- 缂栬緫璧勬枡鎸夐挳
+        -- 编辑资料按钮
         if HitRect(playerDetailEditBtnRect) then
-            -- 棰勫～鍏呭綋鍓嶅ご鍍忓拰鍚嶅瓧
+            -- 预填充当前头像和名字
             for i, avOpt in ipairs(AVATAR_OPTIONS) do
                 if avOpt == playerInfo.avatarIdx then
                     profileState.selectedAvatar = i
@@ -1555,14 +1327,14 @@ function BeginPress(sx, sy, touchId)
             profileState.customName = playerInfo.name
             profileState.selectedName = CUSTOM_NAME_IDX
             profileState.isInputActive = false
-            profileState.editMode = true  -- 鏍囪涓虹紪杈戞ā寮?"
+            profileState.editMode = true  -- 标记为编辑模式
             PushPhase("PROFILE")
             phaseChangeCooldown = 0.3
             PlaySFX(AUDIO.sfx_click)
             print("=== 缂栬緫璧勬枡 ===")
             return
         end
-        -- 寮€濮嬫嫋鎷芥粴鍔?"
+        -- 开始拖拽滚动
         playerDetailScroll.dragStartY = dy
         playerDetailScroll.dragLastY = dy
         playerDetailScroll.isDragging = true
@@ -1570,9 +1342,9 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- === 鍏电敳鐣岄潰杈撳叆 ===
+    -- === 个人资料界面输入 ===
     if gameState.phase == "EQUIP" then
-        -- 鏂扮増NanoVG缃戞牸浠撳簱锛氬鎵樿Е鎽镐簨浠?"
+        -- 新版NanoVG网格仓库：委托触摸事件
         if EquipUI.isVisible then
             local dx, dy = ScreenToDesign(sx, sy)
             EquipUI.HandleTouchBegin(dx, dy)
@@ -1582,13 +1354,13 @@ function BeginPress(sx, sy, touchId)
         local function HitRect(r)
             return r and dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h
         end
-        -- 寮哄寲纭寮圭獥锛氭嫤鎴墍鏈夌偣鍑?"
+        -- 强化确认弹窗：拦截所有点击
         if equipScreenState.enhanceConfirm then
             if HitRect(equipScreenState.enhanceConfirmBtn) then
                 local ec = equipScreenState.enhanceConfirm
                 local ok = EnhanceEquipment(ec.slotIdx)
                 if ok then
-                    print("=== 寮哄寲鎴愬姛: 妲戒綅" .. ec.slotIdx .. " ===")
+                    print("=== 强化成功: 槽位" .. ec.slotIdx .. " ===")
                 end
                 equipScreenState.enhanceConfirm = nil
                 PlaySFX(AUDIO.sfx_click)
@@ -1596,16 +1368,16 @@ function BeginPress(sx, sy, touchId)
                 equipScreenState.enhanceConfirm = nil
                 PlaySFX(AUDIO.sfx_click)
             end
-            -- 寮圭獥鏈熼棿鍚炴帀鎵€鏈夌偣鍑?"
+            -- 弹窗期间吞掉所有点击
             return
         end
-        -- 鍒嗚В纭寮圭獥锛氭嫤鎴墍鏈夌偣鍑?"
+        -- 分解确认弹窗：拦截所有点击
         if equipScreenState.decompConfirm then
             if HitRect(equipScreenState.decompConfirmBtn) then
                 local dc = equipScreenState.decompConfirm
                 local ok = DecomposeEquipment(dc.uid)
                 if ok then
-                    print("=== 鍒嗚В瑁呭: uid=" .. dc.uid .. " 濂楄" .. dc.setIdx .. " 闃剁骇" .. dc.tier .. " ===")
+                    print("=== 分解装备: uid=" .. dc.uid .. " 套装" .. dc.setIdx .. " 阶级" .. dc.tier .. " ===")
                 end
                 equipScreenState.decompConfirm = nil
                 PlaySFX(AUDIO.sfx_click)
@@ -1613,17 +1385,17 @@ function BeginPress(sx, sy, touchId)
                 equipScreenState.decompConfirm = nil
                 PlaySFX(AUDIO.sfx_click)
             end
-            -- 寮圭獥鏈熼棿鍚炴帀鎵€鏈夌偣鍑?"
+            -- 弹窗期间吞掉所有点击
             return
         end
-        -- 鎵归噺鍒嗚В纭寮圭獥锛氭嫤鎴墍鏈夌偣鍑?"
+        -- 批量分解确认弹窗：拦截所有点击
         if equipScreenState.batchDecompConfirm then
             if equipScreenState.batchDecompConfirmBtn and HitRect(equipScreenState.batchDecompConfirmBtn) then
                 local ft = equipScreenState.batchFilterMaxTier or 6
                 BatchDecomposeAll(ft)
                 equipScreenState.batchDecompConfirm = nil
                 PlaySFX(AUDIO.sfx_click)
-                print("=== 鎵归噺鍒嗚В瀹屾垚 (绛涢€夊搧璐?=" .. ft .. ") ===")
+                print("=== 批量分解完成 (筛选品质<=" .. ft .. ") ===")
             elseif equipScreenState.batchDecompCancelBtn and HitRect(equipScreenState.batchDecompCancelBtn) then
                 equipScreenState.batchDecompConfirm = nil
                 PlaySFX(AUDIO.sfx_click)
@@ -1646,7 +1418,7 @@ function BeginPress(sx, sy, touchId)
             end
             return
         end
-        -- 閫変腑鍒嗚В纭寮圭獥锛氭嫤鎴墍鏈夌偣鍑?"
+        -- 选中分解确认弹窗：拦截所有点击
         if equipScreenState.selectDecompConfirm then
             if equipScreenState.selectDecompConfirmBtn and HitRect(equipScreenState.selectDecompConfirmBtn) then
                 SelectDecomposeAll(equipScreenState.selectedUids)
@@ -1654,32 +1426,32 @@ function BeginPress(sx, sy, touchId)
                 equipScreenState.selectMode = false
                 equipScreenState.selectedUids = {}
                 PlaySFX(AUDIO.sfx_click)
-                print("=== 閫変腑鍒嗚В瀹屾垚 ===")
+            print("=== 进入玩家详情 ===")
             elseif equipScreenState.selectDecompCancelBtn and HitRect(equipScreenState.selectDecompCancelBtn) then
                 equipScreenState.selectDecompConfirm = nil
                 PlaySFX(AUDIO.sfx_click)
             end
             return
         end
-        -- 閫変腑妯″紡搴曢儴鎿嶄綔鏍忔寜閽?"
+        -- 选中模式底部操作栏按钮
         if equipScreenState.selectMode then
-            -- 鍙栨秷鎸夐挳
+            -- 取消按钮
             if equipScreenState.selectCancelBtn and HitRect(equipScreenState.selectCancelBtn) then
                 equipScreenState.selectMode = false
                 equipScreenState.selectedUids = {}
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 纭鍒嗚В鎸夐挳 鈫?寮瑰嚭纭寮圭獥
+            -- 确认分解按钮 → 弹出确认弹窗
             if equipScreenState.selectConfirmBtn and HitRect(equipScreenState.selectConfirmBtn) then
                 local sc, sg = CalcSelectDecomposeStats(equipScreenState.selectedUids)
                 equipScreenState.selectDecompConfirm = { count = sc, gain = sg }
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 鍏ㄩ€夋寜閽?"
+            -- 全选按钮
             if equipScreenState.selectAllBtn and HitRect(equipScreenState.selectAllBtn) then
-                -- 鍏ㄩ€夊綋鍓嶆墍鏈夋湭瑁呭鍏电敳
+                -- 全选当前所有未装备兵甲
                 for _, itm in ipairs(playerEquipment.owned) do
                     if playerEquipment.equipped[itm.slotIdx] ~= itm.uid then
                         equipScreenState.selectedUids[itm.uid] = true
@@ -1689,7 +1461,7 @@ function BeginPress(sx, sy, touchId)
                 return
             end
         end
-        -- 杩斿洖鎸夐挳
+        -- 返回按钮
         if HitRect(equipBackBtnRect) then
             if equipScreenState.selectMode then
                 equipScreenState.selectMode = false
@@ -1697,19 +1469,19 @@ function BeginPress(sx, sy, touchId)
             else
                 PopPhase("MENU")
                 phaseChangeCooldown = 0.3
-                print("=== 杩斿洖涓婁竴椤?===")
+                print("=== 返回上一页 ===")
             end
             return
         end
-        -- 鐐瑰嚮閫変腑鍒嗚В鎸夐挳 鈫?杩涘叆閫変腑妯″紡
+        -- 点击选中分解按钮 → 进入选中模式
         if equipScreenState.selectDecompBtn and HitRect(equipScreenState.selectDecompBtn) then
             equipScreenState.selectMode = true
             equipScreenState.selectedUids = {}
             PlaySFX(AUDIO.sfx_click)
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "閫変腑瑕佸垎瑙ｇ殑鍏电敳", 1.0, { 100, 180, 255 }, 16)
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "选中要分解的兵甲", 1.0, { 100, 180, 255 }, 18)
             return
         end
-        -- 鐐瑰嚮绛涢€夊垎瑙ｆ寜閽?鈫?寮瑰嚭纭寮圭獥(浣跨敤褰撳墠绛涢€?"
+                        -- 空孔位 → 直接打开替换弹窗(装备)
         if equipScreenState.batchDecompBtn and HitRect(equipScreenState.batchDecompBtn) then
             local ft = equipScreenState.batchFilterMaxTier or 6
             local fc, fg = CalcBatchDecomposeStats(ft)
@@ -1720,7 +1492,7 @@ function BeginPress(sx, sy, touchId)
             PlaySFX(AUDIO.sfx_click)
             return
         end
-        -- 鐐瑰嚮寮哄寲鎸夐挳 鈫?寮瑰嚭纭寮圭獥
+        -- 点击强化按钮 → 弹出确认弹窗
         if equipEnhanceBtnRect and HitRect(equipEnhanceBtnRect) then
             local slotIdx = equipScreenState.selectedSlot
             local eqItem = GetEquippedItem(slotIdx)
@@ -1735,18 +1507,18 @@ function BeginPress(sx, sy, touchId)
             end
             return
         end
-        -- 鐐瑰嚮瑁呭妲戒綅鍒囨崲閫変腑
+        -- 点击装备槽位切换选中
         for si, rect in pairs(equipSlotRects) do
             if HitRect(rect) then
                 equipScreenState.selectedSlot = si
                 equipScreenState.scrollY = 0
                 equipScreenState.scrollVel = 0
-                -- 娑堥櫎璇ユЫ浣嶇殑绾㈢偣锛堢‘璁ゅ凡鏌ョ湅锛?"
+                -- 消除该槽位的红点（确认已查看）
                 redDotState.equipAck[si] = GetBestOwnedScoreForSlot(si)
                 return
             end
         end
-        -- 瑁呭鍒楄〃鍖哄煙锛氱函婊氬姩鎷栨嫿锛堣澶?鍗镐笅閫氳繃妲戒綅鎿嶄綔锛?"
+        -- 装备列表区域：纯滚动拖拽（装备/卸下通过槽位操作）
         equipScreenState.isDragging = true
         equipScreenState.dragStartY = dy
         equipScreenState.dragLastY = dy
@@ -1761,7 +1533,7 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- 淇℃伅寮圭獥鎵撳紑鏃? 鐐瑰嚮浠绘剰鍖哄煙鍏抽棴
+    -- 信息弹窗打开时: 点击任意区域关闭
     if infoPopupState.show then
         infoPopupState.show = false
         infoPopupState.card = nil
@@ -1778,9 +1550,9 @@ function BeginPress(sx, sy, touchId)
         return r and dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h
     end
 
-    -- 閭欢绯荤粺
+    -- 邮件系统
     if gameState.phase == "MAIL_BOX" then
-        -- 杩斿洖鎸夐挳
+        -- 返回按钮
         if menuBtnRects.mailBack and HitRect(menuBtnRects.mailBack) then
             PopPhase("MENU")
             phaseChangeCooldown = 0.3
@@ -1788,64 +1560,64 @@ function BeginPress(sx, sy, touchId)
             PlaySFX(AUDIO.sfx_click)
             return
         end
-        -- ======== 鍐欎俊寮圭獥浜や簰锛堢鐞嗗憳涓撶敤锛屼唬鐮佸湪 admin/ 鐩綍锛?========
+        -- ======== 写信弹窗交互（管理员专用，代码在 admin/ 目录） ========
         if IS_ADMIN_BUILD and _AdminMailInput and welfareState.mail.composing and welfareState.mail.composeData then
             if _AdminMailInput.HandleComposeClick() then return end
         end
 
-        -- ======== 纭寮圭獥浜や簰锛堟楂樹紭鍏堢骇锛?========
+        -- ======== 确认弹窗交互（次高优先级） ========
         if welfareState.mail.confirmPopup then
             local popup = welfareState.mail.confirmPopup
             if popup.confirmBtnRect and HitRect(popup.confirmBtnRect) then
                 if popup.cloudMail then
-                    -- 浜戦偖浠堕鍙?"
+                    -- 云邮件领取
                     local cm = popup.cloudMail
                     if not CloudManager.IsMailClaimed(cm.id) then
                         CloudManager.ClaimMail(cm.id)
-                        -- 瀹夊叏楠岃瘉锛氬彧鏈夌鐞嗗憳鍙戦€佺殑閭欢鎵嶈兘鍙戞斁濂栧姳
+                        -- 安全验证：只有管理员发送的邮件才能发放奖励
                         local senderIsAdmin = CloudManager.IsAdmin and CloudManager.IsAdmin(cm.from) or false
                         local safeRewards = senderIsAdmin and (cm.rewards or {}) or {}
                         if not senderIsAdmin and cm.rewards and #cm.rewards > 0 then
-                            print("[瀹夊叏] 闈炵鐞嗗憳閭欢鍚鍔憋紝宸插拷鐣? from=" .. tostring(cm.from))
+                            print("[安全] 非管理员邮件含奖励，已忽略: from=" .. tostring(cm.from))
                         end
                         for _, rw in ipairs(safeRewards) do
                             if rw.type == "jade" then
                                 playerInfo.jade = playerInfo.jade + rw.amount
                                 AddFloatText(DESIGN_W / 2, DESIGN_H * 0.25,
-                                    "+" .. rw.amount .. " 铏庣", 1.5, { 255, 220, 100 }, 18)
+                                    "+" .. rw.amount .. " 玉壁", 1.5, { 255, 220, 100 }, 18)
                             elseif rw.type == "ad_free" then
                                 playerInfo.ad_free = true
                                 AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
-                                    "鑾峰緱鍏嶅箍鍛婄壒鏉?", 1.5, { 100, 255, 150 }, 16)
+                                    "获得免广告特权!", 1.5, { 100, 255, 150 }, 18)
                             elseif rw.type == "full_skill" then
                                 local skIdx = rw.skillIdx
                                 if skIdx then
                                     skillFragments[skIdx] = (skillFragments[skIdx] or 0) + SKILL_FRAG_EXCHANGE
-                                    local skName = SKILL_TECHNIQUES[skIdx] and SKILL_TECHNIQUES[skIdx].name or ("姝︽妧#" .. skIdx)
+                                    local skName = SKILL_TECHNIQUES[skIdx] and SKILL_TECHNIQUES[skIdx].name or ("武技#" .. skIdx)
                                     AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
-                                        "鑾峰緱姝︽妧銆?" .. skName .. "銆?", 1.5, { 200, 160, 255 }, 16)
+                                        "获得武技「" .. skName .. "」", 1.5, { 200, 160, 255 }, 18)
                                 end
                             elseif rw.type == "seal" then
                                 local heroIdx = rw.fromHero
                                 local slotType = rw.slotType
                                 local sealQ = rw.sealQ or 1
                                 if heroIdx and slotType then
-                                    -- 鐩存帴瑁呭鍒版鐏靛瓟浣嶄笂锛堣鐩栨棫鐨勶級
+                                    -- 直接装备到武灵孔位上（覆盖旧的）
                                     if not sealData[heroIdx] then sealData[heroIdx] = { slots = {} } end
                                     sealData[heroIdx].slots[slotType] = { sealQ = sealQ, level = rw.level or 1, exp = 0 }
-                                    local heroName = HERO_CARDS[heroIdx] and HERO_CARDS[heroIdx].name or ("姝︾伒#" .. heroIdx)
-                                    local tierName = SEAL_TIER_NAMES[sealQ] or "鏈煡"
-                                    local slotName = SEAL_SLOT_NAMES[slotType] or ("瀛?" .. slotType)
+                                    local heroName = HERO_CARDS[heroIdx] and HERO_CARDS[heroIdx].name or ("武灵#" .. heroIdx)
+                                    local tierName = SEAL_TIER_NAMES[sealQ] or "未知"
+                                    local slotName = SEAL_SLOT_NAMES[slotType] or ("孔" .. slotType)
                                     AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
-                                        heroName .. " 鑾峰緱" .. tierName .. slotName, 1.5, { 180, 140, 255 }, 16)
+                                        heroName .. " 鑾峰緱" .. tierName .. slotName, 1.5, { 180, 140, 255 }, 18)
                                 end
                             end
                         end
                         SaveGameProgress()
-                        print("=== 浜戦偖浠堕鍙? " .. (cm.subject or cm.id) .. " ===")
+                        print("=== 云邮件领取: " .. (cm.subject or cm.id) .. " ===")
                     end
                 else
-                    -- 绯荤粺閭欢棰嗗彇
+                    -- 系统邮件领取
                     local mail = welfareState.mailDefs[popup.mailIdx]
                     if mail and not welfareState.mail.claimed[mail.id] then
                         welfareState.mail.claimed[mail.id] = true
@@ -1853,17 +1625,17 @@ function BeginPress(sx, sy, touchId)
                             if rw.type == "jade" then
                                 playerInfo.jade = playerInfo.jade + rw.amount
                                 AddFloatText(DESIGN_W / 2, DESIGN_H * 0.25,
-                                    "+" .. rw.amount .. " 铏庣", 1.5, { 255, 220, 100 }, 18)
+                                    "+" .. rw.amount .. " 玉壁", 1.5, { 255, 220, 100 }, 18)
                             elseif rw.type == "full_skill" then
                                 local skIdx = rw.skillIdx
                                 skillFragments[skIdx] = (skillFragments[skIdx] or 0) + SKILL_FRAG_EXCHANGE
-                                local skName = SKILL_TECHNIQUES[skIdx] and SKILL_TECHNIQUES[skIdx].name or ("姝︽妧#" .. skIdx)
+                                local skName = SKILL_TECHNIQUES[skIdx] and SKILL_TECHNIQUES[skIdx].name or ("武技#" .. skIdx)
                                 AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
-                                    "鑾峰緱姝︽妧銆?" .. skName .. "銆?", 1.5, { 200, 160, 255 }, 16)
+                                    "获得武技「" .. skName .. "」", 1.5, { 200, 160, 255 }, 18)
                             end
                         end
                         SaveGameProgress()
-                        print("=== 閭欢棰嗗彇: " .. mail.title .. " ===")
+                        print("=== 邮件领取: " .. mail.title .. " ===")
                     end
                 end
                 welfareState.mail.confirmPopup = nil
@@ -1879,10 +1651,10 @@ function BeginPress(sx, sy, touchId)
                 welfareState.mail.confirmPopup = nil
                 return
             end
-            return  -- 寮圭獥鎵撳紑鏃舵嫤鎴?"
+            return  -- 弹窗打开时拦截
         end
 
-        -- ======== Tab 鍒囨崲 ========
+        -- ======== Tab 切换 ========
         if menuBtnRects["mailTab_system"] and HitRect(menuBtnRects["mailTab_system"]) then
             if welfareState.mail.tab ~= "system" then
                 welfareState.mail.tab = "system"
@@ -1900,21 +1672,21 @@ function BeginPress(sx, sy, touchId)
             return
         end
 
-        -- ======== 浜戦偖浠?Tab 鎸夐挳 ========
+        -- ======== 云邮件 Tab 按钮 ========
         if welfareState.mail.tab == "cloud" then
-            -- 绠＄悊鍛樻寜閽紙鍐欎俊/鍙戝鍔?鐜╁绠＄悊锛屼唬鐮佸湪 admin/ 鐩綍锛?"
+            -- 管理员按钮（写信/发奖励/玩家管理，代码在 admin/ 目录）
             if IS_ADMIN_BUILD and _AdminMailInput then
                 if _AdminMailInput.HandleAdminButtonClick() then return end
             end
-            -- 鍒锋柊鎸夐挳
+            -- 刷新按钮
             if menuBtnRects.mailRefresh and HitRect(menuBtnRects.mailRefresh) then
                 CloudManager.ForceRefreshInbox(function()
-                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "閭欢宸插埛鏂?", 1.2, {140,220,180}, 14)
+                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "邮件已刷新", 1.2, {140,220,180}, 18)
                 end)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 浜戦偖浠堕鍙栨寜閽?"
+            -- 云邮件领取按钮
             for i, btnRect in pairs(welfareState.mail.cloudBtnRects or {}) do
                 if btnRect and HitRect(btnRect) then
                     local inbox = CloudManager._mailInbox or {}
@@ -1928,7 +1700,7 @@ function BeginPress(sx, sy, touchId)
             end
         end
 
-        -- ======== 绯荤粺閭欢 Tab 棰嗗彇鎸夐挳 ========
+        -- ======== 云邮件 Tab 按钮 ========
         if welfareState.mail.tab == "system" then
             for i, btnRect in pairs(welfareState.mail.btnRects) do
                 if btnRect and HitRect(btnRect) then
@@ -1940,7 +1712,7 @@ function BeginPress(sx, sy, touchId)
                     return
                 end
             end
-            -- 闈炵鐞嗗憳: 绯荤粺閭欢Tab涓殑浜戦偖浠堕鍙栨寜閽?"
+            -- 非管理员: 系统邮件Tab中的云邮件领取按钮
             if not CloudManager.IsAdmin() then
                 for i, btnRect in pairs(welfareState.mail.cloudBtnRects or {}) do
                     if btnRect and HitRect(btnRect) then
@@ -1956,7 +1728,7 @@ function BeginPress(sx, sy, touchId)
             end
         end
 
-        -- 娌℃湁鍛戒腑鎸夐挳锛屽紑濮嬫粴鍔ㄦ嫋鎷?"
+        -- 没有命中按钮，开始滚动拖拽
         local _, dy2 = ScreenToDesign(sx, sy)
         if welfareState.mail.scroll then
             welfareState.mail.scroll.isDragging = true
@@ -1967,12 +1739,12 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- ======== 浜ゆ槗琛岀晫闈㈢偣鍑诲鐞?========
+    -- ======== 交易行界面点击处理 ========
     if gameState.phase == "TRADE" then
-        -- 纭寮圭獥浼樺厛
+        -- 确认弹窗优先
         if tradeState.confirmPopup then
             local pop = tradeState.confirmPopup
-            -- 涓婃灦瀹氫环寮圭獥: 浠锋牸 +/-
+            -- 上架定价弹窗: 价格 +/-
             if pop.type == "list_item" then
                 if tradeState.btnRects.priceMinus and HitRect(tradeState.btnRects.priceMinus) then
                     local d = pop.data
@@ -2025,7 +1797,7 @@ function BeginPress(sx, sy, touchId)
         if tradeState.btnRects.back and HitRect(tradeState.btnRects.back) then
             PopPhase(); PlaySFX(AUDIO.sfx_click); return
         end
-        -- Tab 鍒囨崲
+        -- Tab切换
         if tradeState.btnRects.tabMarket and HitRect(tradeState.btnRects.tabMarket) then
             tradeState.tab = "market"; tradeState.scroll.offset = 0; tradeState.scroll.vel = 0
             tradeState.selectedItem = nil; PlaySFX(AUDIO.sfx_click); return
@@ -2034,25 +1806,25 @@ function BeginPress(sx, sy, touchId)
             tradeState.tab = "mine"; tradeState.scroll.offset = 0; tradeState.scroll.vel = 0
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 鍒锋柊鎸夐挳
+        -- 刷新按钮
         if tradeState.btnRects.refresh and HitRect(tradeState.btnRects.refresh) then
             TradeManager.RefreshMarket(function()
-                ShowToast("甯傚満宸插埛鏂?")
+                ShowToast("市场已刷新")
             end)
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 棰嗗彇铏庣鎸夐挳
+        -- 领取玉壁按钮
         if tradeState.btnRects.claimJade and HitRect(tradeState.btnRects.claimJade) then
             TradeManager.ClaimJade(function(amount)
                 if amount > 0 then
-                    ShowToast("棰嗗彇 " .. amount .. " 铏庣")
+                    ShowToast("领取 " .. amount .. " 玉壁")
                 else
-                    ShowToast("鏆傛棤鍙鍙栬檸绗?")
+                    ShowToast("暂无可领取玉壁")
                 end
             end)
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 甯傚満鍒楄〃鐐瑰嚮 (浣跨敤杩囨护鍚庣殑鐗╁搧鍒楄〃)
+        -- 名字选择 (含自定义选项)
         if tradeState.tab == "market" then
             local items = tradeState._filteredMarketItems or TradeManager.state.marketItems or {}
             for i, _ in ipairs(items) do
@@ -2060,7 +1832,7 @@ function BeginPress(sx, sy, touchId)
                 if rect and HitRect(rect) then
                     local item = items[i]
                     if item.isMine then
-                        ShowToast("杩欐槸浣犺嚜宸变笂鏋剁殑瑁呭")
+                    ShowToast("不能添加自己为好友")
                         PlaySFX(AUDIO.sfx_click); return
                     end
                     tradeState.confirmPopup = {
@@ -2071,9 +1843,9 @@ function BeginPress(sx, sy, touchId)
                 end
             end
         end
-        -- 鎴戠殑涓婃灦鍒楄〃鐐瑰嚮 (涓嬫灦/棰嗗彇)
+        -- 我的上架列表点击 (下架/领取)
         if tradeState.tab == "mine" then
-            -- 鍦ㄥ敭items
+            -- 在售items
             local active = TradeManager.GetActiveListings()
             for i, al in ipairs(active) do
                 local rect = tradeState.btnRects["unlist_" .. i]
@@ -2091,17 +1863,17 @@ function BeginPress(sx, sy, touchId)
                     PlaySFX(AUDIO.sfx_click); return
                 end
             end
-            -- 鍙氦鏄撶墿鍝佷笂鏋舵寜閽?"
+            -- 可交易物品上架按钮
             local tItems = tradeState.tradeableItems or {}
             for i, item in ipairs(tItems) do
                 local rect = tradeState.btnRects["list_" .. i]
                 if rect and HitRect(rect) then
-                    -- 妫€鏌ヤ笂鏋舵暟閲忛檺鍒?"
+                    -- 检查上架数量限制
                     if TradeManager.GetListingCount() >= GameConfig.TRADE.MAX_LISTINGS then
-                        ShowToast("涓婃灦鏁伴噺宸茶揪涓婇檺(" .. GameConfig.TRADE.MAX_LISTINGS .. "浠?")
+                        ShowToast("上架数量已达上限(" .. GameConfig.TRADE.MAX_LISTINGS .. "件)")
                         PlaySFX(AUDIO.sfx_click); return
                     end
-                    -- 鎵撳紑瀹氫环寮圭獥
+                    -- 打开定价弹窗
                     local pMin, pMax = TradeManager.GetPriceRange(item.tier)
                     local midPrice = math.floor((pMin + pMax) / 2)
                     if item.tier >= 6 then midPrice = pMin end
@@ -2118,7 +1890,7 @@ function BeginPress(sx, sy, touchId)
                 end
             end
         end
-        -- 娌℃湁鍛戒腑鎸夐挳锛屽紑濮嬫粴鍔ㄦ嫋鎷?"
+        -- 没有命中按钮，开始滚动拖拽
         tradeState.scroll.isDragging = true
         tradeState.scroll.dragStartY = dy
         tradeState.scroll.dragLastY = dy
@@ -2126,28 +1898,28 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- 鎴樺姏鎺掕姒滅嫭绔嬬晫闈?"
-    -- ======== 闃佃惀鐣岄潰鐐瑰嚮澶勭悊 ========
+    -- 战力排行榜独立界面
+        -- ======== 战力说明弹窗交互 ========
     if gameState.phase == "FACTION" then
-        -- 鏀瑰悕寮圭獥浼樺厛
+        -- 改名弹窗优先
         if factionUI.renamePopup then
             if menuBtnRects.factionRenameYes and HitRect(menuBtnRects.factionRenameYes) then
                 local newName = factionUI.renameInput or ""
                 if #newName == 0 then
-                    ShowToast("鍚嶇О涓嶈兘涓虹┖")
+                    ShowToast("不能添加自己为好友")
                 elseif (playerInfo.jade or 0) < 1000 then
-                    ShowToast("铏庣涓嶈冻锛屾敼鍚嶉渶瑕?000铏庣")
+                    ShowToast("玉壁不足，改名需要1000玉壁")
                 else
                     playerInfo.jade = playerInfo.jade - 1000
                     CloudManager.RenameFaction(newName, function(ok, reason)
                         if ok then
-                            ShowToast("闃佃惀宸叉洿鍚嶄负銆?" .. newName .. "銆?-1000铏庣)")
+                            ShowToast("阵营已更名为「" .. newName .. "」(-1000玉壁)")
                             factionUI.loaded = false; factionUI.loading = false
                             if SaveGameProgress then SaveGameProgress() end
                         else
-                            -- 鏀瑰悕澶辫触锛岄€€杩樿檸绗?"
+                            -- 改名失败，退还玉壁
                             playerInfo.jade = playerInfo.jade + 1000
-                            ShowToast("鏀瑰悕澶辫触: " .. tostring(reason))
+                            ShowToast("改名失败: " .. tostring(reason))
                         end
                     end)
                     factionUI.renamePopup = false; factionUI.renameInput = ""
@@ -2160,15 +1932,15 @@ function BeginPress(sx, sy, touchId)
                 factionUI.inputTarget = nil; input:SetScreenKeyboardVisible(false)
                 PlaySFX(AUDIO.sfx_click); return
             end
-            -- 鐐硅緭鍏ユ婵€娲婚敭鐩?"
+            -- 点输入框激活键盘
             if menuBtnRects.factionRenameInput and HitRect(menuBtnRects.factionRenameInput) then
                 factionUI.inputTarget = "rename"
                 input:SetScreenKeyboardVisible(true)
                 PlaySFX(AUDIO.sfx_click); return
             end
-            return  -- 寮圭獥鎵撳紑鏃舵嫤鎴?"
+            return  -- 弹窗打开时拦截
         end
-        -- 纭寮圭獥浼樺厛
+        -- 确认弹窗优先
         if factionUI.confirmPopup then
             if menuBtnRects.factionPopupYes and HitRect(menuBtnRects.factionPopupYes) then
                 local pop = factionUI.confirmPopup
@@ -2177,7 +1949,7 @@ function BeginPress(sx, sy, touchId)
                 if pop.type == "leave" then
                     CloudManager.LeaveFaction(function(ok)
                         if ok then
-                            ShowToast("宸查€€鍑洪樀钀?")
+                            ShowToast("已退出阵营")
                             factionUI.tab = "list"
                             factionUI.loaded = false
                             factionUI.loading = false
@@ -2187,39 +1959,39 @@ function BeginPress(sx, sy, touchId)
                             factionUI.chatPolled = false
                             playerInfo.factionJoined = 0
                             SaveGameProgress()
-                        else ShowToast("鎿嶄綔澶辫触") end
+                        else ShowToast("操作失败") end
                     end)
                 elseif pop.type == "apply" then
                     CloudManager.ApplyToFaction(pop.targetId, pop.targetName, function(ok)
                         if ok then
                             factionUI.applyStatus = "pending"
                             playerInfo.factionJoined = 1
-                            ShowToast("鐢宠宸插彂閫?")
-                        else ShowToast("鐢宠澶辫触") end
+                            ShowToast("申请已发送")
+                        else ShowToast("操作失败") end
                     end)
                 elseif pop.type == "create" then
-                    -- 铏庣妫€鏌ュ拰鎵ｈ垂鐢?CloudManager.CreateFaction 缁熶竴澶勭悊
+                    -- 玉壁检查和扣费由 CloudManager.CreateFaction 统一处理
                     CloudManager.CreateFaction(factionUI.createName, factionUI.createDesc, function(ok, reason)
                         if ok then
                             playerInfo.totalFactionCreated = (playerInfo.totalFactionCreated or 0) + 1
                             playerInfo.factionJoined = 1
-                            ShowToast("闃佃惀鍒涘缓鎴愬姛锛?")
+                            ShowToast("阵营创建成功！")
                             factionUI.tab = "info"
                             factionUI.loaded = false
                             factionUI.loading = false
                             factionUI.createName = ""; factionUI.createDesc = ""
                             SaveGameProgress()
                         else
-                            ShowToast(reason or "鍒涘缓澶辫触")
+                            ShowToast(reason or "创建失败")
                         end
                     end)
                 elseif pop.type == "kick" then
                     CloudManager.KickMember(pop.targetUserId, function(ok, reason)
                         if ok then
-                            ShowToast("宸茶涪鍑烘垚鍛?")
+                            ShowToast("已踢出成员")
                             factionUI.loaded = false; factionUI.loading = false
                         else
-                            ShowToast("韪㈠嚭澶辫触: " .. tostring(reason))
+                            ShowToast("踢出失败: " .. tostring(reason))
                         end
                     end)
                 end
@@ -2228,14 +2000,14 @@ function BeginPress(sx, sy, touchId)
             if menuBtnRects.factionPopupNo and HitRect(menuBtnRects.factionPopupNo) then
                 factionUI.confirmPopup = nil; PlaySFX(AUDIO.sfx_click); return
             end
-            return  -- 寮圭獥鎵撳紑鏃舵嫤鎴?"
+            return  -- 弹窗打开时拦截
         end
         -- 杩斿洖
         if menuBtnRects.factionBack and HitRect(menuBtnRects.factionBack) then
             factionUI.inputTarget = nil; input:SetScreenKeyboardVisible(false)
             PopPhase("MENU"); phaseChangeCooldown = 0.3; PlaySFX(AUDIO.sfx_click); return
         end
-        -- Tab 鍒囨崲
+        -- Tab切换
         for _, tid in ipairs({"info", "members", "chat", "apply", "list", "create"}) do
             local r = menuBtnRects["factionTab_" .. tid]
             if r and HitRect(r) then
@@ -2243,7 +2015,7 @@ function BeginPress(sx, sy, touchId)
                     factionUI.tab = tid; factionUI.inputTarget = nil
                     factionUI.subView = nil
                     factionUI.scroll.offset = 0; factionUI.scroll.vel = 0
-                    -- 鍒囨崲 tab 鏃堕噸鏂板姞杞藉搴旀暟鎹?"
+                    -- 切换 tab 时重新加载对应数据
                     if tid == "members" then
                         factionUI.loaded = false; factionUI.loading = false
                     elseif tid == "apply" then
@@ -2256,7 +2028,7 @@ function BeginPress(sx, sy, touchId)
                 return
             end
         end
-        -- 鑱屼綅閫夋嫨寮圭獥鎵撳紑鏃讹紝鎷︽埅鎵€鏈夊叾浠栫偣鍑?"
+        -- 职位选择弹窗打开时，拦截所有其他点击
         if factionUI.rolePopup then
             for i = 1, 6 do
                 local optR = menuBtnRects["factionRoleOption_" .. i]
@@ -2266,10 +2038,10 @@ function BeginPress(sx, sy, touchId)
                     if newRole ~= rp.currentRole then
                         CloudManager.SetMemberRole(rp.userId, newRole, function(ok, reason)
                             if ok then
-                                ShowToast("宸插皢銆?" .. (rp.nickname or "?") .. "銆嶈涓?" .. (reason or newRole))
+                                ShowToast("已将「" .. (rp.nickname or "?") .. "」设为" .. (reason or newRole))
                                 factionUI.loaded = false; factionUI.loading = false
                             else
-                                ShowToast("璁剧疆澶辫触: " .. tostring(reason))
+                                ShowToast("设置失败: " .. tostring(reason))
                             end
                         end)
                     end
@@ -2277,37 +2049,37 @@ function BeginPress(sx, sy, touchId)
                     PlaySFX(AUDIO.sfx_click); return
                 end
             end
-            -- 鐐瑰脊绐楀鍏抽棴
+            -- 点弹窗外关闭
             factionUI.rolePopup = nil
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 鎺掕姒滈潰鏉匡紙鏈€楂樹紭鍏堢骇锛岃鐩栧叾浠栨搷浣滐級
+        -- 排行榜面板（最高优先级，覆盖其他操作）
         if factionUI.showRank then
             if menuBtnRects.factionRankClose and HitRect(menuBtnRects.factionRankClose) then
                 factionUI.showRank = false
                 PlaySFX(AUDIO.sfx_click); return
             end
-            -- 鎺掕姒滈伄缃╃偣鍑讳篃鍏抽棴
+            -- 排行榜遮罩点击也关闭
             if menuBtnRects.factionRankOverlay and HitRect(menuBtnRects.factionRankOverlay) then
                 factionUI.showRank = false
                 PlaySFX(AUDIO.sfx_click); return
             end
-            return  -- 鎺掕姒滄墦寮€鏃舵嫤鎴墍鏈夊叾浠栫偣鍑?"
+            return  -- 排行榜打开时拦截所有其他点击
         end
-        -- 鎺掕姒滄墦寮€鎸夐挳
+        -- 排行榜打开按钮
         if menuBtnRects.factionRankBtn and HitRect(menuBtnRects.factionRankBtn) then
             factionUI.showRank = true
             factionUI.rankLoaded = false; factionUI.rankLoading = false
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 瀛愯鍥捐繑鍥炴寜閽?"
+        -- 子视图返回按钮
         if menuBtnRects.factionSubBack and HitRect(menuBtnRects.factionSubBack) then
             factionUI.subView = nil; factionUI.showRank = false
             factionUI.inputTarget = nil
             input:SetScreenKeyboardVisible(false)
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 鎹愮尞閲戦閫夋嫨
+        -- 捐献金额选择
         for ai = 1, 4 do
             local amtR = menuBtnRects["factionDonateAmt_" .. ai]
             if amtR and HitRect(amtR) then
@@ -2315,7 +2087,7 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click); return
             end
         end
-        -- 鎹愮尞鎸夐挳
+        -- 捐献按钮
         if menuBtnRects.factionDonate and HitRect(menuBtnRects.factionDonate) then
             if not factionUI.donating then
                 factionUI.donating = true
@@ -2323,38 +2095,38 @@ function BeginPress(sx, sy, touchId)
                     factionUI.donating = false
                     if ok then
                         if reason then
-                            ShowToast(reason)  -- 鍗囩骇鎻愮ず
+                            ShowToast(reason)  -- 升级提示
                         else
-                            ShowToast("鎹愮尞鎴愬姛! +" .. factionUI.donateAmount .. " 铏庣")
+                            ShowToast("捐献成功! +" .. factionUI.donateAmount .. " 玉壁")
                         end
                     else
-                        ShowToast("鎹愮尞澶辫触: " .. tostring(reason))
+                            ShowToast("改名失败: " .. tostring(reason))
                     end
                 end)
             end
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 鍏憡杈撳叆妗?"
+        -- 公告输入框
         if menuBtnRects.factionAnnounceInput and HitRect(menuBtnRects.factionAnnounceInput) then
             factionUI.inputTarget = "announce"
             input:SetScreenKeyboardVisible(true)
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 鍏憡淇濆瓨鎸夐挳
+        -- 公告保存按钮
         if menuBtnRects.factionAnnounceSave and HitRect(menuBtnRects.factionAnnounceSave) then
             CloudManager.SetFactionAnnouncement(factionUI.announceInput, function(ok, reason)
                 if ok then
-                    ShowToast("鍏憡宸叉洿鏂?")
+                    ShowToast("公告已更新")
                     factionUI.announceInput = ""
                     factionUI.inputTarget = nil
                     input:SetScreenKeyboardVisible(false)
                 else
-                    ShowToast("鏇存柊澶辫触: " .. tostring(reason))
+                            ShowToast("改名失败: " .. tostring(reason))
                 end
             end)
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 闃佃惀鍔熻兘鍏ュ彛锛氭垚鍛樼鐞?鈫?members tab锛岃亰澶?鈫?chat tab
+        -- 阵营功能入口：成员管理 → members tab，聊天 → chat tab
         if menuBtnRects["factionFeat_manage"] and HitRect(menuBtnRects["factionFeat_manage"]) then
             factionUI.tab = "members"; factionUI.loaded = false; factionUI.loading = false
             factionUI.subView = nil
@@ -2365,59 +2137,59 @@ function BeginPress(sx, sy, touchId)
             if not factionUI.chatMessages then factionUI.chatMessages = {} end
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 姣忔棩绛惧埌
+        -- 每日签到
         if menuBtnRects["factionFeat_signIn"] and HitRect(menuBtnRects["factionFeat_signIn"]) then
             if CloudManager.HasSignedInToday() then
-                ShowToast("浠婃棩宸茬鍒?")
+                ShowToast("今日已签到")
             elseif not factionUI.signingIn then
                 factionUI.signingIn = true
                 CloudManager.FactionSignIn(function(ok, reason)
                     factionUI.signingIn = false
                     if ok then
                         if reason then
-                            ShowToast(reason)  -- 鍗囩骇鎻愮ず
+                            ShowToast(reason)  -- 升级提示
                         else
-                            ShowToast("绛惧埌鎴愬姛! 闃佃惀缁忛獙+500")
+                            ShowToast("签到成功! 阵营经验+500")
                         end
                     else
-                        ShowToast("绛惧埌澶辫触: " .. tostring(reason))
+                        ShowToast("签到失败: " .. tostring(reason))
                     end
                 end)
             end
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 闃佃惀鎺掕鍏ュ彛 鈫?鎵撳紑鎺掕姒滃脊鍑洪潰鏉?"
+        -- 阵营排行入口 → 打开排行榜弹出面板
         if menuBtnRects["factionFeat_rank"] and HitRect(menuBtnRects["factionFeat_rank"]) then
             factionUI.showRank = true
             factionUI.rankLoaded = false; factionUI.rankLoading = false
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 鎴愬憳璐＄尞 鈫?鎵撳紑璐＄尞瀛愯鍥?"
+        -- 成员贡献 → 打开贡献子视图
         if menuBtnRects["factionFeat_contrib"] and HitRect(menuBtnRects["factionFeat_contrib"]) then
             factionUI.subView = "contrib"
             factionUI.contribLoaded = false; factionUI.contribLoading = false
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 闃佃惀鑱婂ぉ: 娣诲姞濂藉弸鎸夐挳
+        -- 阵营聊天: 添加好友按钮
         if menuBtnRects.factionChatAddFriend and HitRect(menuBtnRects.factionChatAddFriend) then
             local targetUid = menuBtnRects.factionChatAddFriend.uid
             local targetName = menuBtnRects.factionChatAddFriend.name or "?"
             local myUid = CloudAPI.GetUserId()
             if targetUid == myUid then
-                ShowToast("涓嶈兘娣诲姞鑷繁涓哄ソ鍙?")
+                ShowToast("不能添加自己为好友")
             else
                 CloudManager.SendFriendRequest(targetUid, "")
                 playerInfo.totalFriendReqs = (playerInfo.totalFriendReqs or 0) + 1
-                ShowToast("宸插悜銆?" .. targetName .. "銆嶅彂閫佸ソ鍙嬭姹?")
+                ShowToast("已向「" .. targetName .. "」发送好友请求")
             end
             factionUI.chatNamePopup = nil
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 闃佃惀鑱婂ぉ: 寮圭獥鍖哄煙鍐呯偣鍑讳笉绌块€?"
+        -- 阵营聊天: 弹窗区域内点击不穿透
         if menuBtnRects.factionChatPopupArea and HitRect(menuBtnRects.factionChatPopupArea) then
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 闃佃惀鑱婂ぉ: 鐐瑰嚮澶村儚寮瑰嚭鐜╁淇℃伅
+        -- 阵营聊天: 点击头像弹出玩家信息
         if factionUI._chatAvatarRects then
             for _, nr in ipairs(factionUI._chatAvatarRects) do
                 if HitRect(nr) then
@@ -2430,7 +2202,7 @@ function BeginPress(sx, sy, touchId)
                 end
             end
         end
-        -- 鑱婂ぉ杈撳叆妗?"
+        -- 聊天输入框
         if menuBtnRects.factionChatInput and HitRect(menuBtnRects.factionChatInput) then
             factionUI.inputTarget = "chat"
             factionUI.chatNamePopup = nil
@@ -2438,11 +2210,11 @@ function BeginPress(sx, sy, touchId)
             input:SetScreenKeyboardVisible(true)
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 鑱婂ぉ鍙戦€佹寜閽?(浜戠鍚屾)
+        -- 名字选择 (含自定义选项)
         if menuBtnRects.factionChatSend and HitRect(menuBtnRects.factionChatSend) then
             if factionUI.chatInput and #factionUI.chatInput > 0 then
                 local filteredText = FilterBannedWords(factionUI.chatInput)
-                local senderName = CloudManager._myTapNickname or factionUI.myNickname or playerInfo.name or "鎴?"
+                local senderName = CloudManager._myTapNickname or factionUI.myNickname or playerInfo.name or "我"
                 CloudManager.SendFactionChat(filteredText, senderName)
                 playerInfo.totalFactionChat = (playerInfo.totalFactionChat or 0) + 1
                 factionUI.chatInput = ""
@@ -2451,7 +2223,7 @@ function BeginPress(sx, sy, touchId)
             end
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 闃佃惀鍏绘垚鍔熻兘鍏ュ彛 (鎵撳紑瀛愯鍥?"
+        -- 阵营养成功能入口 (打开子视图)
         local cultivateFeats = {"upgrade", "donate", "announce"}
         for _, fid in ipairs(cultivateFeats) do
             local fr = menuBtnRects["factionFeat_" .. fid]
@@ -2464,17 +2236,17 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click); return
             end
         end
-        -- 鍏朵綑寰呭紑鍙戝姛鑳?"
+        -- 其余待开发功能
         local devFeatIds = {"shop","war","task"}
-        local devFeatNames = {shop="闃佃惀鍟嗗簵",war="闃佃惀鎴樹簤",task="闃佃惀浠诲姟"}
+        local devFeatNames = {shop="阵营商店",war="阵营战争",task="阵营任务"}
         for _, fid in ipairs(devFeatIds) do
             local fr = menuBtnRects["factionFeat_" .. fid]
             if fr and HitRect(fr) then
-                ShowToast("銆?" .. (devFeatNames[fid] or fid) .. "銆嶅姛鑳藉緟寮€鍙戯紝鏁鏈熷緟锛?")
+                ShowToast("「" .. (devFeatNames[fid] or fid) .. "」功能待开发，敬请期待！")
                 PlaySFX(AUDIO.sfx_click); return
             end
         end
-        -- 鏀瑰悕鎸夐挳 (鐩熶富)
+        -- 名字选择 (含自定义选项)
         if menuBtnRects.factionRename and HitRect(menuBtnRects.factionRename) then
             factionUI.renamePopup = true
             factionUI.renameInput = ""
@@ -2482,24 +2254,24 @@ function BeginPress(sx, sy, touchId)
             input:SetScreenKeyboardVisible(true)
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 閫€鍑?瑙ｆ暎闃佃惀
+        -- 退出/解散阵营
         if menuBtnRects.factionLeave and HitRect(menuBtnRects.factionLeave) then
             local info = CloudManager.GetFactionInfo()
-            local msg = (info and info.role == "leader") and "纭畾瑙ｆ暎闃佃惀锛?" or "纭畾閫€鍑洪樀钀ワ紵"
+            local msg = (info and info.role == "leader") and "确定解散阵营？" or "确定退出阵营？"
             factionUI.confirmPopup = { type = "leave", msg = msg }
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 鍏ラ槦鐢宠: 鍚屾剰/鎷掔粷
+        -- 入队申请: 同意/拒绝
         for i = 1, 50 do
             local accR = menuBtnRects["factionAccept_" .. i]
             if accR and HitRect(accR) then
                 local uid = accR.userId
                 CloudManager.ApproveFactionApplication(uid, function(ok)
-                    if ok then ShowToast("宸插悓鎰忕敵璇?") else ShowToast("鎿嶄綔澶辫触") end
+                    if ok then ShowToast("已同意申请") else ShowToast("操作失败") end
                     factionUI.applyLoaded = false; factionUI.applyLoading = false
-                    factionUI.loaded = false; factionUI.loading = false  -- 鍒锋柊鎴愬憳鍒楄〃
+                    factionUI.loaded = false; factionUI.loading = false  -- 刷新成员列表
                     factionUI.pendingAppCount = math.max(0, factionUI.pendingAppCount - 1)
-                    factionUI.lastAppCheckTime = 0  -- 瑙﹀彂绔嬪嵆閲嶆柊妫€鏌?"
+                    factionUI.lastAppCheckTime = 0  -- 触发立即重新检查
                 end)
                 PlaySFX(AUDIO.sfx_click); return
             end
@@ -2507,14 +2279,14 @@ function BeginPress(sx, sy, touchId)
             if rejR and HitRect(rejR) then
                 local uid = rejR.userId
                 CloudManager.RejectFactionApplication(uid)
-                ShowToast("宸叉嫆缁?"); PlaySFX(AUDIO.sfx_click)
+                ShowToast("已拒绝"); PlaySFX(AUDIO.sfx_click)
                 factionUI.applyLoaded = false; factionUI.applyLoading = false
                 factionUI.pendingAppCount = math.max(0, factionUI.pendingAppCount - 1)
                 factionUI.lastAppCheckTime = 0
                 return
             end
         end
-        -- 鎴愬憳鍒楄〃: 璁剧疆鑱屼綅鎸夐挳
+        -- 成员列表: 设置职位按钮
         for i = 1, 30 do
             local srR = menuBtnRects["factionSetRole_" .. i]
             if srR and HitRect(srR) then
@@ -2522,45 +2294,45 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click); return
             end
         end
-        -- 鎴愬憳鍒楄〃: 韪㈠嚭鎸夐挳
+        -- 成员列表: 踢出按钮
         for i = 1, 30 do
             local kR = menuBtnRects["factionKick_" .. i]
             if kR and HitRect(kR) then
                 factionUI.confirmPopup = {
                     type = "kick", targetUserId = kR.userId,
-                    msg = "纭畾灏嗐€?" .. (kR.nickname or "?") .. "銆嶈涪鍑洪樀钀ワ紵"
+                    msg = "确定将「" .. (kR.nickname or "?") .. "」踢出阵营？"
                 }
                 PlaySFX(AUDIO.sfx_click); return
             end
         end
-        -- 闃佃惀鍒楄〃: 鐢宠鍔犲叆
+        -- 阵营列表: 申请加入
         for i = 1, 50 do
             local apR = menuBtnRects["factionApply_" .. i]
             if apR and HitRect(apR) then
                 factionUI.confirmPopup = {
                     type = "apply", targetId = apR.campId, targetName = apR.campName,
-                    msg = "鐢宠鍔犲叆銆?" .. (apR.campName or "?") .. "銆嶏紵"
+                    msg = "申请加入「" .. (apR.campName or "?") .. "」？"
                 }
                 PlaySFX(AUDIO.sfx_click); return
             end
         end
-        -- 鍒锋柊鐢宠鐘舵€?"
+        -- 刷新申请状态
         if menuBtnRects.factionRefreshApply and HitRect(menuBtnRects.factionRefreshApply) then
             CloudManager.CheckMyFactionApplication(function(status)
                 if status == "approved" then
-                    factionUI.applyStatus = nil; ShowToast("鐢宠宸查€氳繃锛?")
+                    factionUI.applyStatus = nil; ShowToast("申请已通过！")
                     factionUI.loaded = false; factionUI.loading = false
                 elseif status == "rejected" then
-                    factionUI.applyStatus = nil; ShowToast("鐢宠琚嫆缁?")
+                    factionUI.applyStatus = nil; ShowToast("申请被拒绝")
                 elseif status == "pending" then
-                    ShowToast("浠嶅湪瀹℃壒涓?..")
+                    ShowToast("仍在审批中...")
                 else
-                    factionUI.applyStatus = nil; ShowToast("鐘舵€佸凡鏇存柊")
+                    factionUI.applyStatus = nil; ShowToast("申请已通过！")
                 end
             end)
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 杈撳叆妗嗘縺娲?"
+        -- 输入框激活
         if menuBtnRects.factionNameInput and HitRect(menuBtnRects.factionNameInput) then
             factionUI.inputTarget = "name"; input:SetScreenKeyboardVisible(true)
             PlaySFX(AUDIO.sfx_click); return
@@ -2569,18 +2341,18 @@ function BeginPress(sx, sy, touchId)
             factionUI.inputTarget = "desc"; input:SetScreenKeyboardVisible(true)
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 鍒涘缓闃佃惀
+        -- 创建阵营
         if menuBtnRects.factionCreate and HitRect(menuBtnRects.factionCreate) then
             if #factionUI.createName < 2 then
-                ShowToast("闃佃惀鍚嶇О鑷冲皯2涓瓧"); return
+                ShowToast("阵营名称至少2个字"); return
             end
             factionUI.confirmPopup = {
                 type = "create",
-                msg = "鑺辫垂5000铏庣鍒涘缓闃佃惀锛?"
+                msg = "花费5000玉壁创建阵营？"
             }
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 鎴愬憳鍒楄〃锛氭病鏈夊懡涓寜閽紝寮€濮嬫粴鍔ㄦ嫋鎷?"
+        -- 成员列表：没有命中按钮，开始滚动拖拽
         if factionUI.tab == "members" and #factionUI.members > 0 then
             factionUI.scroll.isDragging = true
             factionUI.scroll.dragStartY = dy
@@ -2590,9 +2362,9 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- ======== 濂藉弸鐣岄潰鐐瑰嚮澶勭悊 ========
+        -- ======== 战力说明弹窗交互 ========
     if gameState.phase == "FRIENDS" then
-        -- 纭寮圭獥浼樺厛
+        -- 确认弹窗优先
         if friendsUI.confirmPopup then
             if menuBtnRects.friendPopupYes and HitRect(menuBtnRects.friendPopupYes) then
                 local pop = friendsUI.confirmPopup
@@ -2600,7 +2372,7 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 if pop.type == "delete" then
                     CloudManager.RemoveFriend(pop.targetId)
-                    ShowToast("宸插垹闄ゅソ鍙?")
+                    ShowToast("已删除好友")
                     friendsUI.loaded = false; friendsUI.loading = false
                 end
                 return
@@ -2608,14 +2380,14 @@ function BeginPress(sx, sy, touchId)
             if menuBtnRects.friendPopupNo and HitRect(menuBtnRects.friendPopupNo) then
                 friendsUI.confirmPopup = nil; PlaySFX(AUDIO.sfx_click); return
             end
-            return  -- 寮圭獥鎵撳紑鏃舵嫤鎴?"
+            return  -- 弹窗打开时拦截
         end
         -- 杩斿洖
         if menuBtnRects.friendsBack and HitRect(menuBtnRects.friendsBack) then
             friendsUI.inputActive = false; input:SetScreenKeyboardVisible(false)
             PopPhase("MENU"); phaseChangeCooldown = 0.3; PlaySFX(AUDIO.sfx_click); return
         end
-        -- Tab 鍒囨崲
+        -- Tab切换
         for _, tid in ipairs({"list", "add", "requests"}) do
             local r = menuBtnRects["friendsTab_" .. tid]
             if r and HitRect(r) then
@@ -2633,25 +2405,25 @@ function BeginPress(sx, sy, touchId)
                 return
             end
         end
-        -- 濂藉弸鍒楄〃: 鍒犻櫎
+        -- 好友列表: 删除
         for i = 1, 50 do
             local delR = menuBtnRects["friendDel_" .. i]
             if delR and HitRect(delR) then
                 local fr = friendsUI.friends[i]
-                local name = fr and (fr.nickname or ("鐜╁" .. tostring(fr.userId))) or "?"
+                local name = fr and (fr.nickname or ("玩家" .. tostring(fr.userId))) or "?"
                 friendsUI.confirmPopup = {
                     type = "delete", targetId = delR.userId,
-                    msg = "纭畾鍒犻櫎濂藉弸銆?" .. name .. "銆嶏紵"
+                    msg = "确定删除好友「" .. name .. "」？"
                 }
                 PlaySFX(AUDIO.sfx_click); return
             end
         end
-        -- 鎼滅储杈撳叆妗嗘縺娲?"
+        -- 搜索输入框激活
         if menuBtnRects.friendSearchInput and HitRect(menuBtnRects.friendSearchInput) then
             friendsUI.inputActive = true; input:SetScreenKeyboardVisible(true)
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 鎼滅储鎸夐挳
+        -- 搜索按钮
         if menuBtnRects.friendSearchBtn and HitRect(menuBtnRects.friendSearchBtn) then
             if #friendsUI.searchId > 0 then
                 friendsUI.searchResult = nil; friendsUI.searchNotFound = false
@@ -2663,36 +2435,36 @@ function BeginPress(sx, sy, touchId)
                         else friendsUI.searchNotFound = true end
                     end)
                 else
-                    ShowToast("璇疯緭鍏ユ暟瀛桰D")
+                    ShowToast("请输入数字ID")
                 end
             else
-                ShowToast("璇疯緭鍏ョ帺瀹禝D")
+                ShowToast("请输入玩家ID")
             end
             PlaySFX(AUDIO.sfx_click); return
         end
-        -- 鎼滅储缁撴灉: 娣诲姞濂藉弸
+        -- 搜索结果: 添加好友
         if menuBtnRects.friendSearchAdd and HitRect(menuBtnRects.friendSearchAdd) then
             local uid = menuBtnRects.friendSearchAdd.userId
             CloudManager.SendFriendRequest(uid, "")
             playerInfo.totalFriendReqs = (playerInfo.totalFriendReqs or 0) + 1
-            ShowToast("濂藉弸璇锋眰宸插彂閫?"); PlaySFX(AUDIO.sfx_click); return
+            ShowToast("好友请求已发送"); PlaySFX(AUDIO.sfx_click); return
         end
-        -- 鎺ㄨ崘鐜╁: 娣诲姞
+        -- 推荐玩家: 添加
         for i = 1, 20 do
             local recR = menuBtnRects["friendRecAdd_" .. i]
             if recR and HitRect(recR) then
                 CloudManager.SendFriendRequest(recR.userId, "")
                 playerInfo.totalFriendReqs = (playerInfo.totalFriendReqs or 0) + 1
-                ShowToast("濂藉弸璇锋眰宸插彂閫?"); PlaySFX(AUDIO.sfx_click); return
+                ShowToast("好友请求已发送"); PlaySFX(AUDIO.sfx_click); return
             end
         end
-        -- 濂藉弸璇锋眰: 鍚屾剰/鎷掔粷
+        -- 入队申请: 同意/拒绝
         for i = 1, 50 do
             local accR = menuBtnRects["friendAccept_" .. i]
             if accR and HitRect(accR) then
                 CloudManager.AcceptFriendRequest(accR.fromUid)
                 playerInfo.totalFriends = (playerInfo.totalFriends or 0) + 1
-                ShowToast("宸叉坊鍔犲ソ鍙?")
+                ShowToast("已添加好友")
                 friendsUI.reqLoaded = false; friendsUI.reqLoading = false
                 friendsUI.loaded = false; friendsUI.loading = false
                 friendsUI.pendingReqCount = math.max(0, friendsUI.pendingReqCount - 1)
@@ -2702,71 +2474,13 @@ function BeginPress(sx, sy, touchId)
             local rejR = menuBtnRects["friendReject_" .. i]
             if rejR and HitRect(rejR) then
                 CloudManager.RejectFriendRequest(rejR.fromUid)
-                ShowToast("宸叉嫆缁?"); PlaySFX(AUDIO.sfx_click)
+                ShowToast("已拒绝"); PlaySFX(AUDIO.sfx_click)
                 friendsUI.reqLoaded = false; friendsUI.reqLoading = false
                 friendsUI.pendingReqCount = math.max(0, friendsUI.pendingReqCount - 1)
                 friendsUI.lastReqCheckTime = 0
                 return
             end
         end
-        return
-    end
-
-    -- ======== 缂栭槦鐣岄潰鐐瑰嚮澶勭悊 ========
-    if gameState.phase == "FORMATION" then
-        if phaseChangeCooldown > 0 then return end
-        local ownedCount = formationUI.ownedCount or GetOwnedHeroCount()
-        local canManualEdit = ownedCount >= 10  -- 涓嶆弧10浜虹姝㈡墜鍔ㄨ皟鏁?"
-        -- 杩斿洖鎸夐挳
-        if formationBackBtnRect and HitRect(formationBackBtnRect) then
-            PopPhase("MENU"); phaseChangeCooldown = 0.3; PlaySFX(AUDIO.sfx_click); return
-        end
-        -- 涓€閿紪闃?"
-        if formationUI.autoBtnRect and HitRect(formationUI.autoBtnRect) then
-            formationUI.ownedCount = AutoFillFormation()
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "宸茶嚜鍔ㄧ紪闃?", 1.5, { 120, 220, 100 }, 16)
-            PlaySFX(AUDIO.sfx_click); return
-        end
-        -- 娓呯┖鎸夐挳 (涓嶆弧10浜烘椂绂佺敤)
-        if formationUI.clearBtnRect and HitRect(formationUI.clearBtnRect) then
-            if not canManualEdit then
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "姝︾伒涓嶈冻10浜? 鏃犳硶璋冩暣缂栭槦", 1.5, { 255, 180, 80 }, 14)
-            else
-                gameSettings.formation = {}; SaveSettings()
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "宸叉竻绌虹紪闃?", 1.5, { 220, 120, 80 }, 16)
-            end
-            PlaySFX(AUDIO.sfx_click); return
-        end
-        -- 鍝佽川绛涢€夋爣绛?"
-        if formationUI.tabRects then
-            for _, tr in ipairs(formationUI.tabRects) do
-                if HitRect(tr) then
-                    formationUI.tab = tr.quality
-                    formationUI.scrollY = 0; formationUI.scrollVel = 0
-                    PlaySFX(AUDIO.sfx_click); return
-                end
-            end
-        end
-        -- 缂栭槦妲界偣鍑?(绉婚櫎姝︾伒, 涓嶆弧10浜烘椂鎻愮ず)
-        if formationUI.slotRects then
-            for i, sr in ipairs(formationUI.slotRects) do
-                if HitRect(sr) and gameSettings.formation[i] then
-                    if not canManualEdit then
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "姝︾伒涓嶈冻10浜? 鏃犳硶璋冩暣缂栭槦", 1.5, { 255, 180, 80 }, 14)
-                    else
-                        table.remove(gameSettings.formation, i)
-                        SaveSettings()
-                    end
-                    PlaySFX(AUDIO.sfx_click); return
-                end
-            end
-        end
-        -- 鍗＄墝鍒楄〃鍖哄煙: 寮€濮嬫嫋鎷?(鐐瑰嚮鍦?EndPress 澶勭悊)
-        local _, dy2 = ScreenToDesign(sx, sy)
-        formationUI.isDragging = true
-        formationUI.dragStartY = dy2
-        formationUI.dragLastY = dy2
-        formationUI.scrollVel = 0
         return
     end
 
@@ -2777,57 +2491,71 @@ function BeginPress(sx, sy, touchId)
             PlaySFX(AUDIO.sfx_click)
             return
         end
-        -- 椤电鍒囨崲 (缁熶竴澶勭悊4涓猅ab)
-        for _, tabId in ipairs({"power", "realm", "dummy", "faction"}) do
+        -- 刷新按钮
+        if menuBtnRects.rankRefresh and HitRect(menuBtnRects.rankRefresh) then
+            if CloudAPI.IsAvailable() then
+                welfareState.powerLoaded = false; welfareState.powerLoading = false
+                welfareState.realmLoaded = false; welfareState.realmLoading = false
+                welfareState.factionRankLoaded = false; welfareState.factionRankLoading = false
+                ReportPowerScore(); LoadPowerRank()
+                ReportRealmScore(); LoadRealmRank()
+                local ct = welfareState.rankTab or "power"
+                if ct == "faction" then LoadFactionLevelRankForTab() end
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "正在刷新排行榜...", 1.2, {140, 220, 180}, 18)
+            else
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "服务器未连接，请稍后再试", 1.2, {255, 160, 100}, 18)
+            end
+            PlaySFX(AUDIO.sfx_click)
+            return
+        end
+        -- 页签切换 (统一处理3个Tab)
+        for _, tabId in ipairs({"power", "realm", "faction"}) do
             local tabKey = "rankTab_" .. tabId
             if menuBtnRects[tabKey] and HitRect(menuBtnRects[tabKey]) then
                 if welfareState.rankTab ~= tabId then
                     welfareState.rankTab = tabId
                     welfareState.rankViewBtnRects = {}
                     welfareState.rankViewPopup = nil
-                    if tabId == "dummy" and not welfareState.dummyLoaded then LoadDummyRank() end
                     if tabId == "faction" and not welfareState.factionRankLoaded then LoadFactionLevelRankForTab() end
                     PlaySFX(AUDIO.sfx_click)
                 end
                 return
             end
         end
-        -- 寮圭獥浜や簰锛堜紭鍏堝鐞嗭級
+        -- 弹窗交互（优先处理）
         if welfareState.rankViewPopup then
             local popup = welfareState.rankViewPopup
-            -- 鍏抽棴鎸夐挳
+            -- 关闭按钮
             if popup.closeBtnRect and HitRect(popup.closeBtnRect) then
                 welfareState.rankViewPopup = nil
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 澶嶅埗UID鎸夐挳
+            -- 复制UID按钮
             if popup.copyBtnRect and HitRect(popup.copyBtnRect) then
                 local uidStr = tostring(popup.entry and popup.entry.userId or 0)
                 SafeSetClipboard(uidStr)
                 popup.copyFlash = 1.5
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "UID宸插鍒? " .. uidStr, 1.2, { 140, 220, 180 }, 14)
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "UID已复制: " .. uidStr, 1.2, { 140, 220, 180 }, 18)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 鐐瑰嚮寮圭獥澶栭儴鍏抽棴
+            -- 点击弹窗外部关闭
             if popup.bgRect and not HitRect(popup.bgRect) then
                 welfareState.rankViewPopup = nil
                 return
             end
-            return  -- 寮圭獥鎵撳紑鏃舵嫤鎴墍鏈夌偣鍑?"
+            return  -- 弹窗打开时拦截所有点击
         end
-        -- 鏌ョ湅鎸夐挳鐐瑰嚮锛堥€氳繃 userId 鏌ユ壘锛岄伩鍏嶈繃婊ゅ悗绱㈠紩閿欎綅锛?"
+                    -- 通过 userId 从原始数据中精确查找对应条目
         local rankData
         if welfareState.rankTab == "realm" then
             rankData = welfareState.realmRank
-        elseif welfareState.rankTab == "dummy" then
-            rankData = welfareState.dummyRank
         else rankData = welfareState.powerRank end
         if rankData and welfareState.rankViewBtnRects then
             for i, btnRect in pairs(welfareState.rankViewBtnRects) do
                 if btnRect and HitRect(btnRect) and btnRect.userId then
-                    -- 閫氳繃 userId 浠庡師濮嬫暟鎹腑绮剧‘鏌ユ壘瀵瑰簲鏉＄洰
+                    -- 通过 userId 从原始数据中精确查找对应条目
                     local entry = nil
                     for _, e in ipairs(rankData) do
                         if e.userId == btnRect.userId then entry = e; break end
@@ -2836,7 +2564,7 @@ function BeginPress(sx, sy, touchId)
                         local realmIdx = entry.realmIdx or entry.rankIdx or 1
                         welfareState.rankViewPopup = {
                             entry = {
-                                name = entry.name or "鏈煡",
+                                name = entry.name or "未知",
                                 power = entry.power or entry.damage or 0,
                                 skillCount = entry.skillCount or 0,
                                 heroCount = entry.heroCount or 0,
@@ -2852,12 +2580,10 @@ function BeginPress(sx, sy, touchId)
                 end
             end
         end
-        -- 寮€濮嬫嫋鎷芥粴鍔紙鏍规嵁褰撳墠椤电锛?"
+        -- 开始拖拽滚动（根据当前页签）
         local curScroll
         if welfareState.rankTab == "realm" then
             curScroll = welfareState.realmScroll
-        elseif welfareState.rankTab == "dummy" then
-            curScroll = welfareState.dummyScroll
         elseif welfareState.rankTab == "faction" then
             curScroll = welfareState.factionRankScroll
         else curScroll = welfareState.powerScroll end
@@ -2868,7 +2594,7 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- 璐＄尞姒滆鎯呯嫭绔嬬晫闈?"
+    -- 贡献榜详情独立界面
     if gameState.phase == "CONTRIB_RANK" then
         if menuBtnRects.contribRankBack and HitRect(menuBtnRects.contribRankBack) then
             PopPhase("WELFARE")
@@ -2876,7 +2602,7 @@ function BeginPress(sx, sy, touchId)
             PlaySFX(AUDIO.sfx_click)
             return
         end
-        -- 寮€濮嬫嫋鎷芥粴鍔?"
+        -- 开始拖拽滚动
         welfareState.contribDetailScroll.isDragging = true
         welfareState.contribDetailScroll.dragStartY = dy
         welfareState.contribDetailScroll.dragLastY = dy
@@ -2884,7 +2610,7 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- 鑳滆礋鐣岄潰鐐瑰嚮杩斿洖棣栭〉
+    -- 胜负界面点击返回首页
     if gameState.phase == "EQUIP_CODEX" then
         if equipCodexBackBtnRect and HitRect(equipCodexBackBtnRect) then
             PopPhase("MENU")
@@ -2899,7 +2625,7 @@ function BeginPress(sx, sy, touchId)
                 return
             end
         end
-        -- 璁板綍鎷栨嫿璧峰浣嶇疆锛堢敤浜庢粴鍔級
+        -- 记录拖拽起始位置（用于滚动）
         equipCodexState.dragStartY = dy
         equipCodexState.dragLastY = dy
         equipCodexState.isDragging = true
@@ -2907,9 +2633,9 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- === 鍏电绠＄悊鐣岄潰杈撳叆 ===
+    -- === 个人资料界面输入 ===
     if gameState.phase == "SEAL_MGR" then
-        -- ====== 浼樺厛绾?1: 鍒嗚В纭寮圭獥 (鏈€楂? ======
+        -- ====== 优先级 1: 分解确认弹窗 (最高) ======
         if sealDecomposeState.show then
             if sealDecomposeBtnRects.confirm and HitRect(sealDecomposeBtnRects.confirm) then
                 local ok = false
@@ -2927,10 +2653,10 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            return  -- 鍒嗚В纭寮圭獥鎵撳紑鏃跺睆钄藉叾浠栫偣鍑?"
+            return  -- 分解确认弹窗打开时屏蔽其他点击
         end
 
-        -- ====== 浼樺厛绾?1.5: 鍏电绛涢€夊垎瑙ｇ‘璁ゅ脊绐?======
+        -- ====== 优先级 1.5: 兵符筛选分解确认弹窗 ======
         if sealInvFilterState.batchConfirmShow then
             if sealInvFilterBtnRects.batchConfirm and HitRect(sealInvFilterBtnRects.batchConfirm) then
                 local cnt = ExecuteSealBatchDecomp(sealInvFilterState.filterMaxTier, sealInvFilterState.filterSlotType)
@@ -2943,7 +2669,7 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 鍝佽川涓婇檺璋冩暣 鈫?鈫?"
+            -- 品质上限调整 ← →
             if sealInvFilterBtnRects.tierLeft and HitRect(sealInvFilterBtnRects.tierLeft) then
                 sealInvFilterState.filterMaxTier = math.max(1, sealInvFilterState.filterMaxTier - 1)
                 PlaySFX(AUDIO.sfx_click)
@@ -2954,7 +2680,7 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 瀛斾綅绛涢€夎皟鏁?鈫?鈫?"
+            -- 孔位筛选调整 ← →
             if sealInvFilterBtnRects.slotLeft and HitRect(sealInvFilterBtnRects.slotLeft) then
                 sealInvFilterState.filterSlotType = math.max(0, sealInvFilterState.filterSlotType - 1)
                 PlaySFX(AUDIO.sfx_click)
@@ -2965,10 +2691,10 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            return  -- 绛涢€夊垎瑙ｅ脊绐楁墦寮€鏃跺睆钄藉叾浠栫偣鍑?"
+            return  -- 筛选分解弹窗打开时屏蔽其他点击
         end
 
-        -- ====== 浼樺厛绾?1.6: 鍏电閫変腑鍒嗚В纭寮圭獥 ======
+        -- ====== 优先级 1.6: 兵符选中分解确认弹窗 ======
         if sealInvFilterState.selectConfirmShow then
             if sealInvFilterBtnRects.selectConfirm and HitRect(sealInvFilterBtnRects.selectConfirm) then
                 local cnt = ExecuteSealSelectDecomp(sealInvFilterState.selectedIds)
@@ -2981,33 +2707,33 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            return  -- 閫変腑鍒嗚В纭寮圭獥灞忚斀鍏朵粬鐐瑰嚮
+            return  -- 弹窗打开时拦截所有其他点击
         end
 
-        -- ====== 浼樺厛绾?2: 鏇挎崲寮圭獥 ======
+        -- ====== 优先级 2: 替换弹窗 ======
         if sealReplaceState.show then
-            -- 鍏抽棴鎸夐挳
+            -- 关闭按钮
             if sealReplaceBtnRects.close and HitRect(sealReplaceBtnRects.close) then
                 sealReplaceState.show = false
                 sealReplaceState.scroll = { y = 0, vel = 0, dragStartY = nil, dragLastY = nil, isDragging = false }
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 鍒楄〃椤规寜閽?"
+            -- 列表项按钮
             for _, rects in pairs(sealReplaceListRects) do
                 if rects.equip and HitRect(rects.equip) then
                     local invIdx = rects.equip.invIndex
                     local ok = EquipSealFromInventory(invIdx, sealReplaceState.heroIdx, sealReplaceState.slotIdx)
                     if ok then
                         PlaySFX(AUDIO.sfx_click)
-                        -- 瑁呭鍚庡叧闂脊绐?"
+                        -- 装备后关闭弹窗
                         sealReplaceState.show = false
                         sealReplaceState.scroll = { y = 0, vel = 0, dragStartY = nil, dragLastY = nil, isDragging = false }
                     end
                     return
                 end
                 if rects.decompose and HitRect(rects.decompose) then
-                    -- 鎵撳紑鍒嗚В纭寮圭獥
+                    -- 打开分解确认弹窗
                     sealDecomposeState.show = true
                     sealDecomposeState.source = "inventory"
                     sealDecomposeState.invIndex = rects.decompose.invIndex
@@ -3017,22 +2743,22 @@ function BeginPress(sx, sy, touchId)
                     return
                 end
             end
-            -- 鏇挎崲寮圭獥鍐呮嫋鎷藉紑濮嬶紙鐢ㄤ簬婊氬姩锛?"
+            -- 替换弹窗内拖拽开始（用于滚动）
             sealReplaceState.scroll.dragStartY = dy
             sealReplaceState.scroll.dragLastY = dy
             sealReplaceState.scroll.isDragging = true
             sealReplaceState.scroll.vel = 0
-            return  -- 鏇挎崲寮圭獥鎵撳紑鏃跺睆钄藉叾浠栫偣鍑?"
+            return  -- 替换弹窗打开时屏蔽其他点击
         end
 
-        -- ====== 浼樺厛绾?3: 鍗囩骇闈㈡澘 ======
+        -- ====== 优先级 3: 升级面板 ======
         if sealMgrState.showLevelUp then
             if sealMgrBtnRects.closeLevelUp and HitRect(sealMgrBtnRects.closeLevelUp) then
                 sealMgrState.showLevelUp = false
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 鏇挎崲鎸夐挳 (鍦ㄥ崌绾ч潰鏉夸腑)
+        -- 名字选择 (含自定义选项)
             if sealMgrBtnRects.replaceBtn and HitRect(sealMgrBtnRects.replaceBtn) then
                 sealReplaceState.show = true
                 sealReplaceState.heroIdx = sealMgrState.selectedHero
@@ -3041,7 +2767,7 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 鍒嗚В鎸夐挳 (鍦ㄥ崌绾ч潰鏉夸腑)
+        -- 名字选择 (含自定义选项)
             if sealMgrBtnRects.decomposeBtn and HitRect(sealMgrBtnRects.decomposeBtn) then
                 sealDecomposeState.show = true
                 sealDecomposeState.source = "equipped"
@@ -3051,7 +2777,7 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 缁忛獙閬撳叿浣跨敤鎸夐挳
+            -- 经验道具使用按钮
             for idx, rect in pairs(sealMgrExpItemRects) do
                 if HitRect(rect) then
                     local ok = UseSealExpItem(sealMgrState.selectedHero, sealMgrState.selectedSlot, idx)
@@ -3059,12 +2785,12 @@ function BeginPress(sx, sy, touchId)
                         PlaySFX(AUDIO.sfx_click)
                         SaveGameProgress()
                     else
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "鏃犳硶浣跨敤!", 1.0, { 255, 100, 100 }, 14)
+                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "无法使用!", 1.0, { 255, 100, 100 }, 18)
                     end
                     return
                 end
             end
-            -- 涓€閿绾у己鍖栨寜閽?"
+            -- 一键多级强化按钮
             if sealMgrBtnRects.batchMinus and HitRect(sealMgrBtnRects.batchMinus) then
                 local sd = sealData[sealMgrState.selectedHero]
                 local slot = sd and sd.slots and sd.slots[sealMgrState.selectedSlot]
@@ -3092,17 +2818,17 @@ function BeginPress(sx, sy, touchId)
                 if sealBatchTarget then
                     local ok, msg = DoSealBatchEnhance(sealMgrState.selectedHero, sealMgrState.selectedSlot, sealBatchTarget)
                     if ok then
-                        sealBatchTarget = nil  -- 閲嶇疆
+                        sealBatchTarget = nil  -- 重置
                     else
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, msg or "鍗囩骇澶辫触", 1.0, { 255, 100, 100 }, 14)
+                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, msg or "升级失败", 1.0, { 255, 100, 100 }, 18)
                     end
                 end
                 return
             end
-            return  -- 鍗囩骇闈㈡澘鎵撳紑鏃跺睆钄藉叾浠栫偣鍑?"
+            return  -- 升级面板打开时屏蔽其他点击
         end
 
-        -- ====== 杩斿洖鎸夐挳 ======
+        -- ====== 选中分解模式下的交互 ======
         if sealMgrBtnRects.back and HitRect(sealMgrBtnRects.back) then
             PopPhase("GACHA")
             phaseChangeCooldown = 0.3
@@ -3116,9 +2842,9 @@ function BeginPress(sx, sy, touchId)
             return
         end
 
-        -- ====== 閫変腑鍒嗚В妯″紡涓嬬殑浜や簰 ======
+        -- ====== 选中分解模式下的交互 ======
         if sealInvFilterState.selectMode then
-            -- 鍏ㄩ€夋寜閽?"
+            -- 全选按钮
             if sealInvFilterBtnRects.selectAll and HitRect(sealInvFilterBtnRects.selectAll) then
                 for i = 1, #sealInventory do
                     sealInvFilterState.selectedIds[i] = true
@@ -3126,7 +2852,7 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 纭鍒嗚В鎸夐挳
+            -- 确认分解按钮
             if sealInvFilterBtnRects.selectDoDecomp and HitRect(sealInvFilterBtnRects.selectDoDecomp) then
                 local selCount = 0
                 for _ in pairs(sealInvFilterState.selectedIds) do selCount = selCount + 1 end
@@ -3136,46 +2862,46 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 鍙栨秷鎸夐挳
+            -- 取消按钮
             if sealInvFilterBtnRects.selectCancelMode and HitRect(sealInvFilterBtnRects.selectCancelMode) then
                 sealInvFilterState.selectMode = false
                 sealInvFilterState.selectedIds = {}
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 鍒楄〃鍖哄煙锛氬惎鍔ㄦ嫋鎷斤紙鐭寜鍒囨崲閫変腑鍦?EndPress 鍒ゅ畾锛?"
+            -- 列表区域：启动拖拽（短按切换选中在 EndPress 判定）
             sealMgrScroll.dragStartY = dy
             sealMgrScroll.dragLastY = dy
             sealMgrScroll.isDragging = true
             sealMgrScroll.vel = 0
-            return  -- 閫変腑妯″紡灞忚斀鍏朵粬鐐瑰嚮
+            return  -- 弹窗打开时拦截所有其他点击
         end
 
-        -- ====== 绛涢€夊垎瑙ｆ寜閽?======
+        -- ====== 选中分解模式下的交互 ======
         if sealInvFilterBtnRects.batchDecompBtn and HitRect(sealInvFilterBtnRects.batchDecompBtn) then
             sealInvFilterState.batchConfirmShow = true
             PlaySFX(AUDIO.sfx_click)
             return
         end
 
-        -- ====== 閫変腑鍒嗚В鎸夐挳 ======
+        -- ====== 选中分解模式下的交互 ======
         if sealInvFilterBtnRects.selectDecompBtn and HitRect(sealInvFilterBtnRects.selectDecompBtn) then
             sealInvFilterState.selectMode = true
             sealInvFilterState.selectedIds = {}
             sealMgrScroll.y = 0
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "鐐瑰嚮閫変腑瑕佸垎瑙ｇ殑鍏电", 1.0, { 100, 180, 255 }, 16)
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "选中要分解的兵甲", 1.0, { 100, 180, 255 }, 18)
             PlaySFX(AUDIO.sfx_click)
             return
         end
 
-        -- ====== 浠撳簱鍏ュ彛鎸夐挳 ======
+        -- ====== 选中分解模式下的交互 ======
         if sealMgrBtnRects.inventoryBtn and HitRect(sealMgrBtnRects.inventoryBtn) then
-            -- 鎵撳紑浠撳簱寮圭獥 (鏄剧ず褰撳墠閫変腑鑻遍泟鐨勭涓€涓彲鐢ㄥ瓟浣? 鎴栧叏閮?"
+            -- 打开仓库弹窗 (显示当前选中英雄的第一个可用孔位, 或全部)
             local heroIdx = sealMgrState.selectedHero
             if heroIdx then
                 sealReplaceState.show = true
                 sealReplaceState.heroIdx = heroIdx
-                -- 濡傛灉鏈夐€変腑瀛斾綅灏辩敤閫変腑鐨勶紝鍚﹀垯鐢ㄧ涓€涓瓟浣?"
+                -- 如果有选中孔位就用选中的，否则用第一个孔位
                 sealReplaceState.slotIdx = sealMgrState.selectedSlot or 1
                 sealReplaceState.scroll = { y = 0, vel = 0, dragStartY = nil, dragLastY = nil, isDragging = false }
                 PlaySFX(AUDIO.sfx_click)
@@ -3183,7 +2909,7 @@ function BeginPress(sx, sy, touchId)
             return
         end
 
-        -- ====== 鑻遍泟閫夋嫨寮圭獥 ======
+        -- ====== 英雄选择弹窗 ======
         if sealMgrState.showHeroPicker then
             if sealMgrBtnRects.closeHeroPicker and HitRect(sealMgrBtnRects.closeHeroPicker) then
                 sealMgrState.showHeroPicker = false
@@ -3191,15 +2917,15 @@ function BeginPress(sx, sy, touchId)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 寮圭獥鍐呮嫋鎷藉紑濮嬶紙鐭寜閫変腑鑻遍泟鍦?EndPress 鍒ゅ畾锛?"
+            -- 弹窗内拖拽开始（短按选中英雄在 EndPress 判定）
             heroPickerScroll.dragStartY = dy
             heroPickerScroll.dragLastY = dy
             heroPickerScroll.isDragging = true
             heroPickerScroll.vel = 0
-            return  -- 鑻遍泟閫夋嫨寮圭獥鎵撳紑鏃跺睆钄藉叾浠栫偣鍑?"
+            return  -- 英雄选择弹窗打开时屏蔽其他点击
         end
 
-        -- ====== 涓績鍗＄墝鐐瑰嚮 鈫?鑻遍泟閫夋嫨 ======
+        -- ====== 中心卡牌点击 → 英雄选择 ======
         if sealMgrBtnRects.centerCard and HitRect(sealMgrBtnRects.centerCard) then
             local maxHeroes = GetMaxConstellationHeroes()
             if #maxHeroes > 1 then
@@ -3209,17 +2935,17 @@ function BeginPress(sx, sy, touchId)
             return
         end
 
-        -- ====== 瀛斾綅鐐瑰嚮 鈫?鎵撳紑鍗囩骇闈㈡澘 ======
+        -- ====== 孔位点击 → 打开升级面板 ======
         for slotIdx, rect in pairs(sealMgrSlotRects) do
             if HitRect(rect) then
                 local cardIdx = sealMgrState.selectedHero
                 if cardIdx then
                     sealMgrState.selectedSlot = slotIdx
                     if sealData[cardIdx] and sealData[cardIdx].slots and sealData[cardIdx].slots[slotIdx] then
-                        -- 宸叉湁鍏电 鈫?鎵撳紑鍗囩骇闈㈡澘
+                        -- 已有兵符 → 打开升级面板
                         sealMgrState.showLevelUp = true
                     else
-                        -- 绌哄瓟浣?鈫?鐩存帴鎵撳紑鏇挎崲寮圭獥(瑁呭)
+                        -- 空孔位 → 直接打开替换弹窗(装备)
                         sealReplaceState.show = true
                         sealReplaceState.heroIdx = cardIdx
                         sealReplaceState.slotIdx = slotIdx
@@ -3233,27 +2959,27 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- === 鎼滄墦鎾ゆ帰绱㈢晫闈㈣緭鍏?=== [EXPLORATION REMOVED]
+    -- === 搜打撤探索界面输入 === [EXPLORATION REMOVED]
     -- if gameState.phase == "EXPLORATION" then
     --     Exploration.HandlePress(dx, dy)
     --     return
     -- end
 
     if gameState.phase == "WORLD_MAP" then
-        -- 琛屽啗鍔ㄧ敾鏈熼棿灞忚斀杈撳叆
+        -- 行军动画期间屏蔽输入
         if rawget(_G, "WorldMap") and WorldMap.IsMarchActive and WorldMap.IsMarchActive() then
             return
         end
-        -- 鏂版墜寮曞浼樺厛鎷︽埅杈撳叆
+        -- 新手引导优先拦截输入
         if WorldMap.HandleGuideInput(dx, dy) then
             return
         end
-        -- 鍥炲悎鎶ュ憡鎷栨嫿婊氬姩: 璁板綍璧峰Y
+        -- 回合报告拖拽滚动: 记录起始Y
         if worldMapState.phase == "TURN_REPORT" then
             worldMapState.reportDragging = true
             worldMapState.reportDragLastY = dy
         end
-        -- 鍩庢睜鍒楄〃鎷栨嫿婊氬姩: 璁板綍璧峰Y (宸︿晶230px鍖哄煙)
+        -- 城池列表拖拽滚动: 记录起始Y (左侧230px区域)
         if dx < 230 then
             worldMapState.cityListDragging = true
             worldMapState.cityListDragStartY = dy
@@ -3264,40 +2990,40 @@ function BeginPress(sx, sy, touchId)
     end
 
     if gameState.phase == "STAGE_SELECT" then
-        -- 鐖嗚寮圭獥鍏抽棴
+        -- 爆装弹窗关闭
         if stageState.showDropPopup then
             if stageDropCloseRect and HitRect(stageDropCloseRect) then
                 stageState.showDropPopup = false
                 stageState.lastDropReward = nil
                 return
             end
-            return  -- 寮圭獥鎵撳紑鏃跺睆钄藉叾浠栫偣鍑?"
+            return  -- 弹窗打开时屏蔽其他点击
         end
-        -- 棰勮寮圭獥
+        -- 预览弹窗
         if stageState.showPreview then
             if stagePreviewCloseRect and HitRect(stagePreviewCloseRect) then
                 stageState.showPreview = false
                 return
             end
             if stageStartBtnRect and HitRect(stageStartBtnRect) then
-                -- 寮€濮嬫帰绱?(鎼滄墦鎾ゆā寮?"
+                -- 开始探索 (搜打撤模式)
                 local stageIdx = stageState.currentStage
                 local stage = STAGES[stageIdx]
                 stageMaxTier = stage.maxTier or 1
                 stageState.showPreview = false
-                -- [EXPLORATION REMOVED] 鎺㈢储妯″潡宸茬Щ闄?"
+                -- [EXPLORATION REMOVED] 探索模块已移除
                 PlaySFX(AUDIO.sfx_click)
                 return
-                --[=[ EXPLORATION REMOVED: 浠ヤ笅鎺㈢储浠ｇ爜宸叉敞閲?"
+                --[=[ EXPLORATION REMOVED: 以下探索代码已注释
 
-                -- 鍒濆鍖栨帰绱㈡ā鍧?(棣栨)
+                -- 初始化探索模块 (首次)
                 if not Exploration.IsActive() then
                     Exploration.Init(vg, fontId, IMG)
                 end
 
                 SyncPlayerDataToExploration()
 
-                -- 閰嶇疆鎺㈢储鍦板浘
+                -- 配置探索地图
                 local gs = GameConfig.STAGE_GRID_SIZES[stageIdx] or 4
                 Exploration.StartMap({
                     mode = "stage",
@@ -3310,15 +3036,15 @@ function BeginPress(sx, sy, touchId)
                     dropRateBonus = 0,
                 })
 
-                -- 璁剧疆鍥炶皟
+                -- 设置回调
                 Exploration.onStartBattle = function(enemyScale, maxTier, dropSets)
-                    -- 浠庢帰绱㈣繘鍏ユ垬鏂?"
+                    -- 从探索进入战斗
                     gameState.explorationMode = true
                     gameState.abyssFloor = nil
                     gameState.towerFloor = nil
                     gameState.isRanked = false
                     gameState.phase = "BATTLE"
-                    gameState.battlePhase = "SHOP"
+                    gameState.battlePhase = "DEPLOY"
                     gameState.playerBaseHP = BASE_HP_MAX
                     gameState.enemyBaseHP = BASE_HP_MAX
                     gameState.gold = GameConfig.INITIAL_GOLD
@@ -3338,16 +3064,16 @@ function BeginPress(sx, sy, touchId)
                     enemyUnits = {}
                     inventory = {}
                     RefreshShop()
-                    -- 搴旂敤鎺㈢储澧炵泭
+                    -- 应用探索增益
                     local buff = Exploration.GetBuff()
-                    gameState.exploreBuff = buff  -- 瀛樺偍渚?AggregateBaseStats 浣跨敤
+                    gameState.exploreBuff = buff  -- 存储供 AggregateBaseStats 使用
                     if buff then
                         if buff.type == "hp_bonus" then
                             gameState.playerBaseHP = BASE_HP_MAX + buff.value
                             gameState.playerBaseMax = BASE_HP_MAX + buff.value
                         end
                     end
-                    -- 鏁屾柟閮ㄧ讲 (鎸夋晫浜鸿妯¤皟鏁?"
+                    -- 敌方部署 (按敌人规模调整)
                     local enemyCount = math.min(#ENEMY_SLOTS, 3 + math.random(0, 2))
                     local used = {}
                     for i = 1, enemyCount do
@@ -3363,11 +3089,11 @@ function BeginPress(sx, sy, touchId)
                             ENEMY_SLOTS[i].card = card
                         end
                     end
-                    print("=== 鎺㈢储鎴樻枟寮€濮?(鍏冲崱: " .. stage.name .. ") ===")
+                    print("=== 探索战斗开始 (关卡: " .. stage.name .. ") ===")
                 end
 
                 Exploration.onComplete = function(result)
-                    -- 鎺㈢储瀹屾垚鍥炶皟: 鍙戞斁濂栧姳
+                    -- 探索完成回调: 发放奖励
                     if result then
                         if result.success then
                             playerInfo.totalExplores = (playerInfo.totalExplores or 0) + 1
@@ -3377,21 +3103,21 @@ function BeginPress(sx, sy, touchId)
                             jadeReward = jadeReward * 2
                             exploreAdDoubleJade = false
                         end
-                        result.totalJade = jadeReward  -- 鏇存柊鐢ㄤ簬鍚庣画鏄剧ず
+                        result.totalJade = jadeReward  -- 更新用于后续显示
                         playerInfo.jade = playerInfo.jade + jadeReward
-                        -- 鎸夋鎶€鍒嗛厤娈嬬墖
+                        -- 按武技分配残片
                         if result.fragList then
                             for _, fi in ipairs(result.fragList) do
                                 skillFragments[fi.skillIdx] = (skillFragments[fi.skillIdx] or 0) + fi.count
                             end
                         elseif (result.totalFrag or 0) > 0 then
-                            -- 鍏煎鏃ф暟鎹? 闅忔満鍒嗛厤
+                            -- 兼容旧数据: 随机分配
                             for _ = 1, result.totalFrag do
                                 local idx = math.random(1, #SKILL_TECHNIQUES)
                                 skillFragments[idx] = (skillFragments[idx] or 0) + 1
                             end
                         end
-                        -- 瑁呭鎺夎惤锛氱洿鎺ヤ娇鐢ㄦ帰绱腑宸茬‘瀹氱殑鍝佺骇/濂楄/閮ㄤ綅锛堜繚璇佹樉绀轰笌瀹為檯涓€鑷达級
+                        -- 装备掉落：直接使用探索中已确定的品级/套装/部位（保证显示与实际一致）
                         local equipDrops = {}
                         if result.equipCount and result.equipCount > 0 then
                             for _, loot in ipairs(result.loot) do
@@ -3407,22 +3133,22 @@ function BeginPress(sx, sy, touchId)
                                 end
                             end
                         end
-                        -- 鏄剧ず瑁呭鎺夎惤閫氱煡锛堟瘡浠跺崟鐙彁绀猴紝鍛婄煡鍝侀樁銆佹Ы浣嶅拰鍝佽川锛?"
+                        -- 显示装备掉落通知（每件单独提示，告知品阶、槽位和品质）
                         for i, eqDrop in ipairs(equipDrops) do
-                            local tierName = EQUIP_TIERS[eqDrop.tier] and EQUIP_TIERS[eqDrop.tier].name or "鏈煡"
-                            local slotName = EQUIP_SLOT_NAMES[eqDrop.slotIdx] or "鏈煡"
+                            local tierName = EQUIP_TIERS[eqDrop.tier] and EQUIP_TIERS[eqDrop.tier].name or "未知"
+                            local slotName = EQUIP_SLOT_NAMES[eqDrop.slotIdx] or "未知"
                             local setName = EQUIPMENT_SETS[eqDrop.setIdx] and EQUIPMENT_SETS[eqDrop.setIdx].name or ""
                             local tc = EQUIP_TIERS[eqDrop.tier] and EQUIP_TIERS[eqDrop.tier].color or {255, 255, 255}
                             local qLabel = GetQualityLabel(eqDrop.quality or 0)
                             local eLv = eqDrop.level or 1
-                            local dropMsg = "鑾峰緱鍏电敳: " .. tierName .. " " .. setName .. " [" .. slotName .. "] Lv." .. eLv .. " " .. qLabel .. eqDrop.quality .. "%"
+                            local dropMsg = "获得兵甲: " .. tierName .. " " .. setName .. " [" .. slotName .. "] Lv." .. eLv .. " " .. qLabel .. eqDrop.quality .. "%"
                             AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4 + (i - 1) * 30, dropMsg, 3.0, tc, 20)
                         end
-                        -- 鍘嗗姭妯″紡: 鏄熺骇濂栧姳 + 鍏冲崱瑙ｉ攣
+                        -- 历劫模式: 星级奖励 + 关卡解锁
                         if result.mode == "stage" and result.success then
                             local si = result.stageIdx
                             local key = tostring(si)
-                            -- 璁＄畻鏄熺骇 (鍩轰簬鍩哄湴HP)
+                            -- 计算星级 (基于基地HP)
                             local hpPct = (gameState.playerBaseHP or 0) / (BASE_HP_MAX or 1)
                             local earnedStars = 1
                             if hpPct > 0.8 then
@@ -3441,14 +3167,14 @@ function BeginPress(sx, sy, touchId)
                                 end
                                 if totalJadeReward > 0 then
                                     playerInfo.jade = playerInfo.jade + totalJadeReward
-                                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "鈽?" .. earnedStars .. " 鏄熺骇濂栧姳: +" .. totalJadeReward .. " 铏庣", 2.0, {255, 220, 80}, 20)
+                                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "★" .. earnedStars .. " 星级奖励: +" .. totalJadeReward .. " 玉壁", 2.0, {255, 220, 80}, 20)
                                 end
                             end
                             if si >= stageState.maxUnlocked and si < #STAGES then
                                 stageState.maxUnlocked = si + 1
                             end
                         end
-                        -- 璁ㄤ紣妯″紡: 璁板綍閫氬叧
+                        -- 讨伐模式: 记录通关
                         if result.mode == "abyss" and result.success and result.abyssFloor then
                             local floorKey = tostring(result.abyssFloor)
                             if not abyssCleared[floorKey] then
@@ -3460,20 +3186,20 @@ function BeginPress(sx, sy, touchId)
                             TrackBattlePassTask("bp_sabyss10", 1)
                         end
                         if result.success or jadeReward > 0 or #equipDrops > 0 then
-                            local rewardStr = "鎺㈢储缁撴潫: +" .. (result.totalJade or 0) .. " 铏庣"
+                            local rewardStr = "探索结束: +" .. (result.totalJade or 0) .. " 玉壁"
                             if result.fragList and #result.fragList > 0 then
                                 local totalF = 0
                                 for _, fi in ipairs(result.fragList) do totalF = totalF + fi.count end
-                                rewardStr = rewardStr .. " +" .. totalF .. "姝︽妧娈嬬墖"
+                                rewardStr = rewardStr .. " +" .. totalF .. "武技残片"
                             end
                             if #equipDrops > 0 then
-                                rewardStr = rewardStr .. " +" .. #equipDrops .. "浠跺叺鐢?"
+                                rewardStr = rewardStr .. " +" .. #equipDrops .. "件兵甲"
                             end
                             AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, rewardStr, 2.0, {255, 220, 80}, 22)
                         else
-                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "鎺㈢储鏀惧純, 鏈幏寰楀鍔?", 2.0, {180, 180, 180}, 18)
+                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "探索放弃, 未获得奖励", 2.0, {180, 180, 180}, 18)
                         end
-                        -- 鎴樹护: 鎺㈢储瀹屾垚 (浠呮垚鍔?鎾ょ鏃惰拷韪? 鏀惧純涓嶇畻)
+                        -- 战令: 探索完成 (仅成功/撤离时追踪, 放弃不算)
                         if result.success then
                             TrackBattlePassTask("bp_explore1", 1)
                             TrackBattlePassTask("bp_wexplore5", 1)
@@ -3481,7 +3207,7 @@ function BeginPress(sx, sy, touchId)
                         end
                     end
                     gameState.explorationMode = false
-                    gameState.noFullAuto = false  -- 绂诲紑鎺㈢储, 鎭㈠鍏ㄨ嚜鍔ㄥ彲鐢?"
+                    gameState.noFullAuto = false  -- 离开探索, 恢复全自动可用
                     PopPhase("MENU")
                     SaveGameProgress()
                 end
@@ -3502,7 +3228,7 @@ function BeginPress(sx, sy, touchId)
                         ShowAdSafe(SafeAdCallback(function(result)
                             if result.success then
                                 ReportAdWatch()
-                                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "铏庣宸茬炕鍊?", 1.5, { 120, 255, 180 }, 18)
+                                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "玉壁已翻倍!", 1.5, { 120, 255, 180 }, 18)
                                 if callback then callback(true) end
                             else
                                 if callback then callback(false) end
@@ -3510,26 +3236,26 @@ function BeginPress(sx, sy, touchId)
                         end))
                     else
                         ReportAdWatch()
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "铏庣宸茬炕鍊?", 1.5, { 120, 255, 180 }, 18)
+                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "玉壁已翻倍!", 1.5, { 120, 255, 180 }, 18)
                         if callback then callback(true) end
                     end
                 end
 
                 PushPhase("EXPLORATION")
                 PlaySFX(AUDIO.sfx_click)
-                print("=== 寮€濮嬫帰绱? " .. stage.name .. " (" .. gs .. "脳" .. gs .. ") ===")
+                print("=== 开始探索: " .. stage.name .. " (" .. gs .. "×" .. gs .. ") ===")
                 return
                 --]=] -- END EXPLORATION REMOVED (STAGE_SELECT)
             end
             return
         end
-        -- 杩斿洖鎸夐挳
+        -- 返回按钮
         if stageBackBtnRect and HitRect(stageBackBtnRect) then
             PopPhase("MENU")
             phaseChangeCooldown = 0.3
             return
         end
-        -- 缈婚〉鎸夐挳
+        -- 翻页按钮
         if stagePagePrevRect and HitRect(stagePagePrevRect) then
             if stageState.currentPage > 1 then
                 stageState.currentPage = stageState.currentPage - 1
@@ -3544,7 +3270,7 @@ function BeginPress(sx, sy, touchId)
             end
             return
         end
-        -- 瀹濈鐐瑰嚮
+        -- 宝箱点击
         for ci, cRect in ipairs(stageChestRects) do
             if cRect and HitRect(cRect) then
                 local chestKey = tostring(cRect.page) .. "_" .. tostring(cRect.threshold)
@@ -3554,9 +3280,9 @@ function BeginPress(sx, sy, touchId)
                     local reward = STAGE_CHEST_REWARDS[ci]
                     if reward then
                         GrantRewardTable(reward)
-                        local msg = "瀹濈濂栧姳: +" .. reward.jade .. " 铏庣"
+                        local msg = "宝箱奖励: +" .. reward.jade .. " 玉壁"
                         if reward.frag and reward.frag > 0 then
-                            msg = msg .. " +" .. reward.frag .. " 姝︽妧娈嬬墖"
+                            msg = msg .. " +" .. reward.frag .. " 武技残片"
                         end
                         AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, msg, 2.0, {255, 220, 80}, 20)
                     end
@@ -3564,15 +3290,15 @@ function BeginPress(sx, sy, touchId)
                     SaveGameProgress()
                 else
                     if stageChestClaimed[chestKey] then
-                        ShowToast("宸查鍙?")
+                        ShowToast("已领取")
                     else
-                        ShowToast("闇€瑕?" .. cRect.threshold .. " 鏄熸墠鑳介鍙?")
+                        ShowToast("需要 " .. cRect.threshold .. " 星才能领取")
                     end
                 end
                 return
             end
         end
-        -- 鍏冲崱鑺傜偣鐐瑰嚮 (stageNodeRects 鐜板湪鎼哄甫 stageIdx)
+        -- 关卡节点点击 (stageNodeRects 现在携带 stageIdx)
         for i, rect in ipairs(stageNodeRects) do
             if rect and HitRect(rect) then
                 local stageIdx = rect.stageIdx
@@ -3587,19 +3313,19 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- === 姣忔棩鍓湰鐣岄潰杈撳叆 ===
+    -- === 个人资料界面输入 ===
     if gameState.phase == "DAILY_DUNGEON" then
         if phaseChangeCooldown > 0 then return end
 
-        -- 纭寮圭獥
+        -- 确认弹窗
         if dailyDungeonState.showConfirm then
-            -- 鍏抽棴
+            -- 关闭
             if dailyDungeonCloseRect and HitRect(dailyDungeonCloseRect) then
                 dailyDungeonState.showConfirm = false
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 鍓湰2: 濂楄閫夋嫨鎸夐挳
+            -- 副本2: 套装选择按钮
             local di = dailyDungeonState.selectedDungeon
             if di == 2 then
                 for si = 1, 7 do
@@ -3610,26 +3336,26 @@ function BeginPress(sx, sy, touchId)
                     end
                 end
             end
-            -- 娑堣€楄檸绗﹁繘鍏ユ寜閽?"
+            -- 消耗玉壁进入按钮
             if dailyDungeonConfirmBtnRect and HitRect(dailyDungeonConfirmBtnRect) then
                 if not di or dailyDungeonState.completed[di] then return end
                 PlaySFX(AUDIO.sfx_click)
 
                 local function EnterDailyDungeon()
-                    -- [EXPLORATION REMOVED] 鎺㈢储妯″潡宸茬Щ闄?"
+                    -- [EXPLORATION REMOVED] 探索模块已移除
                     dailyDungeonState.showConfirm = false
-                    ShowToast("鎺㈢储鍔熻兘鏆傛湭寮€鏀?")
+                    ShowToast("探索功能暂未开放")
                     return
-                    --[=[ EXPLORATION REMOVED: 浠ヤ笅鎺㈢储浠ｇ爜宸叉敞閲?"
+                    --[=[ EXPLORATION REMOVED: 以下探索代码已注释
                     SaveGameProgress()
 
-                    -- 鍒濆鍖栨帰绱㈡ā鍧?"
+                    -- 初始化探索模块
                     if not Exploration.IsActive() then
                         Exploration.Init(vg, fontId, IMG)
                     end
                     SyncPlayerDataToExploration()
 
-                    -- 鍓湰閰嶇疆
+                    -- 副本配置
                     local eScale = 1.0 + (playerInfo.rankIdx or 1) * 0.15
                     local highTierMul = (di == 3) and 10 or 1
                     local dailyMode = "daily" .. di
@@ -3644,16 +3370,16 @@ function BeginPress(sx, sy, touchId)
                         dropRateBonus = 0.3,
                     })
 
-                    -- 鎴樻枟鍥炶皟
+                    -- 战斗回调
                     Exploration.onStartBattle = function(enemyScale, maxTier, dropSets)
                         gameState.explorationMode = true
-                        gameState.noFullAuto = true   -- 姣忔棩鍓湰绂佹鍏ㄨ嚜鍔?"
+                        gameState.noFullAuto = true   -- 每日副本禁止全自动
                         gameState.autoBattle = false
                         gameState.abyssFloor = nil
                         gameState.towerFloor = nil
                         gameState.isRanked = false
                         gameState.phase = "BATTLE"
-                        gameState.battlePhase = "SHOP"
+                        gameState.battlePhase = "DEPLOY"
                         gameState.playerBaseHP = BASE_HP_MAX
                         gameState.enemyBaseHP = BASE_HP_MAX
                         gameState.gold = GameConfig.INITIAL_GOLD
@@ -3696,7 +3422,7 @@ function BeginPress(sx, sy, touchId)
                                 ENEMY_SLOTS[i].card = card
                             end
                         end
-                        -- 鏁屾柟鎴樺姏鍖归厤鐜╁褰撳墠鎴樺姏
+                        -- 敌方战力匹配玩家当前战力
                         local ppTotal = CalcPlayerTotalPower()
                         local nonHP = CalcRankPowerScore() + CalcEquipPowerScore() + CalcSkillPowerScore()
                         local targetHP = math.max(1, ppTotal - nonHP)
@@ -3718,13 +3444,13 @@ function BeginPress(sx, sy, touchId)
                         end
                         ApplyBattleLayout(1)
                         InitAISkills()
-                        print("=== 姣忔棩鍓湰鎴樻枟 (绫诲瀷" .. di .. ") ===")
+                        print("=== 每日副本战斗 (类型" .. di .. ") ===")
                     end
 
                     Exploration.onComplete = function(result)
                         if result then
                             if result.success then
-                                dailyDungeonState.completed[di] = true  -- 鍙湁璧版挙绂婚€氶亾鎵嶆爣璁伴€氬叧
+                                dailyDungeonState.completed[di] = true  -- 只有走撤离通道才标记通关
                                 playerInfo.totalExplores = (playerInfo.totalExplores or 0) + 1
                             end
                             local jadeReward = result.totalJade or 0
@@ -3732,14 +3458,14 @@ function BeginPress(sx, sy, touchId)
                                 jadeReward = jadeReward * 2
                                 exploreAdDoubleJade = false
                             end
-                            result.totalJade = jadeReward  -- 鏇存柊鐢ㄤ簬鍚庣画鏄剧ず
+                            result.totalJade = jadeReward  -- 更新用于后续显示
                             playerInfo.jade = playerInfo.jade + jadeReward
                             if result.fragList then
                                 for _, fItem in ipairs(result.fragList) do
                                     skillFragments[fItem.skillIdx] = (skillFragments[fItem.skillIdx] or 0) + fItem.count
                                 end
                             end
-                            -- 姣忔棩鍓湰涓撳睘鎺夎惤閫昏緫
+                            -- 每日副本专属掉落逻辑
                             local ddEquipDrops = {}
                             if result.equipCount and result.equipCount > 0 then
                                 for _, loot in ipairs(result.loot) do
@@ -3747,11 +3473,11 @@ function BeginPress(sx, sy, touchId)
                                         local tier = loot.equipTier or 2
                                         local si = loot.equipSet or math.random(1, #EQUIPMENT_SETS)
                                         local pi = loot.equipSlotIdx or math.random(1, 7)
-                                        -- 鍓湰1: 寮哄埗鎸囧畾閮ㄤ綅
+                                        -- 副本1: 强制指定部位
                                         if di == 1 then
                                             pi = dailyDungeonState.todaySlot
                                         end
-                                        -- 鍓湰2: 寮哄埗鎸囧畾濂楄
+                                        -- 副本2: 强制指定套装
                                         if di == 2 then
                                             si = dailyDungeonState.selectedSet
                                         end
@@ -3763,7 +3489,7 @@ function BeginPress(sx, sy, touchId)
                                     end
                                 end
                             end
-                            -- 淇濆簳: 姣忎釜鍓湰鑷冲皯鎺?浠惰澶?(浠呮垚鍔?鎾ょ鏃惰Е鍙? 鏀惧純涓嶄繚搴?"
+                            -- 保底: 每个副本至少掉1件装备 (仅成功/撤离时触发, 放弃不保底)
                             if #ddEquipDrops == 0 and result.success then
                                 local si = (di == 2) and dailyDungeonState.selectedSet or math.random(1, #EQUIPMENT_SETS)
                                 local pi = (di == 1) and dailyDungeonState.todaySlot or math.random(1, 7)
@@ -3774,8 +3500,8 @@ function BeginPress(sx, sy, touchId)
                             end
                             if result.success or jadeReward > 0 or #ddEquipDrops > 0 then
                                 for i, eqDrop in ipairs(ddEquipDrops) do
-                                    local tierName = EQUIP_TIERS[eqDrop.tier] and EQUIP_TIERS[eqDrop.tier].name or "鏈煡"
-                                    local slotName = EQUIP_SLOT_NAMES[eqDrop.slotIdx] or "鏈煡"
+                            local tierName = EQUIP_TIERS[eqDrop.tier] and EQUIP_TIERS[eqDrop.tier].name or "未知"
+                            local slotName = EQUIP_SLOT_NAMES[eqDrop.slotIdx] or "未知"
                                     local setName = EQUIPMENT_SETS[eqDrop.setIdx] and EQUIPMENT_SETS[eqDrop.setIdx].name or ""
                                     local tc = EQUIP_TIERS[eqDrop.tier] and EQUIP_TIERS[eqDrop.tier].color or {255,255,255}
                                     local qLabel = GetQualityLabel(eqDrop.quality or 0)
@@ -3783,15 +3509,15 @@ function BeginPress(sx, sy, touchId)
                                     local dropMsg = tierName .. " " .. setName .. " [" .. slotName .. "] Lv." .. eLv .. " " .. qLabel .. eqDrop.quality .. "%"
                                     AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4 + (i - 1) * 30, dropMsg, 3.0, tc, 20)
                                 end
-                                local ddStr = "鍓湰瀹屾垚: +" .. #ddEquipDrops .. "浠跺叺鐢?"
-                                if jadeReward > 0 then ddStr = ddStr .. " +" .. jadeReward .. " 铏庣" end
+                                local ddStr = "副本完成: +" .. #ddEquipDrops .. "件兵甲"
+                                if jadeReward > 0 then ddStr = ddStr .. " +" .. jadeReward .. " 玉壁" end
                                 AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, ddStr, 2.5, {80, 220, 160}, 22)
                             else
-                                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "鍓湰鏀惧純, 鏈幏寰楀鍔?", 2.0, {180, 180, 180}, 18)
+                                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "副本放弃, 未获得奖励", 2.0, {180, 180, 180}, 18)
                             end
                         end
                         gameState.explorationMode = false
-                        gameState.noFullAuto = false  -- 绂诲紑鍓湰, 鎭㈠鍏ㄨ嚜鍔ㄥ彲鐢?"
+                        gameState.noFullAuto = false  -- 离开副本, 恢复全自动可用
                         PopPhase("MENU")
                         SaveGameProgress()
                     end
@@ -3812,7 +3538,7 @@ function BeginPress(sx, sy, touchId)
                             ShowAdSafe(SafeAdCallback(function(res)
                                 if res.success then
                                     ReportAdWatch()
-                                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "铏庣宸茬炕鍊?", 1.5, {120,255,180}, 18)
+                                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "玉壁已翻倍!", 1.5, {120,255,180}, 18)
                                     if callback then callback(true) end
                                 else
                                     if callback then callback(false) end
@@ -3820,31 +3546,31 @@ function BeginPress(sx, sy, touchId)
                             end))
                         else
                             ReportAdWatch()
-                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "铏庣宸茬炕鍊?", 1.5, {120,255,180}, 18)
+                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "玉壁已翻倍!", 1.5, {120,255,180}, 18)
                             if callback then callback(true) end
                         end
                     end
 
                     PushPhase("EXPLORATION")
                     PlaySFX(AUDIO.sfx_click)
-                    print("=== 寮€濮嬫瘡鏃ュ壇鏈?" .. di .. ": " .. DAILY_DUNGEON_NAMES[di] .. " (5脳5) ===")
+                    print("=== 开始每日副本" .. di .. ": " .. DAILY_DUNGEON_NAMES[di] .. " (5×5) ===")
                     --]=] -- END EXPLORATION REMOVED (DAILY_DUNGEON)
                 end
 
-                -- 鎵ｉ櫎300铏庣鍏ュ満
+                -- 扣除300玉壁入场
                 local DUNGEON_ENTRY_COST = 300
                 if playerInfo.jade >= DUNGEON_ENTRY_COST then
                     playerInfo.jade = playerInfo.jade - DUNGEON_ENTRY_COST
                     EnterDailyDungeon()
                 else
-                    ShowToast("铏庣涓嶈冻锛岄渶瑕?" .. DUNGEON_ENTRY_COST .. " 铏庣", 2.0)
+                    ShowToast("玉壁不足，需要 " .. DUNGEON_ENTRY_COST .. " 玉壁", 2.0)
                 end
                 return
             end
             return
         end
 
-        -- 杩斿洖鎸夐挳
+        -- 返回按钮
         if dailyDungeonBackRect and HitRect(dailyDungeonBackRect) then
             PopPhase("MENU")
             phaseChangeCooldown = 0.3
@@ -3852,11 +3578,11 @@ function BeginPress(sx, sy, touchId)
             return
         end
 
-        -- 鍓湰鍗＄墖鐐瑰嚮
+        -- 副本卡片点击
         for di = 1, 3 do
             if dailyDungeonCardRects[di] and HitRect(dailyDungeonCardRects[di]) then
                 if dailyDungeonState.completed[di] then
-                    ShowToast("浠婃棩宸插畬鎴愭鍓湰")
+                    ShowToast("不能添加自己为好友")
                 else
                     dailyDungeonState.selectedDungeon = di
                     dailyDungeonState.showConfirm = true
@@ -3868,55 +3594,55 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- === 鎺㈢储璧勬簮鍓湰鐣岄潰杈撳叆 ===
+    -- === 个人资料界面输入 ===
     if gameState.phase == "RESOURCE_DUNGEON" then
         if phaseChangeCooldown > 0 then return end
 
-        -- 纭寮圭獥
+        -- 确认弹窗
         if resourceDungeonState.showConfirm then
-            -- 鍏抽棴鎸夐挳
+            -- 关闭按钮
             if resourceDungeonConfirmRect and resourceDungeonConfirmRect.close and HitRect(resourceDungeonConfirmRect.close) then
                 resourceDungeonState.showConfirm = false
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
-            -- 纭杩涘叆鎸夐挳
+            -- 确认进入按钮
             if resourceDungeonConfirmRect and resourceDungeonConfirmRect.enter and HitRect(resourceDungeonConfirmRect.enter) then
                 local ti = resourceDungeonState.selectedType
                 if not ti or resourceDungeonState.completed[ti] then return end
                 local rdCfg = GameConfig.RESOURCE_DUNGEON
                 local typeInfo = rdCfg.types[ti]
                 if not typeInfo then return end
-                -- 妫€鏌ヨ檸绗?"
+                -- 检查玉壁
                 if playerInfo.jade < rdCfg.entryCost then
-                    ShowToast("铏庣涓嶈冻! 闇€瑕?" .. rdCfg.entryCost .. " 铏庣")
+                    ShowToast("玉壁不足! 需要 " .. rdCfg.entryCost .. " 玉壁")
                     PlaySFX(AUDIO.sfx_click)
                     return
                 end
                 PlaySFX(AUDIO.sfx_click)
 
                 local function EnterResourceDungeon()
-                    -- [EXPLORATION REMOVED] 鎺㈢储妯″潡宸茬Щ闄?"
+                    -- [EXPLORATION REMOVED] 探索模块已移除
                     resourceDungeonState.showConfirm = false
-                    ShowToast("鎺㈢储鍔熻兘鏆傛湭寮€鏀?")
+                    ShowToast("探索功能暂未开放")
                     return
-                    --[=[ EXPLORATION REMOVED: 浠ヤ笅鎺㈢储浠ｇ爜宸叉敞閲?"
-                    -- 鎵ｉ櫎闂ㄧエ
+                    --[=[ EXPLORATION REMOVED: 以下探索代码已注释
+                    -- 扣除门票
                     playerInfo.jade = playerInfo.jade - rdCfg.entryCost
                     resourceDungeonState.showConfirm = false
-                    -- 涓嶇珛鍗虫爣璁板畬鎴? 閫氬叧鎵嶇畻
+                    -- 不立即标记完成, 通关才算
                     SaveGameProgress()
 
-                    -- 鍒濆鍖栨帰绱㈡ā鍧?"
+                    -- 初始化探索模块
                     if not Exploration.IsActive() then
                         Exploration.Init(vg, fontId, IMG)
                     end
                     SyncPlayerDataToExploration()
 
-                    -- 鍓湰閰嶇疆: 閬亣鎴樻ā寮?"
+                    -- 副本配置: 遭遇战模式
                     local eScale = 1.0 + (playerInfo.rankIdx or 1) * 0.15
                     local ppTotal = CalcPlayerTotalPower()
-                    -- 鐣ラ珮浜庣帺瀹舵垬鍔?"
+                    -- 略高于玩家战力
                     eScale = eScale * (1.0 + math.random() * 0.1)
 
                     Exploration.StartMap({
@@ -3929,7 +3655,7 @@ function BeginPress(sx, sy, touchId)
                         dropRateBonus = typeInfo.dropRateBonus or 0,
                         fragMultiplier = typeInfo.fragMultiplier or 1.0,
                         jadeMultiplier = typeInfo.jadeMultiplier or 1.0,
-                        -- 閬亣鎴樻ā寮忓弬鏁?"
+                        -- 遭遇战模式参数
                         encounterMode = true,
                         encounterRate = rdCfg.encounterRate,
                         enemyDensityOverride = rdCfg.enemyDensity,
@@ -3939,16 +3665,16 @@ function BeginPress(sx, sy, touchId)
                         chestGuardOverride = rdCfg.chestGuardChance,
                     })
 
-                    -- 鎴樻枟鍥炶皟
+                    -- 战斗回调
                     Exploration.onStartBattle = function(enemyScale2, maxTier2, dropSets2)
                         gameState.explorationMode = true
-                        gameState.noFullAuto = true   -- 鎺㈢储鍓湰绂佹鍏ㄨ嚜鍔?"
+                        gameState.noFullAuto = true   -- 探索副本禁止全自动
                         gameState.autoBattle = false
                         gameState.abyssFloor = nil
                         gameState.towerFloor = nil
                         gameState.isRanked = false
                         gameState.phase = "BATTLE"
-                        gameState.battlePhase = "SHOP"
+                        gameState.battlePhase = "DEPLOY"
                         gameState.playerBaseHP = BASE_HP_MAX
                         gameState.enemyBaseHP = BASE_HP_MAX
                         gameState.gold = GameConfig.INITIAL_GOLD
@@ -3976,7 +3702,7 @@ function BeginPress(sx, sy, touchId)
                                 gameState.playerBaseMax = BASE_HP_MAX + buff.value
                             end
                         end
-                        -- 鏁屾柟鍗曚綅
+                        -- 敌方单位
                         local enemyCount = math.min(#ENEMY_SLOTS, 3 + math.random(0, 2))
                         local used = {}
                         for i = 1, enemyCount do
@@ -3992,7 +3718,7 @@ function BeginPress(sx, sy, touchId)
                                 ENEMY_SLOTS[i].card = card
                             end
                         end
-                        -- 鏁屾柟鎴樺姏鍖归厤鐜╁褰撳墠鎴樺姏 (鐣ラ珮)
+                        -- 敌方战力匹配玩家当前战力 (略高)
                         local nonHP = CalcRankPowerScore() + CalcEquipPowerScore() + CalcSkillPowerScore()
                         local targetHP = math.max(1, ppTotal - nonHP)
                         targetHP = math.floor(targetHP * (1.0 + math.random() * 0.15))
@@ -4014,12 +3740,12 @@ function BeginPress(sx, sy, touchId)
                         end
                         ApplyBattleLayout(1)
                         InitAISkills()
-                        print("=== 鎺㈢储鍓湰鎴樻枟 (" .. typeInfo.name .. ") ===")
+                        print("=== 探索副本战斗 (" .. typeInfo.name .. ") ===")
                     end
 
                     Exploration.onComplete = function(result)
                         if result then
-                            -- 鍙湁鎾ょ鎴愬姛鎵嶆爣璁伴€氬叧 (閫€鍑?0鏀剁泭涓嶇畻瀹屾垚)
+                            -- 只有撤离成功才标记通关 (退出=0收益不算完成)
                             if result.success then
                                 resourceDungeonState.completed[ti] = true
                                 playerInfo.totalExplores = (playerInfo.totalExplores or 0) + 1
@@ -4029,14 +3755,14 @@ function BeginPress(sx, sy, touchId)
                                 jadeReward = jadeReward * 2
                                 exploreAdDoubleJade = false
                             end
-                            result.totalJade = jadeReward  -- 鏇存柊鐢ㄤ簬鍚庣画鏄剧ず
+                            result.totalJade = jadeReward  -- 更新用于后续显示
                             playerInfo.jade = playerInfo.jade + jadeReward
                             if result.fragList then
                                 for _, fItem in ipairs(result.fragList) do
                                     skillFragments[fItem.skillIdx] = (skillFragments[fItem.skillIdx] or 0) + fItem.count
                                 end
                             end
-                            -- 鎺㈢储鍓湰涓撳睘鎺夎惤
+                            -- 探索副本专属掉落
                             local rdEquipDrops = {}
                             if result.equipCount and result.equipCount > 0 then
                                 for _, loot in ipairs(result.loot) do
@@ -4052,7 +3778,7 @@ function BeginPress(sx, sy, touchId)
                                     end
                                 end
                             end
-                            -- 淇濆簳: 鑷冲皯鎺?浠惰澶?(浠呮垚鍔?鎾ょ鏃惰Е鍙? 鏀惧純涓嶄繚搴?"
+                            -- 保底: 至少掉1件装备 (仅成功/撤离时触发, 放弃不保底)
                             if #rdEquipDrops == 0 and result.success then
                                 local si = math.random(1, #EQUIPMENT_SETS)
                                 local pi = math.random(1, 7)
@@ -4063,8 +3789,8 @@ function BeginPress(sx, sy, touchId)
                             end
                             if result.success or jadeReward > 0 or #rdEquipDrops > 0 then
                                 for i2, eqDrop in ipairs(rdEquipDrops) do
-                                    local tierName = EQUIP_TIERS[eqDrop.tier] and EQUIP_TIERS[eqDrop.tier].name or "鏈煡"
-                                    local slotName = EQUIP_SLOT_NAMES[eqDrop.slotIdx] or "鏈煡"
+                            local tierName = EQUIP_TIERS[eqDrop.tier] and EQUIP_TIERS[eqDrop.tier].name or "未知"
+                            local slotName = EQUIP_SLOT_NAMES[eqDrop.slotIdx] or "未知"
                                     local setName = EQUIPMENT_SETS[eqDrop.setIdx] and EQUIPMENT_SETS[eqDrop.setIdx].name or ""
                                     local tc = EQUIP_TIERS[eqDrop.tier] and EQUIP_TIERS[eqDrop.tier].color or {255,255,255}
                                     local qLabel = GetQualityLabel(eqDrop.quality or 0)
@@ -4072,21 +3798,21 @@ function BeginPress(sx, sy, touchId)
                                     local dropMsg = tierName .. " " .. setName .. " [" .. slotName .. "] Lv." .. eLv .. " " .. qLabel .. eqDrop.quality .. "%"
                                     AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4 + (i2 - 1) * 30, dropMsg, 3.0, tc, 20)
                                 end
-                                local rdStr = typeInfo.name .. "瀹屾垚: +" .. #rdEquipDrops .. "浠跺叺鐢?"
-                                if jadeReward > 0 then rdStr = rdStr .. " +" .. jadeReward .. " 铏庣" end
+                                local rdStr = typeInfo.name .. "完成: +" .. #rdEquipDrops .. "件兵甲"
+                                if jadeReward > 0 then rdStr = rdStr .. " +" .. jadeReward .. " 玉壁" end
                                 AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, rdStr, 2.5, {typeInfo.color[1], typeInfo.color[2], typeInfo.color[3]}, 22)
                             else
-                                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "鎺㈢储鏀惧純, 鏈幏寰楀鍔?", 2.0, {180, 180, 180}, 18)
+                                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "探索放弃, 未获得奖励", 2.0, {180, 180, 180}, 18)
                             end
                         end
-                        -- 鎴樹护: 鎺㈢储瀹屾垚 (浠呮垚鍔?鎾ょ鏃惰拷韪? 鏀惧純涓嶇畻)
+                        -- 战令: 探索完成 (仅成功/撤离时追踪, 放弃不算)
                         if result and result.success then
                             TrackBattlePassTask("bp_explore1", 1)
                             TrackBattlePassTask("bp_wexplore5", 1)
                             TrackBattlePassTask("bp_sexplore15", 1)
                         end
                         gameState.explorationMode = false
-                        gameState.noFullAuto = false  -- 绂诲紑鎺㈢储, 鎭㈠鍏ㄨ嚜鍔ㄥ彲鐢?"
+                        gameState.noFullAuto = false  -- 离开探索, 恢复全自动可用
                         PopPhase("MENU")
                         SaveGameProgress()
                     end
@@ -4107,7 +3833,7 @@ function BeginPress(sx, sy, touchId)
                             ShowAdSafe(SafeAdCallback(function(res)
                                 if res.success then
                                     ReportAdWatch()
-                                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "铏庣宸茬炕鍊?", 1.5, {120,255,180}, 18)
+                                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "玉壁已翻倍!", 1.5, {120,255,180}, 18)
                                     if callback then callback(true) end
                                 else
                                     if callback then callback(false) end
@@ -4115,25 +3841,25 @@ function BeginPress(sx, sy, touchId)
                             end))
                         else
                             ReportAdWatch()
-                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "铏庣宸茬炕鍊?", 1.5, {120,255,180}, 18)
+                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "玉壁已翻倍!", 1.5, {120,255,180}, 18)
                             if callback then callback(true) end
                         end
                     end
 
                     PushPhase("EXPLORATION")
                     PlaySFX(AUDIO.sfx_click)
-                    print("=== 寮€濮嬫帰绱㈠壇鏈? " .. typeInfo.name .. " (7脳7 閬亣鎴? ===")
+                    print("=== 开始探索副本: " .. typeInfo.name .. " (7×7 遭遇战) ===")
                     --]=] -- END EXPLORATION REMOVED (RESOURCE_DUNGEON)
                 end
 
-                -- 鐩存帴杩涘叆 (闂ㄧエ鍒? 闈炲箍鍛婂埗)
+                -- 直接进入 (门票制, 非广告制)
                 EnterResourceDungeon()
                 return
             end
             return
         end
 
-        -- 杩斿洖鎸夐挳
+        -- 返回按钮
         if resourceDungeonBackRect and HitRect(resourceDungeonBackRect) then
             PopPhase("MENU")
             phaseChangeCooldown = 0.3
@@ -4141,11 +3867,11 @@ function BeginPress(sx, sy, touchId)
             return
         end
 
-        -- 鍓湰绫诲瀷鍗＄墖鐐瑰嚮
+        -- 副本类型卡片点击
         for di = 1, 3 do
             if resourceDungeonCardRects[di] and HitRect(resourceDungeonCardRects[di]) then
                 if resourceDungeonState.completed[di] then
-                    ShowToast("浠婃棩宸插畬鎴愭鎺㈢储")
+                    ShowToast("不能添加自己为好友")
                 else
                     resourceDungeonState.selectedType = di
                     resourceDungeonState.showConfirm = true
@@ -4157,11 +3883,11 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- === 鎴樹护閫氳璇佺晫闈㈣緭鍏?===
+    -- === 战令通行证界面输入 ===
     if gameState.phase == "BATTLE_PASS" then
         if phaseChangeCooldown > 0 then return end
 
-        -- 杩斿洖鎸夐挳
+        -- 返回按钮
         if battlePassBackRect and HitRect(battlePassBackRect) then
             PopPhase("MENU")
             phaseChangeCooldown = 0.3
@@ -4169,7 +3895,7 @@ function BeginPress(sx, sy, touchId)
             return
         end
 
-        -- Tab 鍒囨崲
+        -- Tab切换
         for ti = 1, 4 do
             if battlePassTabRects[ti] and HitRect(battlePassTabRects[ti]) then
                 if battlePassUIState.tab ~= ti then
@@ -4181,15 +3907,15 @@ function BeginPress(sx, sy, touchId)
             end
         end
 
-        -- Tab 1: 濂栧姳鎬昏 - 棰嗗彇鎸夐挳
+        -- Tab 1: 奖励总览 - 领取按钮
         if battlePassUIState.tab == 1 then
-            -- 楂樼骇濂栧姳棰嗗彇锛堢湅骞垮憡 / 鍏嶅箍鍛婄壒鏉冪洿鎺ラ鍙栵級
+            -- 高级奖励领取（看广告 / 免广告特权直接领取）
             for lv, rect in pairs(battlePassClaimPremiumRects) do
                 if HitRect(rect) then
                     if playerInfo.ad_free then
-                        -- 鍏嶅箍鍛婄壒鏉? 鐩存帴棰嗗彇
+                        -- 免广告特权: 直接领取
                         if ClaimBattlePassPremiumReward(lv) then
-                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "鍏嶅箍鍛婄洿鎺ラ鍙?", 1.5, { 100, 255, 200 }, 18)
+                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "免广告直接领取!", 1.5, { 100, 255, 200 }, 18)
                         end
                     elseif sdk then
                         local capturedLv = lv
@@ -4197,40 +3923,40 @@ function BeginPress(sx, sy, touchId)
                             if result.success then
                                 ReportAdWatch()
                                 if ClaimBattlePassPremiumReward(capturedLv) then
-                                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "楂樼骇濂栧姳宸查鍙?", 1.5, { 255, 220, 100 }, 18)
+                                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "高级奖励已领取!", 1.5, { 255, 220, 100 }, 18)
                                 end
                             else
-                                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "骞垮憡鎾斁澶辫触", 1.5, { 255, 120, 80 }, 16)
+                                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "广告播放失败", 1.5, { 255, 120, 80 }, 18)
                             end
                         end))
                     else
                         ReportAdWatch()
                         if ClaimBattlePassPremiumReward(lv) then
-                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "楂樼骇濂栧姳宸查鍙?", 1.5, { 255, 220, 100 }, 18)
+                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "高级奖励已领取!", 1.5, { 255, 220, 100 }, 18)
                         end
                     end
                     PlaySFX(AUDIO.sfx_click)
                     return
                 end
             end
-            -- 鏅€氬鍔遍鍙栵紙鍏嶈垂锛?"
+            -- 普通奖励领取（免费）
             for lv, rect in pairs(battlePassClaimFreeRects) do
                 if HitRect(rect) then
                     if ClaimBattlePassFreeReward(lv) then
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "濂栧姳宸查鍙?", 1.5, { 120, 255, 180 }, 18)
+                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "奖励已领取!", 1.5, { 120, 255, 180 }, 18)
                     end
                     PlaySFX(AUDIO.sfx_click)
                     return
                 end
             end
-            -- 妯悜鎷栨嫿婊氬姩锛堝鍔辫建閬擄級
+            -- 横向拖拽滚动（奖励轨道）
             battlePassUIState.isDraggingReward = true
             battlePassUIState.dragStartX = dx
             battlePassUIState.dragStartScrollX = battlePassUIState.rewardScrollX
             return
         end
 
-        -- Tab 2/3/4: 浠诲姟鍒楄〃 - 棰嗗彇鎸夐挳
+        -- Tab 2/3/4: 任务列表 - 领取按钮
         for _, btnInfo in ipairs(battlePassTaskBtnRects) do
             if HitRect(btnInfo) then
                 ClaimBattlePassTaskReward(btnInfo.taskType, btnInfo.taskId)
@@ -4238,7 +3964,7 @@ function BeginPress(sx, sy, touchId)
                 return
             end
         end
-        -- 绾靛悜鎷栨嫿婊氬姩锛堜换鍔″垪琛級
+        -- 纵向拖拽滚动（任务列表）
         battlePassUIState.isDragging = true
         battlePassUIState.dragStartY = dy
         battlePassUIState.dragLastY = dy
@@ -4246,44 +3972,44 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- === 璁ㄤ紣鎴樼晫闈㈣緭鍏?===
+    -- === 讨伐战界面输入 ===
     if gameState.phase == "ABYSS_SELECT" then
         if phaseChangeCooldown > 0 then return end
 
-        -- 棰勮寮圭獥
+        -- 预览弹窗
         if abyssState.showPreview then
             if abyssState.previewCloseRect and HitRect(abyssState.previewCloseRect) then
                 abyssState.showPreview = false
                 return
             end
             if abyssState.startBtnRect and HitRect(abyssState.startBtnRect) then
-                -- 璁ㄤ紣鍏ュ満璐癸細100铏庣
+                -- 讨伐入场费：100玉壁
                 local ABYSS_COST = 100
                 if playerInfo.jade < ABYSS_COST then
-                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "铏庣涓嶈冻! 闇€瑕?" .. ABYSS_COST .. " 铏庣", 1.5, { 255, 80, 80 }, 18)
+                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "玉壁不足! 需要" .. ABYSS_COST .. " 玉壁", 1.5, { 255, 80, 80 }, 18)
                     return
                 end
-                -- 鎵ｉ櫎铏庣
+                -- 扣除玉壁
                 playerInfo.jade = playerInfo.jade - ABYSS_COST
                 SaveGameProgress()
 
-                -- 璁ㄤ紣鎺㈢储妯″紡 (鎼滄墦鎾?"
+                -- 讨伐探索模式 (搜打撤)
                 local fi = abyssState.selectedFloor
                 abyssState.showPreview = false
 
-                -- 闅忔満鍦板浘澶у皬 (4~8)
+                -- 随机地图大小 (4~8)
                 local abyssGridSizes = {4, 5, 5, 6, 6, 7, 8}
                 local gs = abyssGridSizes[fi] or math.random(4, 8)
 
-                -- 灏嗗搧鍙婁互涓婃鐜囦负鏅€氭帰绱㈢殑3鍊?"
+                -- 将品及以上概率为普通探索的3倍
                 local highTierMul = 3
 
-                -- [EXPLORATION REMOVED] 鎺㈢储妯″潡宸茬Щ闄?"
-                ShowToast("鎺㈢储鍔熻兘鏆傛湭寮€鏀?")
+                -- [EXPLORATION REMOVED] 探索模块已移除
+                ShowToast("探索功能暂未开放")
                 return
-                --[=[ EXPLORATION REMOVED: 浠ヤ笅鎺㈢储浠ｇ爜宸叉敞閲?"
+                --[=[ EXPLORATION REMOVED: 以下探索代码已注释
 
-                -- 鍒濆鍖栨帰绱㈡ā鍧?"
+                -- 初始化探索模块
                 if not Exploration.IsActive() then
                     Exploration.Init(vg, fontId, IMG)
                 end
@@ -4300,14 +4026,14 @@ function BeginPress(sx, sy, touchId)
                     dropRateBonus = 0,
                 })
 
-                -- 璁剧疆鍥炶皟 (涓庡巻鍔叡鐢?onComplete, 浣嗘爣璁颁负 abyss)
+                -- 设置回调 (与历劫共用 onComplete, 但标记为 abyss)
                 Exploration.onStartBattle = function(enemyScale, maxTier, dropSets)
                     gameState.explorationMode = true
                     gameState.abyssFloor = fi
                     gameState.towerFloor = nil
                     gameState.isRanked = false
                     gameState.phase = "BATTLE"
-                    gameState.battlePhase = "SHOP"
+                    gameState.battlePhase = "DEPLOY"
                     gameState.playerBaseHP = BASE_HP_MAX
                     gameState.enemyBaseHP = BASE_HP_MAX
                     gameState.gold = GameConfig.INITIAL_GOLD
@@ -4327,7 +4053,7 @@ function BeginPress(sx, sy, touchId)
                     enemyUnits = {}
                     inventory = {}
                     RefreshShop()
-                    -- 搴旂敤鎺㈢储澧炵泭
+                    -- 应用探索增益
                     local buff = Exploration.GetBuff()
                     gameState.exploreBuff = buff
                     if buff then
@@ -4336,7 +4062,7 @@ function BeginPress(sx, sy, touchId)
                             gameState.playerBaseMax = BASE_HP_MAX + buff.value
                         end
                     end
-                    -- 鏁屾柟閮ㄧ讲
+                    -- 敌方部署
                     local enemyCount = math.min(#ENEMY_SLOTS, 3 + math.random(0, 2))
                     local used = {}
                     for i = 1, enemyCount do
@@ -4352,8 +4078,8 @@ function BeginPress(sx, sy, touchId)
                             ENEMY_SLOTS[i].card = card
                         end
                     end
-                    InitAISkills()  -- 璁ㄤ紣妯″紡鍚敤AI鎶€鑳?"
-                    print("=== 璁ㄤ紣鎺㈢储鎴樻枟 绗?" .. fi .. "灞?===")
+                    InitAISkills()  -- 讨伐模式启用AI技能
+                    print("=== 讨伐探索战斗 第" .. fi .. "层 ===")
                 end
 
                 Exploration.onComplete = function(result)
@@ -4368,7 +4094,7 @@ function BeginPress(sx, sy, touchId)
                         end
                         result.totalJade = jadeReward
                         playerInfo.jade = playerInfo.jade + jadeReward
-                        -- 鎸夋鎶€鍒嗛厤娈嬬墖
+                        -- 按武技分配残片
                         if result.fragList then
                             for _, fItem in ipairs(result.fragList) do
                                 skillFragments[fItem.skillIdx] = (skillFragments[fItem.skillIdx] or 0) + fItem.count
@@ -4394,15 +4120,15 @@ function BeginPress(sx, sy, touchId)
                                 end
                             end
                         end
-                        -- 鏄剧ず瑁呭鎺夎惤閫氱煡锛堝惈鍝佽川+瑁呯瓑锛?"
+                        -- 显示装备掉落通知（含品质+装等）
                         for i, eqDrop in ipairs(abEquipDrops) do
-                            local tierName = EQUIP_TIERS[eqDrop.tier] and EQUIP_TIERS[eqDrop.tier].name or "鏈煡"
-                            local slotName = EQUIP_SLOT_NAMES[eqDrop.slotIdx] or "鏈煡"
+                            local tierName = EQUIP_TIERS[eqDrop.tier] and EQUIP_TIERS[eqDrop.tier].name or "未知"
+                            local slotName = EQUIP_SLOT_NAMES[eqDrop.slotIdx] or "未知"
                             local setName = EQUIPMENT_SETS[eqDrop.setIdx] and EQUIPMENT_SETS[eqDrop.setIdx].name or ""
                             local tc = EQUIP_TIERS[eqDrop.tier] and EQUIP_TIERS[eqDrop.tier].color or {255, 255, 255}
                             local qLabel = GetQualityLabel(eqDrop.quality or 0)
                             local eLv = eqDrop.level or 1
-                            local dropMsg = "鑾峰緱鍏电敳: " .. tierName .. " " .. setName .. " [" .. slotName .. "] Lv." .. eLv .. " " .. qLabel .. eqDrop.quality .. "%"
+                            local dropMsg = "获得兵甲: " .. tierName .. " " .. setName .. " [" .. slotName .. "] Lv." .. eLv .. " " .. qLabel .. eqDrop.quality .. "%"
                             AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45 + (i - 1) * 30, dropMsg, 3.0, tc, 20)
                         end
                         if result.mode == "abyss" and result.success and result.abyssFloor then
@@ -4415,23 +4141,23 @@ function BeginPress(sx, sy, touchId)
                             TrackBattlePassTask("bp_wabyss3", 1)
                             TrackBattlePassTask("bp_sabyss10", 1)
                         end
-                        local abRewardStr = "璁ㄤ紣鎺㈢储: +" .. (result.totalJade or 0) .. " 铏庣"
+                        local abRewardStr = "讨伐探索: +" .. (result.totalJade or 0) .. " 玉壁"
                         if result.fragList and #result.fragList > 0 then
                             local totalF = 0
                             for _, fItem in ipairs(result.fragList) do totalF = totalF + fItem.count end
-                            abRewardStr = abRewardStr .. " +" .. totalF .. "姝︽妧娈嬬墖"
+                            abRewardStr = abRewardStr .. " +" .. totalF .. "武技残片"
                         end
                         if #abEquipDrops > 0 then
-                            abRewardStr = abRewardStr .. " +" .. #abEquipDrops .. "浠跺叺鐢?"
+                            abRewardStr = abRewardStr .. " +" .. #abEquipDrops .. "件兵甲"
                         end
                         AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, abRewardStr, 2.5, {180, 120, 255}, 22)
                     end
-                    -- 鎴樹护: 鎺㈢储瀹屾垚
+                    -- 战令: 探索完成
                     TrackBattlePassTask("bp_explore1", 1)
                     TrackBattlePassTask("bp_wexplore5", 1)
                     TrackBattlePassTask("bp_sexplore15", 1)
                     gameState.explorationMode = false
-                    gameState.noFullAuto = false  -- 绂诲紑鎺㈢储, 鎭㈠鍏ㄨ嚜鍔ㄥ彲鐢?"
+                    gameState.noFullAuto = false  -- 离开探索, 恢复全自动可用
                     PopPhase("MENU")
                     SaveGameProgress()
                 end
@@ -4452,7 +4178,7 @@ function BeginPress(sx, sy, touchId)
                         ShowAdSafe(SafeAdCallback(function(result)
                             if result.success then
                                 ReportAdWatch()
-                                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "铏庣宸茬炕鍊?", 1.5, { 120, 255, 180 }, 18)
+                                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "玉壁已翻倍!", 1.5, { 120, 255, 180 }, 18)
                                 if callback then callback(true) end
                             else
                                 if callback then callback(false) end
@@ -4460,26 +4186,26 @@ function BeginPress(sx, sy, touchId)
                         end))
                     else
                         ReportAdWatch()
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "铏庣宸茬炕鍊?", 1.5, { 120, 255, 180 }, 18)
+                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "玉壁已翻倍!", 1.5, { 120, 255, 180 }, 18)
                         if callback then callback(true) end
                     end
                 end
 
-                -- 鏄剧ず鐖嗙巼淇℃伅
+                -- 显示爆率信息
                 AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
-                    "璁ㄤ紣鎺㈢储 " .. gs .. "脳" .. gs .. " 灏嗗搧鈫戞鐜嚸?" .. highTierMul,
+                    "讨伐探索 " .. gs .. "×" .. gs .. " 将品↑概率×" .. highTierMul,
                     3.0, {180, 120, 255}, 20)
 
                 PushPhase("EXPLORATION")
                 PlaySFX(AUDIO.sfx_click)
-                print("=== 璁ㄤ紣鎺㈢储 绗?" .. fi .. "灞?" .. gs .. "脳" .. gs .. " 灏嗗搧鈫戞鐜嚸?" .. highTierMul .. " ===")
+                print("=== 讨伐探索 第" .. fi .. "层 " .. gs .. "×" .. gs .. " 将品↑概率×" .. highTierMul .. " ===")
                 return
                 --]=] -- END EXPLORATION REMOVED (ABYSS_SELECT)
             end
             return
         end
 
-        -- 杩斿洖鎸夐挳
+        -- 返回按钮
         if abyssState.backBtnRect and HitRect(abyssState.backBtnRect) then
             PopPhase("MENU")
             phaseChangeCooldown = 0.3
@@ -4487,7 +4213,7 @@ function BeginPress(sx, sy, touchId)
             return
         end
 
-        -- 鍏冲崱鍒楄〃鐐瑰嚮
+        -- 关卡列表点击
         for i, rect in ipairs(abyssState.floorRects) do
             if rect and HitRect(rect) then
                 local floor = abyssState.floors[i]
@@ -4502,34 +4228,34 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- === 鏃犲敖鐖鐣岄潰杈撳叆 ===
+    -- === 个人资料界面输入 ===
     if gameState.phase == "TOWER_SELECT" then
         if phaseChangeCooldown > 0 then return end
 
-        -- 鎺掕姒滈潰鏉挎墦寮€鏃讹紝浼樺厛澶勭悊鎺掕姒滀氦浜?"
+        -- 排行榜面板打开时，优先处理排行榜交互
         if towerState.showLeaderboard then
             if towerState.leaderboardBackRect and HitRect(towerState.leaderboardBackRect) then
                 towerState.showLeaderboard = false
                 PlaySFX(AUDIO.sfx_click)
             end
-            return  -- 鎺掕姒滄墦寮€鏃跺悶鍣墍鏈夌偣鍑?"
+            return  -- 排行榜打开时吞噬所有点击
         end
 
-        -- 棰勮寮圭獥锛堟寫鎴樼‘璁わ級
+        -- 预览弹窗（挑战确认）
         if towerState.showPreview then
             if towerState.startBtnRect and HitRect(towerState.startBtnRect) then
-                -- 999灞備笂闄愭鏌?"
+                -- 999层上限检查
                 if towerState.currentFloor > 999 then
-                    ShowToast("宸茶揪鏈禌瀛ｆ渶楂樺眰(999灞?锛岃绛夊緟涓嬩釜璧涘")
+                    ShowToast("已达本赛季最高层(999层)，请等待下个赛季")
                     PlaySFX(AUDIO.sfx_click)
                     return
                 end
-                -- 鐖鎴樻枟寮€濮嬶紙鏃犻渶闂ㄧエ锛?"
+                -- 爬塔战斗开始（无需门票）
                 towerState.showPreview = false
                 local fl = towerState.currentFloor
-                gameState.towerFloor = fl  -- 鏍囪鐖妯″紡
+                gameState.towerFloor = fl  -- 标记爬塔模式
                 gameState.phase = "BATTLE"
-                gameState.battlePhase = "SHOP"
+                gameState.battlePhase = "DEPLOY"
                 gameState.playerBaseHP = BASE_HP_MAX
                 gameState.enemyBaseHP = BASE_HP_MAX
                 gameState.gold = GameConfig.INITIAL_GOLD
@@ -4540,7 +4266,7 @@ function BeginPress(sx, sy, touchId)
                 gameState.goldTimer = 0
                 gameState.resultTimer = 0
                 gameState.autoMarch = false
-                -- 闃剁骇闅忓眰鏁伴€掑 (姣?0灞?1闃? 鐖鏈€楂樼帇鍝?闃?"
+                -- 阶级随层数递增 (每10层+1阶, 爬塔最高王品5阶)
                 stageMaxTier = math.min(5, math.max(1, math.floor((fl - 1) / 10) + 1))
                 for _, sk in ipairs(SKILL_DEFS) do sk.cooldown = 0 end
                 activeSkillEffects = {}
@@ -4567,15 +4293,15 @@ function BeginPress(sx, sy, touchId)
                     end
                 end
                 PlaySFX(AUDIO.sfx_click)
-                print("=== 杩涘叆鐖鎴樻枟 绗?" .. fl .. "灞?===")
+                print("=== 进入爬塔战斗 第" .. fl .. "层 ===")
                 return
             end
-            -- 鍏抽棴棰勮
+            -- 关闭预览
             towerState.showPreview = false
             return
         end
 
-        -- 杩斿洖鎸夐挳
+        -- 返回按钮
         if towerState.backBtnRect and HitRect(towerState.backBtnRect) then
             PopPhase("MENU")
             phaseChangeCooldown = 0.3
@@ -4583,7 +4309,7 @@ function BeginPress(sx, sy, touchId)
             return
         end
 
-        -- 鎺掕姒滄寜閽?"
+        -- 排行榜按钮
         if towerState.leaderboardBtnRect and HitRect(towerState.leaderboardBtnRect) then
             towerState.showLeaderboard = true
             if not towerState.rankLoaded then
@@ -4593,22 +4319,22 @@ function BeginPress(sx, sy, touchId)
             return
         end
 
-        -- 鐐瑰嚮涓诲尯鍩熸墦寮€棰勮
+        -- 点击主区域打开预览
         towerState.showPreview = true
         PlaySFX(AUDIO.sfx_click)
         return
     end
 
-    -- === 鎺掍綅璧涚晫闈㈣緭鍏?===
+    -- === 排位赛界面输入 ===
     if gameState.phase == "RANKED_SELECT" then
         if phaseChangeCooldown > 0 then return end
 
-        -- 鍖归厤涓笉鍏佽鍏朵粬鎿嶄綔
+        -- 匹配中不允许其他操作
         if rankedState.isMatching then return end
 
-        -- 鎺掕姒滃脊绐?"
+        -- 排行榜弹窗
         if rankedState.showLeaderboard then
-            -- 鍏抽棴鎺掕姒?"
+            -- 关闭排行榜
             if rankedState.backBtnRect and HitRect(rankedState.backBtnRect) then
                 rankedState.showLeaderboard = false
                 PlaySFX(AUDIO.sfx_click)
@@ -4617,7 +4343,7 @@ function BeginPress(sx, sy, touchId)
             return
         end
 
-        -- 寮€濮嬪尮閰嶆寜閽?"
+        -- 开始匹配按钮
         if rankedState.startBtnRect and HitRect(rankedState.startBtnRect) then
             rankedState.isMatching = true
             rankedState.matchAnim = 0
@@ -4626,7 +4352,7 @@ function BeginPress(sx, sy, touchId)
             rankedState.opponentPower = 0
             rankedState.opponentCards = {}
             if rawget(_G, "IsNetworkMode") and IsNetworkMode() then
-                local Client = require("network.Client")
+                local Client = _G._ClientNet
                 local ok = Client.JoinRanked()
                 if not ok then
                     rankedState.isMatching = false
@@ -4639,11 +4365,11 @@ function BeginPress(sx, sy, touchId)
                 return
             end
             PlaySFX(AUDIO.sfx_click)
-            print("=== 鎺掍綅鍖归厤寮€濮?===")
+            print("=== 排位匹配开始 ===")
             return
         end
 
-        -- 鎺掕姒滄寜閽?"
+        -- 排行榜按钮
         if rankedState.rankBtnRect and HitRect(rankedState.rankBtnRect) then
             rankedState.showLeaderboard = true
             if not rankedState.rankLoaded then
@@ -4653,7 +4379,7 @@ function BeginPress(sx, sy, touchId)
             return
         end
 
-        -- 杩斿洖鎸夐挳
+        -- 返回按钮
         if rankedState.backBtnRect and HitRect(rankedState.backBtnRect) then
             PopPhase("MENU")
             phaseChangeCooldown = 0.3
@@ -4663,45 +4389,45 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- 鎺㈢储鎴樻枟纭寮圭獥: 鎷︽埅鎵€鏈夌偣鍑?(閫€鍑?姝讳骸)
+    -- 探索战斗确认弹窗: 拦截所有点击 (退出/死亡)
     if gameState.exploreExitConfirm then
         local ddx, ddy = ScreenToDesign(sx, sy)
         local function HitECR(r)
             return r and ddx >= r.x and ddx <= r.x + r.w and ddy >= r.y and ddy <= r.y + r.h
         end
 
-        -- 骞垮憡缈诲€嶈檸绗︽寜閽?"
+        -- 广告翻倍玉壁按钮
         if HitECR(exploreConfirmBtnRects.adDouble) then
             PlaySFX(AUDIO.sfx_click)
             if not exploreAdDoubleJade then
                 if playerInfo.ad_free then
                     exploreAdDoubleJade = true
-                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "鍏嶅箍鍛婄炕鍊?", 1.5, { 100, 255, 200 }, 18)
-                    print("[鎺㈢储] [鍏嶅箍鍛奭 缈诲€嶈檸绗﹀凡婵€娲?")
+                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "免广告翻倍!", 1.5, { 100, 255, 200 }, 18)
+                    print("[探索] [免广告] 翻倍玉壁已激活")
                 elseif sdk then
                     ShowAdSafe(SafeAdCallback(function(result)
                         if result.success then
                             exploreAdDoubleJade = true
-                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "铏庣灏嗙炕鍊?", 1.5, { 120, 255, 180 }, 18)
+                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "玉壁将翻倍!", 1.5, { 120, 255, 180 }, 18)
                             ReportAdWatch()
-                            print("[鎺㈢储] 骞垮憡缈诲€嶈檸绗﹀凡婵€娲?")
+                            print("[探索] 广告翻倍玉壁已激活")
                         end
                     end))
                 else
                     exploreAdDoubleJade = true
-                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "[DEV] 铏庣灏嗙炕鍊?", 1.5, { 120, 255, 180 }, 18)
+                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "[DEV] 玉壁将翻倍!", 1.5, { 120, 255, 180 }, 18)
                     ReportAdWatch()
-                    print("[鎺㈢储] [DEV] 骞垮憡缈诲€嶈檸绗﹀凡婵€娲?")
+                    print("[探索] [DEV] 广告翻倍玉壁已激活")
                 end
             end
             return
         end
 
-        -- 纭鎸夐挳
+        -- 确认按钮
         if HitECR(exploreConfirmBtnRects.confirm) then
             PlaySFX(AUDIO.sfx_click)
             if gameState.exploreExitConfirm.type == "abyss_exit" then
-                -- 璁ㄤ紣鎴橀€€鍑? 淇濈暀30%鏀惰幏, 杩斿洖璁ㄤ紣鎴橀〉闈?"
+                -- 讨伐战退出: 保留30%收获, 返回讨伐战页面
                 gameState.exploreExitConfirm = nil
                 -- Exploration.ForceAbandonWithRetain(0.3)  -- 30%淇濈暀 [EXPLORATION REMOVED]
                 gameState.explorationMode = false
@@ -4711,69 +4437,69 @@ function BeginPress(sx, sy, touchId)
                 abyssState.showPreview = false
                 phaseChangeCooldown = 0.3
                 SaveGameProgress()
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "璁ㄤ紣鎾ら€€ (淇濈暀30%鏀惰幏)", 2.0, { 255, 200, 100 }, 16)
-                print("[璁ㄤ紣] 涓€旈€€鍑? 淇濈暀30%鏀惰幏, 杩斿洖璁ㄤ紣鎴橀〉闈?")
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "讨伐撤退 (保留30%收获)", 2.0, { 255, 200, 100 }, 18)
+                print("[讨伐] 中途退出, 保留30%收获, 返回讨伐战页面")
             else
-                -- 鎺㈢储鎴樻枟閫€鍑? 鍥炲埌鎺㈢储鍦板浘 (涓㈠け10%-30%宸叉湁鎴樺埄鍝? [EXPLORATION REMOVED]
+                -- 探索战斗退出: 回到探索地图 (丢失10%-30%已有战利品) [EXPLORATION REMOVED]
                 gameState.exploreExitConfirm = nil
                 -- Exploration.OnBattleReturn(false)  -- [EXPLORATION REMOVED]
                 -- local lostCount = Exploration.GetState().lastBattleLostCount or 0
                 -- if lostCount > 0 then
-                --     AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "涓㈠け浜?" .. lostCount .. " 浠舵垬鍒╁搧", 2.0, { 255, 120, 80 }, 16)
+                --     AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "丢失了 " .. lostCount .. " 件战利品", 2.0, { 255, 120, 80 }, 18)
                 -- end
                 gameState.explorationMode = false
-                gameState.phase = "MENU"  -- 鎺㈢储宸茬Щ闄? 鐩存帴鍥炰富鑿滃崟
+                gameState.phase = "MENU"  -- 探索已移除, 直接回主菜单
                 phaseChangeCooldown = 0.3
-                print("[鎺㈢储] 鎺㈢储妯″潡宸茬Щ闄? 杩斿洖涓昏彍鍗?")
+                print("[探索] 探索模块已移除, 返回主菜单")
             end
             return
         end
 
-        -- 鐪嬪箍鍛婂娲绘寜閽?(浠呮浜℃椂)
+        -- 名字选择 (含自定义选项)
         if gameState.exploreExitConfirm.type == "death"
            and HitECR(exploreConfirmBtnRects.revive) then
             PlaySFX(AUDIO.sfx_click)
-            -- 澶嶆椿鎴愬姛鐨勯€氱敤澶勭悊
+            -- 复活成功的通用处理
             local function doRevive()
                 -- Exploration.OnBattleReturn(false)  -- [EXPLORATION REMOVED]
                 gameState.explorationMode = false
                 gameState.exploreExitConfirm = nil
-                gameState.phase = "MENU"  -- 鎺㈢储宸茬Щ闄? 鐩存帴鍥炰富鑿滃崟
+                gameState.phase = "MENU"  -- 探索已移除, 直接回主菜单
                 phaseChangeCooldown = 0.3
             end
             if playerInfo.ad_free then
                 doRevive()
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "鍏嶅箍鍛婂娲绘垚鍔?", 1.5, { 100, 255, 200 }, 16)
-                print("[鎺㈢储] [鍏嶅箍鍛奭 澶嶆椿, 杩斿洖鎺㈢储鍦板浘")
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "免广告复活成功!", 1.5, { 100, 255, 200 }, 18)
+                print("[探索] [免广告] 复活, 返回探索地图")
             elseif sdk then
                 ShowAdSafe(SafeAdCallback(function(result)
                     if result.success then
                         doRevive()
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "澶嶆椿鎴愬姛! 缁х画鎺㈢储", 1.5, { 120, 255, 180 }, 16)
+                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "复活成功! 继续探索", 1.5, { 120, 255, 180 }, 18)
                         ReportAdWatch()
-                        print("[鎺㈢储] 骞垮憡澶嶆椿, 杩斿洖鎺㈢储鍦板浘")
+                print("[探索] 探索模块已移除, 返回主菜单")
                     end
                 end))
             else
-                -- DEV妯″紡: 妯℃嫙骞垮憡鎴愬姛
+                -- DEV模式: 模拟广告成功
                 doRevive()
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "[DEV] 澶嶆椿鎴愬姛!", 1.5, { 120, 255, 180 }, 16)
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "[DEV] 复活成功!", 1.5, { 120, 255, 180 }, 18)
                 ReportAdWatch()
-                print("[鎺㈢储] [DEV] 骞垮憡澶嶆椿, 杩斿洖鎺㈢储鍦板浘")
+                print("[探索] [DEV] 广告复活, 返回探索地图")
             end
             return
         end
 
-        return  -- 寮圭獥鏄剧ず鏃舵嫤鎴墍鏈夊叾浠栫偣鍑?"
+        return  -- 弹窗显示时拦截所有其他点击
     end
 
         if gameState.phase == "WIN" or gameState.phase == "LOSE" then
         if gameState.phase == "WIN" then
-            -- WIN: 濂栧姳寮圭獥娴佺▼
+            -- WIN: 奖励弹窗流程
             if gameState.showRewardPopup then
-                -- 寮圭獥宸叉樉绀? 鍝嶅簲纭鎸夐挳鍜屽箍鍛婄炕鍊嶆寜閽?"
+                -- 弹窗已显示, 响应确认按钮和广告翻倍按钮
                 local ddx, ddy = ScreenToDesign(sx, sy)
-                -- 骞垮憡缈诲€嶆寜閽?"
+                -- 广告翻倍按钮
                 if rewardAdDoubleRect then
                     local r = rewardAdDoubleRect
                     if ddx >= r.x and ddx <= r.x + r.w and ddy >= r.y and ddy <= r.y + r.h then
@@ -4781,7 +4507,7 @@ function BeginPress(sx, sy, touchId)
                         return
                     end
                 end
-                -- 纭鎸夐挳
+                -- 确认按钮
                 if rewardPopupConfirmRect then
                     local r = rewardPopupConfirmRect
                     if ddx >= r.x and ddx <= r.x + r.w and ddy >= r.y and ddy <= r.y + r.h then
@@ -4804,38 +4530,40 @@ function BeginPress(sx, sy, touchId)
                         elseif gameState.worldMapBattle then
                             gameState.phase = "WORLD_MAP"
                             gameState.worldMapBattle = nil
+                            gameState.retreatPursued = nil
+                            gameState.retreatPopup = nil
+                            gameState.enemyRetreatPopup = nil
+                            gameState.enemyRetreatTriggered = nil
+                            gameState.enemyRetreatedSuccess = nil
+                            gameState.pursuitResultPopup = nil
+                            gameState.enemyRetreatCheckCD = nil
+                            if WorldMap and WorldMap.ActivatePendingPlayerAnim then
+                                WorldMap.ActivatePendingPlayerAnim()
+                            end
                         else
                             gameState.phase = "MENU"
                         end
                         phaseChangeCooldown = 0.3
-                        print("=== 濂栧姳纭, 杩斿洖 ===")
+                        print("=== 奖励确认, 返回 ===")
                     end
                 end
             end
-            -- 寮圭獥鏈脊鍑烘椂涓嶅搷搴旂偣鍑?"
+            -- 弹窗未弹出时不响应点击
             return
         end
-        -- LOSE: 鍘熸湁閫昏緫
+        -- LOSE: 原有逻辑
         if gameState.resultTimer > 1.5 then
-            -- 鎺㈢储妯″紡: 寮瑰嚭姝讳骸纭寮圭獥 (纭鏀惧純 / 鐪嬪箍鍛婂娲? [EXPLORATION REMOVED]
+            -- 探索模式: 弹出死亡确认弹窗 (确认放弃 / 看广告复活) [EXPLORATION REMOVED]
             -- explorationMode is always false since exploration module was removed
             -- if gameState.explorationMode then
             --     if not gameState.exploreExitConfirm then
             --         gameState.exploreExitConfirm = { type = gameState.abyssFloor and "abyss_exit" or "death" }
             --     end
-            --     -- 寮圭獥鎸夐挳鐐瑰嚮鍦ㄤ笅鏂圭粺涓€澶勭悊
+            --     -- 弹窗按钮点击在下方统一处理
             --     return
             -- end
-            if adRects.revive then
-                local ddx, ddy = ScreenToDesign(sx, sy)
-                if ddx >= adRects.revive.x and ddx <= adRects.revive.x + adRects.revive.w
-                   and ddy >= adRects.revive.y and ddy <= adRects.revive.y + adRects.revive.h then
-                    WatchAdForRevive()
-                    return
-                end
-            end
             adRects.revive = nil
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "鍐嶆帴鍐嶅帀!", 2.0, { 200, 160, 100 }, 20)
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "再接再厉!", 2.0, { 200, 160, 100 }, 20)
             if gameState.isRanked then
                 gameState.phase = "RANKED_SELECT"
                 gameState.isRanked = false
@@ -4852,6 +4580,16 @@ function BeginPress(sx, sy, touchId)
             elseif gameState.worldMapBattle then
                 gameState.phase = "WORLD_MAP"
                 gameState.worldMapBattle = nil
+                gameState.retreatPursued = nil
+                gameState.retreatPopup = nil
+                gameState.enemyRetreatPopup = nil
+                gameState.enemyRetreatTriggered = nil
+                gameState.enemyRetreatedSuccess = nil
+                gameState.pursuitResultPopup = nil
+                gameState.enemyRetreatCheckCD = nil
+                if WorldMap and WorldMap.ActivatePendingPlayerAnim then
+                    WorldMap.ActivatePendingPlayerAnim()
+                end
             else
                 gameState.phase = "MENU"
             end
@@ -4861,9 +4599,9 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- (宸茬Щ闄ゆ鎶€璇︽儏寮圭獥)
+    -- (已移除武技详情弹窗)
 
-    -- 鎴樻枟瑙勫垯寮圭獥: 鎷︽埅鎵€鏈夌偣鍑伙紝鏀寔婊氬姩
+    -- 战斗规则弹窗: 拦截所有点击，支持滚动
     if battleRulesState.show then
         local cr = battleRulesState.closeBtnRect
         if cr and dx >= cr.x and dx <= cr.x + cr.w and dy >= cr.y and dy <= cr.y + cr.h then
@@ -4872,24 +4610,88 @@ function BeginPress(sx, sy, touchId)
             PlaySFX(AUDIO.sfx_click)
             return
         end
-        -- 闈㈡澘鍖哄煙鍐呭紑濮嬫嫋鎷芥粴鍔?"
+        -- 面板区域内开始拖拽滚动
         local pr = battleRulesState.panelRect
         if pr and dx >= pr.x and dx <= pr.x + pr.w and dy >= pr.y and dy <= pr.y + pr.h then
             battleRulesState.isDragging = true
             battleRulesState.lastTouchY = dy
             battleRulesState.vel = 0
         else
-            -- 鐐瑰嚮寮圭獥澶栧叧闂?"
+            -- 点击弹窗外关闭
             battleRulesState.show = false
             battleRulesState.isDragging = false
         end
         return
     end
 
-    -- 鎴樻枟杩斿洖鎸夐挳 (璁捐鍧愭爣)
+        -- 名字选择 (含自定义选项)
     local function HitDesignRect(r)
         return r and dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h
     end
+
+    -- === 敌方撤退弹窗交互: 追击 / 放行 ===
+    if gameState.enemyRetreatPopup then
+        if HitDesignRect(gameState.btn_enemyRetreatPursue) then
+            -- 玩家选择追击
+            local pursueSuccess = math.random() < 0.60
+            gameState.enemyRetreatPopup = nil
+            gameState.btn_enemyRetreatPursue = nil
+            gameState.btn_enemyRetreatLetGo = nil
+            if pursueSuccess then
+                -- 追击成功: 敌方溃不成军, 战力-50%, 战斗继续
+                for _, u in ipairs(enemyUnits) do
+                    u.routDebuff = true
+                end
+                gameState.pursuitResultPopup = {
+                    msg = "追击成功! 敌军溃不成军, 战力-50%!",
+                    timer = 3.0, success = true,
+                }
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
+                    "敌军溃不成军!", 2.0, { 80, 255, 120 }, 24)
+            else
+                -- 追击失败: 敌方成功撤退, 战斗结束(玩家胜利)
+                gameState.pursuitResultPopup = {
+                    msg = "追击失败! 敌军成功撤退!",
+                    timer = 3.0, success = false,
+                }
+                gameState.enemyRetreatedSuccess = true
+                -- 敌方撤退视同玩家胜利
+                gameState.phase = "WIN"
+                gameState.resultTimer = 0
+                gameState.winJade = 0
+                gameState.winExp = GameConfig.EXP_PER_WIN
+                playerInfo.exp = playerInfo.exp + GameConfig.EXP_PER_WIN
+                CheckPlayerLevelUp()
+                OnBattleVictory()
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
+                    "敌军撤退, 我军获胜!", 2.0, { 255, 220, 80 }, 24)
+                PlaySFX(AUDIO.sfx_win)
+            end
+            PlaySFX(AUDIO.sfx_click)
+            return
+        elseif HitDesignRect(gameState.btn_enemyRetreatLetGo) then
+            -- 玩家选择放行: 敌方成功撤退, 战斗结束(玩家胜利)
+            gameState.enemyRetreatPopup = nil
+            gameState.btn_enemyRetreatPursue = nil
+            gameState.btn_enemyRetreatLetGo = nil
+            gameState.enemyRetreatedSuccess = true
+            gameState.phase = "WIN"
+            gameState.resultTimer = 0
+            gameState.winJade = 0
+            gameState.winExp = GameConfig.EXP_PER_WIN
+            playerInfo.exp = playerInfo.exp + GameConfig.EXP_PER_WIN
+            CheckPlayerLevelUp()
+            OnBattleVictory()
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
+                "放行敌军, 我军获胜!", 2.0, { 255, 220, 80 }, 24)
+            PlaySFX(AUDIO.sfx_win)
+            PlaySFX(AUDIO.sfx_click)
+            return
+        end
+        -- 弹窗期间吞掉其他点击
+        return
+    end
+
     if HitDesignRect(battleBackBtnRect) then
         -- [EXPLORATION REMOVED] explorationMode is always false, removed two branches
         -- if gameState.explorationMode and gameState.abyssFloor then
@@ -4900,30 +4702,19 @@ function BeginPress(sx, sy, touchId)
         --     gameState.exploreExitConfirm = { type = "exit" }
         --     PlaySFX(AUDIO.sfx_click)
         --     return
-        if gameState.isDummy then
-            PopPhase("MENU")
-            gameState.isDummy = false
-            gameState.abyssFloor = nil
-            gameState.towerFloor = nil
-            gameState.isRanked = false
-            dummyState.prepPhase = false
-            PlaySFX(AUDIO.sfx_click)
-            return
-        elseif gameState.isRanked then
-            -- 鎺掍綅涓€旈€€鍑?= 鍒よ礋鎵ｅ垎
+        if gameState.isRanked then
+            -- 排位中途退出 = 判负扣分
             local shouldLeaveRankedBattle = true
             if IsServerAuthoritativeRankedMode and IsServerAuthoritativeRankedMode() then
                 gameState.awaitingRankedResult = true
                 gameState.rankedDelta = nil
-                local Client = require("network.Client")
+                local Client = _G._ClientNet
                 local ok = Client.ForfeitRanked()
                 if not ok then
                     gameState.awaitingRankedResult = false
                     shouldLeaveRankedBattle = false
-                    if rawget(_G, "ShowToast") then ShowToast("閹烘帊缍呴幎鏇㈡閹绘劒姘︽径杈Е", 2.0) end
                 else
                     SaveGameProgress()
-                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "閹舵洟妾风紒鎾剁暬瀹稿弶褰佹禍?", 2.0, { 255, 180, 120 }, 18)
                 end
             elseif rankedState.score > 0 then
                 rankedState.losses = rankedState.losses + 1
@@ -4932,9 +4723,9 @@ function BeginPress(sx, sy, touchId)
                 local delta = CalcRankedScoreChange(false, rankedState.streak)
                 rankedState.score = math.max(0, rankedState.score + delta)
                 ReportRankedScore()
-                -- 缃戠粶妯″紡: 閫氱煡鏈嶅姟绔純鏉?"
+                -- 网络模式: 通知服务端弃权
                 SaveGameProgress()
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "閫€鍑哄垽璐?" .. delta .. "鍒?", 2.0, { 255, 100, 80 }, 18)
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "退出判负 " .. delta .. "分", 2.0, { 255, 100, 80 }, 18)
             end
             if shouldLeaveRankedBattle then
                 PopPhase("RANKED_SELECT")
@@ -4951,154 +4742,168 @@ function BeginPress(sx, sy, touchId)
             towerState.showPreview = false
             gameState.towerFloor = nil
         else
-            -- 鏅€氬緛閫旈€€鍑? 淇濈暀30%鑳滃埄濂栧姳
-            local baseJade = math.random(GameConfig.JADE_PER_WIN_MIN, GameConfig.JADE_PER_WIN_MAX)
-            local retreatJade = math.max(1, math.floor(baseJade * 0.3))
-            local retreatExp = math.max(1, math.floor(GameConfig.EXP_PER_WIN * 0.3))
-            playerInfo.jade = playerInfo.jade + retreatJade
-            playerInfo.exp = playerInfo.exp + retreatExp
-            CheckPlayerLevelUp()
-            playerInfo.totalBattles = (playerInfo.totalBattles or 0) + 1
-            TrackDailyTask("battle3", 1)
-            TrackWeeklyTask("wbattle15", 1)
-            TrackBattlePassTask("bp_battle3", 1)
-            TrackBattlePassTask("bp_wbattle20", 1)
-            TrackBattlePassTask("bp_sbattle100", 1)
-            SaveGameProgress()
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "鎾ら€€ +" .. retreatJade .. " 铏庣 (30%)", 2.0, { 255, 200, 100 }, 16)
-            PopPhase("MENU")
+            if gameState.battlePhase == "FIGHT" then
+                if gameState.worldMapBattle then
+                    -- === SLG战斗撤退: AI决定是否追击 ===
+                    local pursueChance = 0.60
+                    if math.random() < pursueChance then
+                        -- AI选择追击 -> 溃不成军, 战力-50%, 战斗继续
+                        gameState.retreatPursued = true
+                        for _, u in ipairs(playerUnits) do
+                            u.routDebuff = true
+                        end
+                        gameState.retreatPopup = {
+                            type = "player_pursued",
+                            msg = "敌军发起追击! 我军溃不成军, 战力下降50%!",
+                            timer = 3.0,
+                        }
+                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
+                            "撤退失败! 敌军追击!", 2.0, { 255, 80, 80 }, 24)
+                        PlaySFX(AUDIO.sfx_lose)
+                    else
+                        -- AI放弃追击 -> 成功撤退, 存活兵力回城
+                        gameState.retreated = true
+                        local retreatExp = math.max(1, math.floor(GameConfig.EXP_PER_WIN * 0.3))
+                        playerInfo.exp = playerInfo.exp + retreatExp
+                        CheckPlayerLevelUp()
+                        playerInfo.totalBattles = (playerInfo.totalBattles or 0) + 1
+                        TrackDailyTask("battle3", 1)
+                        TrackWeeklyTask("wbattle15", 1)
+                        TrackBattlePassTask("bp_battle3", 1)
+                        TrackBattlePassTask("bp_wbattle20", 1)
+                        TrackBattlePassTask("bp_sbattle100", 1)
+                        WorldMap.OnBattleResult(false)
+                        SaveGameProgress()
+                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
+                            "鸣金收兵!", 1.5, { 255, 200, 100 }, 24)
+                        gameState.battlePhase = "RESULT"
+                        gameState.battleResult = "LOSE"
+                        if OnBattleDefeat then OnBattleDefeat() end
+                    end
+                else
+                    -- === 非SLG战斗: 原有撤退逻辑 ===
+                    gameState.retreated = true
+                    local retreatExp = math.max(1, math.floor(GameConfig.EXP_PER_WIN * 0.3))
+                    playerInfo.exp = playerInfo.exp + retreatExp
+                    CheckPlayerLevelUp()
+                    playerInfo.totalBattles = (playerInfo.totalBattles or 0) + 1
+                    TrackDailyTask("battle3", 1)
+                    TrackWeeklyTask("wbattle15", 1)
+                    TrackBattlePassTask("bp_battle3", 1)
+                    TrackBattlePassTask("bp_wbattle20", 1)
+                    TrackBattlePassTask("bp_sbattle100", 1)
+                    SaveGameProgress()
+                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35,
+                        "鸣金收兵!", 1.5, { 255, 200, 100 }, 18)
+                    gameState.battlePhase = "RESULT"
+                    gameState.battleResult = "LOSE"
+                    if OnBattleDefeat then OnBattleDefeat() end
+                end
+                phaseChangeCooldown = 0.3
+                PlaySFX(AUDIO.sfx_click)
+                return  -- 不清理units，结果界面需要计算存活率
+            else
+                -- DEPLOY阶段退出: 未开战，直接返回
+                PopPhase("MENU")
+            end
         end
         phaseChangeCooldown = 0.3
-        -- 娓呯悊鎴樻枟鐘舵€?"
+        -- 清理战斗状态
         for _, slot in ipairs(PLAYER_SLOTS) do
             slot.filled = false; slot.card = nil
         end
         playerUnits = {}
         enemyUnits = {}
-        print("=== 鎴樻枟涓繑鍥為椤?===")
+        print("=== 战斗中返回首页 ===")
         return
     end
 
-    -- 鎹㈡垬鍦烘寜閽?(鎵撴々鍑嗗闃舵, 璁捐鍧愭爣)
-    if gameState.isDummy and dummyState.prepPhase and dummyState.changeBgBtnRect then
-        local r = dummyState.changeBgBtnRect
-        if dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h then
-            gameState.abyssFloor = (gameState.abyssFloor % 7) + 1
-            ApplyBattleLayout(gameState.abyssFloor + 1)  -- 璁ㄤ紣灞侼 鈫?甯冨眬绱㈠紩N+1
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "鎴樺満 " .. gameState.abyssFloor .. "/7", 1.0, { 180, 220, 255 }, 14)
-            PlaySFX(AUDIO.sfx_click)
-            print("=== 鍒囨崲鎴樺満鑳屾櫙: " .. gameState.abyssFloor .. " ===")
-            return
-        end
-    end
-
-    -- 鎹㈡垬鍦烘寜閽?(鏅€氭垬鏂? 闈炶浼?鐖, 璁捐鍧愭爣)
-    if not gameState.abyssFloor and not gameState.towerFloor and not gameState.isRanked and not gameState.isDummy and battleChangeBgBtnRect then
+            -- 打开仓库弹窗 (显示当前选中英雄的第一个可用孔位, 或全部)
+    -- 换战场按钮 (普通战斗, 非讨伐/爬塔, 设计坐标)
+    if not gameState.abyssFloor and not gameState.towerFloor and not gameState.isRanked and battleChangeBgBtnRect then
         local r = battleChangeBgBtnRect
         if dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h then
             local newIdx = (currentLayoutIdx % 8) + 1
             ApplyBattleLayout(newIdx)
-            local layoutName = BATTLE_LAYOUTS[newIdx] and BATTLE_LAYOUTS[newIdx].name or "榛樿"
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, layoutName, 1.0, { 180, 220, 255 }, 14)
+            local layoutName = BATTLE_LAYOUTS[newIdx] and BATTLE_LAYOUTS[newIdx].name or "默认"
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, layoutName, 1.0, { 180, 220, 255 }, 18)
             PlaySFX(AUDIO.sfx_click)
-            print("=== 鍒囨崲鎴樺満鑳屾櫙: " .. newIdx .. " " .. layoutName .. " ===")
+            print("=== 切换战场背景: " .. newIdx .. " " .. layoutName .. " ===")
             return
         end
     end
 
-    -- 寮€鎴樻寜閽?(浠匰HOP闃舵鍙敤, 璁捐鍧愭爣)
-    if HitFightButton(dx, dy) then
-        if gameState.battlePhase == "SHOP" then
-            -- 鎵撴々妯″紡锛氱敓鎴愯€佽檸骞跺紑濮?0绉掕鏃?"
-            if gameState.isDummy and dummyState.prepPhase then
-                dummyState.prepPhase = false
-                dummyState.totalDamage = 0
-                dummyState.timer = 30
-
-                -- 姹囪仛灞炴€?"
-                AggregateBaseStats()
-                -- 閲嶈鏁屾柟HP锛圓ggregateBaseStats浼氳鐩栵級
-                gameState.enemyBaseHP = 999999
-                gameState.enemyBaseMax = 999999
-
-                -- 鐢熸垚100鍙法鍏借€佽檸锛堟瘡鏉¤溅閬?0鍙級
-                local bz = BATTLE_ZONE
-                local tigerHP = 8000
-                local tigerATK = 1
-                local tigerDEF = 0
-                local tigerUC = UNIT_CLASS.DEMON_WARRIOR
-                for lane = 1, NUM_LANES do
-                    local laneCX = GetLaneCenterX(lane)
-                    for t = 1, 20 do
-                        local spawnX = laneCX + (math.random() - 0.5) * LANE_WIDTH * 0.6
-                        local spawnY = bz.centerY + (math.random() - 0.5) * (bz.bottom - bz.top) * 0.5
-                        local unit = {
-                            x = spawnX, y = spawnY,
-                            hp = tigerHP, maxHp = tigerHP,
-                            atk = tigerATK, def = tigerDEF,
-                            speed = 0,
-                            atkTimer = math.random() * 0.5, atkCooldown = tigerUC.atkCd,
-                            atkRange = tigerUC.atkRange,
-                            alive = true, isPlayer = false,
-                            isRanged = false, unitClass = tigerUC,
-                            animTimer = math.random() * 6.28, flashTimer = 0,
-                            isHealer = false,
-                            cloudSeed = math.random() * 100,
-                            breakDmgAdd = 0,
-                            laneIdx = lane,
-                            isDummyTiger = true,
-                        }
-                        table.insert(enemyUnits, unit)
-                    end
+    -- 车道指示器点击 (仅 DEPLOY 阶段, 点击循环切换 1~5 路)
+    if gameState.battlePhase == "DEPLOY" then
+        for _, slot in ipairs(PLAYER_SLOTS) do
+            if slot.filled and slot.card and slot.laneBadgeRect then
+                local r = slot.laneBadgeRect
+                if dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h then
+                    local cur = slot.deployLane or 1
+                    local next = cur % NUM_LANES + 1
+                    slot.deployLane = next
+                    local laneColors = {
+                        { 80, 180, 255 }, { 100, 220, 120 }, { 255, 210, 60 },
+                        { 255, 150, 60 }, { 220, 100, 180 },
+                    }
+                    local lc = laneColors[next] or { 200, 180, 160 }
+                    AddFloatText(slot.cx, slot.cy + 30, next .. "路", 0.8, lc, 18)
+                    PlaySFX(AUDIO.sfx_click)
+                    return
                 end
-
-                gameState.battlePhase = "FIGHT"
-                gameState.autoMarch = true
-                PlaySFX(AUDIO.sfx_march)
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "30s鎵撴々寮€濮?", 1.5, { 255, 220, 80 }, 18)
-                print("=== 30s鎵撴々鎴樻枟寮€濮?(100鍙法鍏借€佽檸) ===")
-            else
-                gameState.battlePhase = "FIGHT"
-                AggregateBaseStats()  -- 姹囪仛姝︾伒灞炴€у埌澶ф湰钀?"
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "寮€鎴?", 1.5, { 255, 220, 80 }, 18)
-                PlaySFX(AUDIO.sfx_march)
-                -- 搴旂敤榛樿鑷姩琛屽啗璁剧疆
-                gameState.autoMarch = gameSettings.defaultAutoMarch
-                -- 鏂版墜鍑哄叺绛栫暐鎻愮ず (浠呴娆?"
-                if not gameSettings.shownMarchHint then
-                    gameSettings.shownMarchHint = true
-                    gameSettings.battleCount = (gameSettings.battleCount or 0) + 1
-                    SaveSettings()
-                    ShowToast("鎻愮ず: 鐐瑰嚮鍙充笅琛屽啗鎸夐挳寮€鍚嚜鍔ㄥ嚭鍏碉紝闀挎寜鍙垏鎹㈠嚭鍏电瓥鐣?", 4.0)
-                else
-                    gameSettings.battleCount = (gameSettings.battleCount or 0) + 1
-                    SaveSettings()
-                end
-                print("=== 寮€鎴? ===")
             end
+        end
+    end
+
+    -- 阵型切换按钮 (仅 DEPLOY 阶段, 设计坐标)
+    if gameState.battlePhase == "DEPLOY" and deployFormationBtnRects then
+        for formId, rect in pairs(deployFormationBtnRects) do
+            if dx >= rect.x and dx <= rect.x + rect.w and dy >= rect.y and dy <= rect.y + rect.h then
+                if formId ~= deploySelectedFormation then
+                    SwitchDeployFormation(formId)
+                end
+                return
+            end
+        end
+    end
+
+    -- 开战/出征按钮 (SHOP或DEPLOY阶段可用, 设计坐标)
+    if HitFightButton(dx, dy) then
+        if gameState.battlePhase == "DEPLOY" then
+            -- DEPLOY阶段: 兵力已预生成, 点击出征解冻开战
+            StartBattleFromDeploy()
+            -- 新手出兵策略提示 (仅首次)
+            if not gameSettings.shownMarchHint then
+                gameSettings.shownMarchHint = true
+                ShowToast("提示: 自动行军已开启，长按行军按钮可切换出兵策略", 4.0)
+            end
+            gameSettings.battleCount = (gameSettings.battleCount or 0) + 1
+            SaveSettings()
+            print("=== 出征! (DEPLOY→FIGHT) ===")
+
         end
         return
     end
 
-    -- 鍒锋柊鎸夐挳 (SHOP鍜孎IGHT闃舵閮藉彲鐢? 璁捐鍧愭爣)
+    -- 刷新按钮 (SHOP和FIGHT阶段都可用, 设计坐标)
     if shopRefreshBtnRect then
         local r = shopRefreshBtnRect
         if dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h then
             if gameState.gold >= GameConfig.REFRESH_COST then
                 gameState.gold = gameState.gold - GameConfig.REFRESH_COST
                 RefreshShop()
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "-" .. GameConfig.REFRESH_COST .. " 鍒锋柊", 1.0, { 180, 200, 255 }, 12)
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "-" .. GameConfig.REFRESH_COST .. " 刷新", 1.0, { 180, 200, 255 }, 18)
             else
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.6, "鍐涜祫涓嶈冻!", 1.2, { 255, 100, 100 }, 14)
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.6, "军资不足!", 1.2, { 255, 100, 100 }, 18)
             end
             return
         end
     end
-    -- 鍊嶉€熸寜閽偣鍑?"
+    -- 倍速按钮点击
     if battleSpeedBtnRect then
         local r = battleSpeedBtnRect
         if dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h then
-            -- 寰幆鍒囨崲: 1 鈫?2 鈫?3 鈫?1
+            -- 循环切换: 1 → 2 → 3 → 1
             local spd = gameState.battleSpeed or 1
             if spd == 1 then
                 gameState.battleSpeed = 2
@@ -5108,30 +4913,116 @@ function BeginPress(sx, sy, touchId)
                 gameState.battleSpeed = 1
             end
             local spdLabel = "脳" .. tostring(gameState.battleSpeed)
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "鍊嶉€?" .. spdLabel, 1.0, { 255, 220, 80 }, 16)
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "倍速 " .. spdLabel, 1.0, { 255, 220, 80 }, 18)
             PlaySFX(AUDIO.sfx_click)
             return
         end
     end
-    -- 鑷姩鎴樻枟鎸夐挳鐐瑰嚮
+    -- 自动战斗按钮点击
     if autoBattleBtnRect then
         local r = autoBattleBtnRect
         if dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h then
             if gameState.noFullAuto then
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "鍓湰妯″紡绂佺敤鍏ㄨ嚜鍔?", 1.5, { 255, 140, 100 }, 16)
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "副本模式禁用全自动", 1.5, { 255, 140, 100 }, 18)
                 PlaySFX(AUDIO.sfx_click)
                 return
             end
             gameState.autoBattle = not gameState.autoBattle
             autoBattleTimer = 0
-            local txt = gameState.autoBattle and "鑷姩鎴樻枟 寮€鍚?" or "鑷姩鎴樻枟 鍏抽棴"
+            local txt = gameState.autoBattle and "自动战斗 开启" or "自动战斗 关闭"
             local clr = gameState.autoBattle and { 120, 255, 160 } or { 200, 180, 160 }
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, txt, 1.2, clr, 16)
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, txt, 1.2, clr, 18)
             PlaySFX(AUDIO.sfx_click)
             return
         end
     end
-    -- 瑙勫垯鎸夐挳鐐瑰嚮 (FIGHT闃舵)
+    -- [已移除] 旧的武将头像行为模式切换和全局行为指令按钮
+    -- 新机制: 通过底部兵种按钮选择兵种 → 点击战场下达移动/进攻指令
+
+    -- 兵种选择按钮点击 (FIGHT阶段)
+    if gameState.battlePhase == "FIGHT" and troopBtnRects then
+        for troopKey, r in pairs(troopBtnRects) do
+            if dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h then
+                local tt = TROOP_TYPES[troopKey]
+                if gameState.selectedTroopType == troopKey then
+                    -- 再次点击取消选择
+                    gameState.selectedTroopType = nil
+                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "取消选择", 0.8, { 200, 180, 160 }, 18)
+                else
+                    gameState.selectedTroopType = troopKey
+                    -- 统计该兵种活着的单位数
+                    local cnt = 0
+                    for _, u in ipairs(playerUnits) do
+                        if u.alive and u.troopType == troopKey then cnt = cnt + 1 end
+                    end
+                    local c = tt.color
+                    AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45,
+                        tt.name .. " 已选(" .. cnt .. "人)", 1.0, { c[1], c[2], c[3] }, 18)
+                end
+                PlaySFX(AUDIO.sfx_click)
+                return
+            end
+        end
+    end
+
+    -- 战场点击: 已选兵种时点击战场下达移动/进攻指令
+    if gameState.battlePhase == "FIGHT" and gameState.selectedTroopType then
+        -- 检查点击是否在战场区域内 (排除UI按钮区域)
+        local inBattleZone = dx >= BATTLE_ZONE.left and dx <= BATTLE_ZONE.right
+            and dy >= BATTLE_ZONE.top and dy <= BATTLE_ZONE.bottom
+        if inBattleZone then
+            -- 检查点击位置附近是否有敌军 → 进攻指令; 否则 → 移动指令
+            local nearEnemy = nil
+            local nearDist = 60  -- 60px范围内视为点击敌人
+            for _, e in ipairs(enemyUnits) do
+                if e.alive then
+                    local edx, edy = e.x - dx, e.y - dy
+                    local ed = math.sqrt(edx * edx + edy * edy)
+                    if ed < nearDist then
+                        nearDist = ed
+                        nearEnemy = e
+                    end
+                end
+            end
+
+            gameState.troopOrders = gameState.troopOrders or {}
+            local tk = gameState.selectedTroopType
+            if nearEnemy then
+                -- 进攻指令: 朝敌人位置集结进攻
+                gameState.troopOrders[tk] = {
+                    type = "attack",
+                    x = nearEnemy.x, y = nearEnemy.y,
+                    time = gameState.gameTime,
+                }
+                local tt = TROOP_TYPES[tk]
+                AddFloatText(dx, dy - 20, tt.name .. " 进攻!", 1.0, { 255, 100, 60 }, 18)
+            else
+                -- 移动指令: 朝点击位置集结
+                gameState.troopOrders[tk] = {
+                    type = "move",
+                    x = dx, y = dy,
+                    time = gameState.gameTime,
+                }
+                local tt = TROOP_TYPES[tk]
+                AddFloatText(dx, dy - 20, tt.name .. " 集结", 1.0, { 60, 200, 255 }, 18)
+            end
+
+            -- 添加集结点视觉标记
+            gameState.rallyMarkers = gameState.rallyMarkers or {}
+            table.insert(gameState.rallyMarkers, {
+                x = gameState.troopOrders[tk].x,
+                y = gameState.troopOrders[tk].y,
+                troopType = tk,
+                time = gameState.gameTime,
+                duration = 3.0,  -- 显示3秒
+                isAttack = (nearEnemy ~= nil),
+            })
+
+            PlaySFX(AUDIO.sfx_click)
+            return
+        end
+    end
+    -- 规则按钮点击 (FIGHT阶段)
     if battleRuleBtnRect then
         local r = battleRuleBtnRect
         if dx >= r.x and dx <= r.x + r.w and dy >= r.y and dy <= r.y + r.h then
@@ -5143,7 +5034,7 @@ function BeginPress(sx, sy, touchId)
             return
         end
     end
-    -- 绛栫暐閫夐」鏉＄偣鍑?(show=true鏃朵紭鍏堟娴?"
+    -- 策略选项条点击 (show=true时优先检测)
     if strategyWheelState.show and autoMarchBtnRect then
         local ab = autoMarchBtnRect
         local cardW, cardH, gap2 = 115, 64, 8
@@ -5164,19 +5055,19 @@ function BeginPress(sx, sy, touchId)
             local st = MARCH_STRATEGIES[hitCard]
             gameState.autoMarchStrategy = st.id
             gameState.autoMarch = true
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "绛栫暐: " .. st.name, 1.2, st.color, 16)
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "绛栫暐: " .. st.name, 1.2, st.color, 18)
             PlaySFX(AUDIO.sfx_march)
         end
         strategyWheelState.show = false
         strategyWheelState.selected = 0
         return
     end
-    -- 鑷姩琛屽啗鎸夐挳 (FIGHT闃舵, 鍦嗗舰纰版挒妫€娴? 鏀寔闀挎寜寮瑰嚭绛栫暐閫夐」)
+    -- 自动行军按钮 (FIGHT阶段, 圆形碰撞检测, 支持长按弹出策略选项)
     if autoMarchBtnRect and autoMarchBtnRect.isCircle then
         local ab = autoMarchBtnRect
         local ddx, ddy = dx - ab.cx, dy - ab.cy
         if ddx * ddx + ddy * ddy <= ab.r * ab.r then
-            -- 璁板綍鎸変笅锛岀瓑release鏃跺垽鏂槸鐭寜toggle杩樻槸闀挎寜閫夌瓥鐣?"
+            -- 记录按下，等release时判断是短按toggle还是长按选策略
             strategyWheelState.pressing = true
             strategyWheelState.startTime = gameState.gameTime
             strategyWheelState.touchId = touchId
@@ -5188,8 +5079,8 @@ function BeginPress(sx, sy, touchId)
         end
     end
 
-    -- 姝︽妧鎶€鑳芥寜閽?(FIGHT闃舵, 鍦嗗舰纰版挒妫€娴? 鏈€澶?涓?"
-    -- 姝︽妧鎶€鑳? 鎸変笅鍗冲紑濮嬫嫋鎷界瀯鍑嗭紙宸茬Щ闄ら暱鎸夊脊绐楋級
+    -- 武技技能按钮 (FIGHT阶段, 圆形碰撞检测, 最多2个)
+    -- 武技技能: 按下即开始拖拽瞄准（已移除长按弹窗）
     if gameState.battlePhase == "FIGHT" then
         for slot, sb in pairs(skillBtnRects) do
             if sb and sb.isCircle then
@@ -5199,12 +5090,12 @@ function BeginPress(sx, sy, touchId)
                     local skill = SKILL_DEFS[techIdx]
                     if skill then
                         if not skill.unlocked then
-                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "姝︽妧鏈В閿?", 0.8, { 200, 160, 100 }, 12)
+                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "武技未解锁", 0.8, { 200, 160, 100 }, 18)
                         elseif skill.cooldown > 0 then
                             local cdLeft = math.ceil(skill.cooldown)
-                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "鍐峰嵈涓?" .. cdLeft .. "s", 0.8, { 200, 160, 100 }, 12)
+                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "冷却中 " .. cdLeft .. "s", 0.8, { 200, 160, 100 }, 18)
                         else
-                            -- 鐩存帴寮€濮嬫嫋鎷界瀯鍑?"
+                            -- 直接开始拖拽瞄准
                             skillTargeting.active = true
                             skillTargeting.skillIdx = techIdx
                             skillTargeting.touchId = touchId
@@ -5212,7 +5103,7 @@ function BeginPress(sx, sy, touchId)
                             skillTargeting.sy = sy
                             skillTargeting.dx = math.max(BATTLE_ZONE.left, math.min(BATTLE_ZONE.right, dx))
                             skillTargeting.dy = math.max(BATTLE_ZONE.top, math.min(BATTLE_ZONE.bottom, dy))
-                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, skill.name .. " - 鎷栨嫿鐬勫噯", 0.8, skill.color, 12)
+                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, skill.name .. " - 拖拽瞄准", 0.8, skill.color, 18)
                         end
                     end
                     PlaySFX(AUDIO.sfx_click)
@@ -5222,16 +5113,16 @@ function BeginPress(sx, sy, touchId)
         end
     end
 
-    -- 鍟嗗簵鍗＄墝 >> 鎷栨嫿鏀剧疆 (SHOP鍜孎IGHT闃舵鍧囧彲)
-    if gameState.battlePhase == "SHOP" or gameState.battlePhase == "FIGHT" then
+    -- 商店卡牌 >> 拖拽放置 (DEPLOY和FIGHT阶段均可)
+    if gameState.battlePhase == "DEPLOY" or gameState.battlePhase == "FIGHT" then
         local shopIdx, shopItem = HitShopCard(lx, ly)
         if shopIdx > 0 and shopItem then
-            -- 妫€鏌ュ啗璧勫涓嶅
+            -- 检查军资够不够
             if gameState.gold < shopItem.cost then
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.6, "鍐涜祫涓嶈冻!", 1.2, { 255, 100, 100 }, 14)
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.6, "军资不足!", 1.2, { 255, 100, 100 }, 18)
                 return
             end
-            -- 鎵ｉ櫎鍐涜祫, 鏍囪宸插敭, 寮€濮嬫嫋鎷?"
+            -- 扣除军资, 标记已售, 开始拖拽
             gameState.gold = gameState.gold - shopItem.cost
             shopItem.sold = true
             local cardData = DeepCopy(HERO_CARDS[shopItem.cardIdx])
@@ -5247,7 +5138,7 @@ function BeginPress(sx, sy, touchId)
             dragState.lx = lx
             dragState.ly = ly
             dragState.touchId = touchId
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "-" .. shopItem.cost .. " 鍐涜祫 - 鎷栬嚦鐭冲彴鏀剧疆", 1.2, { 255, 180, 80 }, 12)
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "-" .. shopItem.cost .. " 军资 - 拖至石台放置", 1.2, { 255, 180, 80 }, 18)
             return
         end
     end
@@ -5256,7 +5147,7 @@ function BeginPress(sx, sy, touchId)
     longPressState.active = false
     longPressState.startTime = gameState.gameTime
 
-    -- 鐭冲彴鍗＄墝 (鐐瑰嚮鏌ョ湅璇︽儏, 鎷栨嫿鎹綅)
+    -- 石台卡牌 (点击查看详情, 拖拽换位)
     local slotCard, slotIdx, isEnemy = HitSlotCard(dx, dy)
     if slotCard then
         longPressState.card = slotCard
@@ -5267,8 +5158,8 @@ function BeginPress(sx, sy, touchId)
         return
     end
 
-    -- 鑳屽寘鍗＄墝 (鎷栨嫿涓婇樀, SHOP鍜孎IGHT闃舵鍧囧彲)
-    if gameState.battlePhase == "SHOP" or gameState.battlePhase == "FIGHT" then
+    -- 背包卡牌 (拖拽上阵, DEPLOY和FIGHT阶段均可)
+    if gameState.battlePhase == "DEPLOY" or gameState.battlePhase == "FIGHT" then
         local invCard, invIdx = HitInventoryCard(lx, ly)
         if invCard then
             local fullCard = DeepCopy(HERO_CARDS[invCard.cardIdx])

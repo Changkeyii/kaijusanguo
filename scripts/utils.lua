@@ -25,7 +25,7 @@ function FormatPower(power)
 end
 
 
---- 格式化虎符数量 (超1000用k, 超100万用m, 超10亿用b)
+--- 格式化玉壁数量 (超1000用k, 超100万用m, 超10亿用b)
 function FormatJade(amount)
     if amount >= 1000000000 then
         return string.format("%.1fb", amount / 1000000000)
@@ -37,6 +37,27 @@ function FormatJade(amount)
     return tostring(math.floor(amount))
 end
 
+
+--- 格式化兵力数值 (中文单位: 千/万/十万)
+--- @param raw number 实际兵力值
+--- @return string
+function FormatTroops(raw)
+    local v = raw
+    if v >= 100000 then
+        local w = v / 10000
+        if w == math.floor(w) then
+            return string.format("%d万", w)
+        end
+        return string.format("%.1f万", w)
+    elseif v >= 1000 then
+        local k = v / 1000
+        if k == math.floor(k) then
+            return string.format("%d千", k)
+        end
+        return string.format("%.1f千", k)
+    end
+    return tostring(math.floor(v))
+end
 
 -- ============================================================================
 -- 每日任务: 重置 & 追踪
@@ -60,17 +81,11 @@ end
 --- @return integer
 function ResolveRankListUserId(item)
     if type(item) ~= "table" then return 0 end
-    local candidates = {
-        item.userId,
-        item.player,
-        item.uid,
-        item.UserId,
-        item.Player,
-        item.UID,
-    }
-    for _, value in ipairs(candidates) do
-        local uid = tonumber(value)
-        if uid then
+    -- 按字段名遍历，避免 ipairs 遇到 nil 提前停止的陷阱
+    local fields = { "userId", "player", "uid", "UserId", "Player", "UID" }
+    for _, field in ipairs(fields) do
+        local uid = tonumber(item[field])
+        if uid and uid > 0 then
             return math.floor(uid)
         end
     end
@@ -245,10 +260,12 @@ end
 
 
 -- Toast 提示系统
-function ShowToast(text, dur)
+function ShowToast(text, dur, category)
     toastState.text = text
     toastState.timer = dur or 2.0
     toastState.duration = dur or 2.0
+    toastState.category = category or "info"
+    toastState.startTime = (rawget(_G, "gameState") and gameState.gameTime) or 0
 end
 
 

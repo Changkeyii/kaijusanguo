@@ -21,11 +21,15 @@ worldMapState = worldMapState or {
     scrollY = 0,
 
     cityData = {},
-    troops = 200,
-    gold = 500,
-    food = 300,
+    troops = 20000,
+    gold = 50000,
+    food = 30000,
     totalTurns = 0,
     affairsCity = nil,
+
+    -- 行动点系统
+    actionPoints = 6,       -- 当前行动点数
+    maxActionPoints = 6,    -- 每回合最大行动点数
 
     diplomacy = {},
     searchResult = nil,
@@ -68,6 +72,21 @@ worldMapState = worldMapState or {
 
     -- 刺探结果
     scoutResult = nil,
+
+    -- 两侧面板收缩状态 (默认展开，方便点击城池)
+    leftPanelCollapsed  = false,    -- 左侧城池列表是否收缩
+    rightPanelCollapsed = true,     -- 右侧操作面板是否收缩 (地图为主，右侧按需展开)
+
+    -- AI 战斗动画队列
+    battleAnims = nil,              -- {[1]={type,fromId,toId,fac,...}, ...} 动画事件队列
+    battleAnimIdx = 0,              -- 当前播放的动画索引
+    battleAnimPhase = nil,          -- "march"/"siege"/"capture"/"cheer"/"notify" 当前动画阶段
+    battleAnimT = 0,                -- 当前阶段经过的时间
+    battleAnimData = nil,           -- 当前动画事件数据缓存
+    battleAnimIsPlayer = nil,       -- true=玩家战斗动画(结束回MAP), nil=AI动画(结束回TURN_REPORT)
+
+    -- 玩家战斗动画暂存 (OnBattleResult设置, 返回WORLD_MAP时激活)
+    pendingPlayerAnim = nil,        -- {type,fromId,toId,fac,msg}
 }
 
 --- 获取状态引用
@@ -100,6 +119,8 @@ function M.FullReset()
     st.gold = 500
     st.food = 300
     st.troops = 200
+    st.actionPoints = 6
+    st.maxActionPoints = 6
     st.phase = "MAP"
     st.selectedCity = nil
     st.turnReport = nil
@@ -113,6 +134,7 @@ function M.FullReset()
     st.deployTroops = 0
     st.stratagemTarget = nil
     st.heroManageCity = nil
+    st.conquestRewardGiven = false  -- 一统天下玉壁奖励是否已发放
     st.heroTroopChoice = {}
     st.heroLearnedSkills = {}
     st.apprenticeStudent = nil
@@ -132,6 +154,15 @@ function M.FullReset()
     st.heroPopup = nil
     st.scoutResult = nil
     st.mapPanelHeroScroll = 0
+    st.leftPanelCollapsed  = false
+    st.rightPanelCollapsed = true
+    st.battleAnims = nil
+    st.battleAnimIdx = 0
+    st.battleAnimPhase = nil
+    st.battleAnimT = 0
+    st.battleAnimData = nil
+    st.battleAnimIsPlayer = nil
+    st.pendingPlayerAnim = nil
 end
 
 return M

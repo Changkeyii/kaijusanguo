@@ -1,5 +1,5 @@
 -- ============================================================================
--- systems/misc.lua - 涓夊浗姝︾伒褰?"
+-- systems/misc.lua - 三国武灵录
 -- ============================================================================
 
 function FilterBannedWords(text)
@@ -13,7 +13,7 @@ function FilterBannedWords(text)
 end
 
 
---- 鑾峰彇褰撳墠鍛ㄦ爣璇?(骞翠唤+绗嚑鍛?"
+--- 获取当前周标识 (年份+第几周)
 function GetWeekKey()
     return os.date("%Y") .. "_W" .. os.date("%W")
 end
@@ -26,11 +26,11 @@ end
 
 
 -- ===========================
--- 闃佃惀瀛愯鍥? 鍗囩骇/鎹愮尞/鍏憡
+-- 阵营子视图: 升级/捐献/公告
 -- ===========================
--- 鍔犺浇闃佃惀绛夌骇鎺掕姒?"
---- 浠?camp_leader_ts 鎺掕姒滃姞杞介樀钀ユ帓琛岋紙鎸夌瓑绾ч檷搴忥級
----@param target string "factionUI" 鎴?"welfareState"
+-- 加载阵营等级排行榜
+--- 从 camp_leader_ts 排行榜加载阵营排行（按等级降序）
+---@param target string "factionUI" 或 "welfareState"
 function LoadFactionRankFrom(target)
     if not CloudAPI.IsAvailable() then
         if target == "factionUI" then
@@ -41,19 +41,19 @@ function LoadFactionRankFrom(target)
         return
     end
 
-    -- 鐩存帴澶嶇敤 CloudManager.ListFactions锛堝凡楠岃瘉鍙甯稿伐浣滐級
+    -- 直接复用 CloudManager.ListFactions（已验证可正常工作）
     CloudManager.ListFactions(function(factions)
         local result = {}
         for _, f in ipairs(factions) do
             table.insert(result, {
                 campId = f.campId,
-                name = f.name or "鏈懡鍚?",
+                name = f.name or "未命名",
                 level = f.level or 1,
                 exp = f.exp or 0,
                 memberCount = f.memberCount or 0,
             })
         end
-        -- 鎸夌瓑绾ч檷搴忋€佺粡楠岄檷搴忔帓搴?"
+        -- 按等级降序、经验降序排序
         table.sort(result, function(a, b)
             if a.level ~= b.level then return a.level > b.level end
             return a.exp > b.exp

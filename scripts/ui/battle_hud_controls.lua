@@ -6,139 +6,101 @@
 function DrawBattleButtons()
     if fontId < 0 then return end
 
-    local isSHOP = (gameState.battlePhase == "SHOP")
+    local isSHOP = (gameState.battlePhase == "DEPLOY")
     local t = gameState.gameTime
 
     nvgFontFaceId(vg, GetMainFont())
 
-    -- 右侧按钮参数 (放大以适配手机操作)
-    local btnW = 72
-    local btnH = 30
-    local btnGap = 6
-    local rightMargin = 4  -- 距离设计区右边缘
+    -- 右侧按钮参数
+    local btnW = 80
+    local btnH = 36
+    local btnGap = 10
+    local rightMargin = 6
 
-    -- 应用右上角按钮组偏移量
     local rbOfsX = gameSettings.rightBtnOffsetX or 0
     local rbOfsY = gameSettings.rightBtnOffsetY or 0
 
-    -- 所有按钮从上到下排列，基准Y=136避免被TapTap右上角按钮遮挡
+    -- 基准Y=136 避免被TapTap右上角按钮遮挡
     local startY = 136 + rbOfsY
     local bx = DESIGN_W - btnW - rightMargin + rbOfsX
     local curY = startY
 
-    -- 半透明背景条（仅在有按钮时绘制）
-    local btnList = {}
+    -- 清空不再使用的按钮 rect
+    shopRefreshBtnRect      = nil
+    battleChangeBgBtnRect   = nil
+    battleRuleBtnRect       = nil
+
 
     if isSHOP then
-        -- SHOP阶段按钮
-        -- 1. 开战按钮
-        nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 4)
-        nvgFillColor(vg, nvgRGBA(25, 22, 18, 200)); nvgFill(vg)
-        nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 4)
-        nvgStrokeWidth(vg, 1.0)
-        nvgStrokeColor(vg, nvgRGBA(120, 110, 100, 130)); nvgStroke(vg)
-        nvgFontSize(vg, 17)
+        -- ========== SHOP 阶段: [开始] 大绿按钮 + [撤退] ==========
+
+        -- [开始] 大按钮 - 绿色脉冲, 更高
+        local startBtnH = 50
+        local pulse = 0.7 + 0.3 * math.sin(t * 2.5)
+        nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, startBtnH, 6)
+        nvgFillColor(vg, nvgRGBA(15, 80, 35, math.floor(230 * pulse))); nvgFill(vg)
+        nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, startBtnH, 6)
+        nvgStrokeColor(vg, nvgRGBA(60, 255, 120, math.floor(220 * pulse)))
+        nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
+        nvgFontSize(vg, 20)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-        local fightLabel = (gameState.isDummy and dummyState.prepPhase) and "开始挑战" or "开战"
-        DrawWhiteInkText(bx + btnW / 2, curY + btnH / 2, fightLabel)
-        shopFightBtnRect = { x = bx, y = curY, w = btnW, h = btnH, isDesign = true }
+        local startLabel = (gameState.battlePhase == "DEPLOY") and "出征" or "开始"
+        DrawWhiteInkText(bx + btnW / 2, curY + startBtnH / 2, startLabel)
+        shopFightBtnRect = { x = bx, y = curY, w = btnW, h = startBtnH, isDesign = true }
+        curY = curY + startBtnH + btnGap
+
+        -- [撤退] 小按钮 - 红色
+        nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 4)
+        nvgFillColor(vg, nvgRGBA(70, 18, 18, 200)); nvgFill(vg)
+        nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 4)
+        nvgStrokeColor(vg, nvgRGBA(200, 80, 60, 160))
+        nvgStrokeWidth(vg, 1.0); nvgStroke(vg)
+        nvgFontSize(vg, 22)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        DrawWhiteInkText(bx + btnW / 2, curY + btnH / 2, "撤退")
+        battleBackBtnRect = { x = bx, y = curY, w = btnW, h = btnH, isDesign = true }
+
+        -- SHOP阶段无倍速/自动按钮
+        battleSpeedBtnRect  = nil
+        autoBattleBtnRect   = nil
+        autoMarchBtnRect    = nil
+        behaviorModeBtnRect = nil
+
+    else
+        -- ========== FIGHT 阶段: [撤退] + [自动] + [倍速] ==========
+
+        shopFightBtnRect = nil
+
+        -- [撤退] 按钮
+        nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 4)
+        nvgFillColor(vg, nvgRGBA(70, 18, 18, 200)); nvgFill(vg)
+        nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 4)
+        nvgStrokeColor(vg, nvgRGBA(200, 80, 60, 160))
+        nvgStrokeWidth(vg, 1.0); nvgStroke(vg)
+        nvgFontSize(vg, 22)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+        DrawWhiteInkText(bx + btnW / 2, curY + btnH / 2, "撤退")
+        battleBackBtnRect = { x = bx, y = curY, w = btnW, h = btnH, isDesign = true }
         curY = curY + btnH + btnGap
 
-        -- 换战场按钮 (打桩准备阶段 或 非讨伐普通战斗SHOP阶段)
-        if gameState.isDummy and dummyState.prepPhase then
-            nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 3)
-            nvgFillColor(vg, nvgRGBA(25, 22, 18, 190)); nvgFill(vg)
-            nvgStrokeColor(vg, nvgRGBA(120, 110, 100, 120)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
-            nvgFontSize(vg, 15)
-            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            DrawWhiteInkText(bx + btnW / 2, curY + btnH / 2, "换战场")
-            dummyState.changeBgBtnRect = { x = bx, y = curY, w = btnW, h = btnH, isDesign = true }
-            curY = curY + btnH + btnGap
-
-            -- 战场编号提示
-            nvgFontSize(vg, 11)
-            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
-            DrawWhiteInkText(bx + btnW / 2, curY - btnGap + 2, gameState.abyssFloor .. "/7")
-            battleChangeBgBtnRect = nil
-        elseif not gameState.abyssFloor and not gameState.towerFloor and not gameState.isRanked and not gameState.isDummy then
-            -- 普通战斗换战场按钮
-            nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 3)
-            nvgFillColor(vg, nvgRGBA(25, 22, 18, 190)); nvgFill(vg)
-            nvgStrokeColor(vg, nvgRGBA(120, 110, 100, 120)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
-            nvgFontSize(vg, 15)
-            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            DrawWhiteInkText(bx + btnW / 2, curY + btnH / 2, "换战场")
-            battleChangeBgBtnRect = { x = bx, y = curY, w = btnW, h = btnH, isDesign = true }
-            curY = curY + btnH + btnGap
-
-            -- 战场名称提示
-            nvgFontSize(vg, 11)
-            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
-            local layoutName = BATTLE_LAYOUTS[currentLayoutIdx] and BATTLE_LAYOUTS[currentLayoutIdx].name or "默认"
-            DrawWhiteInkText(bx + btnW / 2, curY - btnGap + 2, layoutName)
-            dummyState.changeBgBtnRect = nil
-        else
-            dummyState.changeBgBtnRect = nil
-            battleChangeBgBtnRect = nil
-        end
-
-        -- 1.5 战力对比条 (SHOP阶段)
+        -- [自动 ON/OFF] 按钮
         do
-            local myPow = CalcPlayerTotalPower()
-            local enPow = CalcEnemyTotalPower(ENEMY_SLOTS, 1.0)  -- 敌方属性已在InitBattle中缩放
-            local ratio = (enPow > 0) and (myPow / enPow) or 99.0
-            local gTxt, gClr = GetPowerGrade(ratio)
-            nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 3)
-            nvgFillColor(vg, nvgRGBA(25, 22, 18, 190)); nvgFill(vg)
-            nvgStrokeColor(vg, nvgRGBA(120, 110, 100, 120)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
-            nvgFontSize(vg, 12); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
-            DrawWhiteInkText(bx + btnW / 2, curY + 2, gTxt)
-            nvgFontSize(vg, 11)
-            DrawWhiteInkText(bx + btnW / 2, curY + 14, FormatPower(myPow) .. "/" .. FormatPower(enPow))
-            curY = curY + btnH + btnGap
-        end
-
-        -- 2. 军资显示 (打桩准备阶段隐藏商店)
-        nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 3)
-        nvgFillColor(vg, nvgRGBA(12, 10, 6, 180)); nvgFill(vg)
-        nvgStrokeColor(vg, nvgRGBA(100, 180, 220, 80)); nvgStrokeWidth(vg, 0.6); nvgStroke(vg)
-        nvgFontSize(vg, 12)
-        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
-        DrawWhiteInkText(bx + btnW / 2, curY + 2, "军资")
-        nvgFontSize(vg, 15)
-        DrawWhiteInkText(bx + btnW / 2, curY + 11, tostring(gameState.gold))
-        curY = curY + btnH + btnGap
-
-        -- 3. 刷新按钮
-        local canRefresh = gameState.gold >= GameConfig.REFRESH_COST
-        local rAlpha = canRefresh and 200 or 80
-        nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 3)
-        nvgFillColor(vg, nvgRGBA(20, 35, 50, rAlpha)); nvgFill(vg)
-        nvgStrokeColor(vg, nvgRGBA(100, 180, 220, rAlpha)); nvgStrokeWidth(vg, 0.6); nvgStroke(vg)
-        nvgFontSize(vg, 13)
-        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-        DrawWhiteInkText(bx + btnW / 2, curY + btnH / 2, "刷新")
-        shopRefreshBtnRect = { x = bx, y = curY, w = btnW, h = btnH, isDesign = true }
-        curY = curY + btnH + btnGap
-
-        -- 4. 自动战斗按钮 (SHOP阶段也可切换, 教程中隐藏)
-        if not tutorialState.active then
             local isAuto = gameState.autoBattle
-            local blocked = gameState.noFullAuto  -- 副本模式禁用全自动
+            local blocked = gameState.noFullAuto
             local autoPulse = isAuto and (0.7 + 0.3 * math.sin(t * 4)) or 1.0
-            nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 3)
+            nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 4)
             if blocked then
                 nvgFillColor(vg, nvgRGBA(40, 35, 35, 160)); nvgFill(vg)
                 nvgStrokeColor(vg, nvgRGBA(80, 70, 60, 100))
             elseif isAuto then
-                nvgFillColor(vg, nvgRGBA(15, 50, 30, math.floor(220 * autoPulse))); nvgFill(vg)
-                nvgStrokeColor(vg, nvgRGBA(80, 255, 140, math.floor(180 * autoPulse)))
+                nvgFillColor(vg, nvgRGBA(15, 60, 30, math.floor(230 * autoPulse))); nvgFill(vg)
+                nvgStrokeColor(vg, nvgRGBA(80, 255, 140, math.floor(200 * autoPulse)))
             else
-                nvgFillColor(vg, nvgRGBA(25, 22, 18, 190)); nvgFill(vg)
-                nvgStrokeColor(vg, nvgRGBA(120, 110, 100, 120))
+                nvgFillColor(vg, nvgRGBA(28, 24, 20, 200)); nvgFill(vg)
+                nvgStrokeColor(vg, nvgRGBA(130, 120, 110, 130))
             end
-            nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
-            nvgFontSize(vg, 12)
+            nvgStrokeWidth(vg, 1.0); nvgStroke(vg)
+            nvgFontSize(vg, 20)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             local autoLabel = blocked and "禁用" or (isAuto and "自动 ON" or "自动 OFF")
             DrawWhiteInkText(bx + btnW / 2, curY + btnH / 2, autoLabel)
@@ -146,148 +108,49 @@ function DrawBattleButtons()
             curY = curY + btnH + btnGap
         end
 
-        -- 7. 退出按钮 (教程战斗阶段step>=8也显示)
-        if not tutorialState.active or tutorialState.step >= 8 then
-            nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 3)
-            nvgFillColor(vg, nvgRGBA(60, 20, 20, 160)); nvgFill(vg)
-            nvgStrokeColor(vg, nvgRGBA(180, 100, 80, 120)); nvgStrokeWidth(vg, 0.6); nvgStroke(vg)
-            nvgFontSize(vg, 13)
-            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            DrawWhiteInkText(bx + btnW / 2, curY + btnH / 2, "退出")
-            battleBackBtnRect = { x = bx, y = curY, w = btnW, h = btnH, isDesign = true }
-        else
-            battleBackBtnRect = nil
-        end
-        battleSpeedBtnRect = nil  -- SHOP阶段无倍速按钮
-        autoMarchBtnRect = nil  -- SHOP阶段无自动行军按钮
-
-        -- 新手提示: 点击卡牌可查看武灵详情 (前3场战斗显示)
-        if (gameSettings.battleCount or 0) < 3 and not tutorialState.active then
-            local hintAlpha = math.floor(140 + 60 * math.sin(t * 3.0))
-            nvgFontSize(vg, 11)
-            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
-            nvgFillColor(vg, nvgRGBA(200, 180, 120, hintAlpha))
-            nvgText(vg, bx + btnW / 2, curY + btnH + 8, "提示:点击卡牌", nil)
-            nvgText(vg, bx + btnW / 2, curY + btnH + 21, "可查看武灵详情", nil)
-        end
-    else
-        -- FIGHT阶段：精简显示
-
-        -- 换战场按钮 (教程战斗时保留，防止按钮位移导致点击错位)
-        if tutorialState.active and not gameState.abyssFloor and not gameState.towerFloor and not gameState.isRanked and not gameState.isDummy then
-            nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 3)
-            nvgFillColor(vg, nvgRGBA(25, 22, 18, 190)); nvgFill(vg)
-            nvgStrokeColor(vg, nvgRGBA(120, 110, 100, 120)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
-            nvgFontSize(vg, 15)
-            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            DrawWhiteInkText(bx + btnW / 2, curY + btnH / 2, "换战场")
-            battleChangeBgBtnRect = { x = bx, y = curY, w = btnW, h = btnH, isDesign = true }
-            curY = curY + btnH + btnGap
-
-            -- 战场名称提示
-            nvgFontSize(vg, 11)
-            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
-            local layoutName = BATTLE_LAYOUTS[currentLayoutIdx] and BATTLE_LAYOUTS[currentLayoutIdx].name or "默认"
-            DrawWhiteInkText(bx + btnW / 2, curY - btnGap + 2, layoutName)
-        else
-            battleChangeBgBtnRect = nil
-        end
-
-        -- 1. 军资+倒计时
-        nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 3)
-        nvgFillColor(vg, nvgRGBA(12, 10, 6, 180)); nvgFill(vg)
-        nvgStrokeColor(vg, nvgRGBA(100, 180, 220, 80)); nvgStrokeWidth(vg, 0.6); nvgStroke(vg)
-        nvgFontSize(vg, 12)
-        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
-        DrawWhiteInkText(bx + btnW / 2, curY + 2, "军资")
-        nvgFontSize(vg, 15)
-        DrawWhiteInkText(bx + btnW / 2, curY + 11, tostring(gameState.gold))
-        curY = curY + btnH + btnGap
-
-        -- 2. 刷新按钮 (战斗中也可刷新商店换阵)
-        local canRefreshF = gameState.gold >= GameConfig.REFRESH_COST
-        local rAlphaF = canRefreshF and 200 or 80
-        nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 3)
-        nvgFillColor(vg, nvgRGBA(20, 35, 50, rAlphaF)); nvgFill(vg)
-        nvgStrokeColor(vg, nvgRGBA(100, 180, 220, rAlphaF)); nvgStrokeWidth(vg, 0.6); nvgStroke(vg)
-        nvgFontSize(vg, 13)
-        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-        DrawWhiteInkText(bx + btnW / 2, curY + btnH / 2, "刷新")
-        shopRefreshBtnRect = { x = bx, y = curY, w = btnW, h = btnH, isDesign = true }
-        curY = curY + btnH + btnGap
-
-        -- 4. 倍速按钮
+        -- [倍速 ×N] 按钮
         do
             local spd = gameState.battleSpeed or 1
-            local spdLabel = "×" .. tostring(spd)
             local spdOn = spd > 1
             local spdPulse = spdOn and (0.7 + 0.3 * math.sin(t * 5)) or 1.0
-            nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 3)
+            nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 4)
             if spdOn then
-                nvgFillColor(vg, nvgRGBA(60, 40, 10, math.floor(200 * spdPulse))); nvgFill(vg)
-                nvgStrokeColor(vg, nvgRGBA(255, 200, 60, math.floor(180 * spdPulse)))
+                nvgFillColor(vg, nvgRGBA(70, 45, 8, math.floor(220 * spdPulse))); nvgFill(vg)
+                nvgStrokeColor(vg, nvgRGBA(255, 200, 60, math.floor(200 * spdPulse)))
             else
-                nvgFillColor(vg, nvgRGBA(25, 22, 18, 190)); nvgFill(vg)
-                nvgStrokeColor(vg, nvgRGBA(120, 110, 100, 120))
+                nvgFillColor(vg, nvgRGBA(28, 24, 20, 200)); nvgFill(vg)
+                nvgStrokeColor(vg, nvgRGBA(130, 120, 110, 130))
             end
-            nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
-            nvgFontSize(vg, 13)
+            nvgStrokeWidth(vg, 1.0); nvgStroke(vg)
+            nvgFontSize(vg, 20)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            DrawWhiteInkText(bx + btnW / 2, curY + btnH / 2, "倍速" .. spdLabel)
+            DrawWhiteInkText(bx + btnW / 2, curY + btnH / 2, "倍速 ×" .. tostring(spd))
             battleSpeedBtnRect = { x = bx, y = curY, w = btnW, h = btnH, isDesign = true }
             curY = curY + btnH + btnGap
         end
 
-        -- 7. 自动战斗按钮 (教程中隐藏)
-        if not tutorialState.active then
-            local isAuto = gameState.autoBattle
-            local blocked = gameState.noFullAuto  -- 副本模式禁用全自动
-            local autoPulse = isAuto and (0.7 + 0.3 * math.sin(t * 4)) or 1.0
-            nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 3)
-            if blocked then
-                nvgFillColor(vg, nvgRGBA(40, 35, 35, 160)); nvgFill(vg)
-                nvgStrokeColor(vg, nvgRGBA(80, 70, 60, 100))
-            elseif isAuto then
-                nvgFillColor(vg, nvgRGBA(15, 50, 30, math.floor(220 * autoPulse))); nvgFill(vg)
-                nvgStrokeColor(vg, nvgRGBA(80, 255, 140, math.floor(180 * autoPulse)))
-            else
-                nvgFillColor(vg, nvgRGBA(25, 22, 18, 190)); nvgFill(vg)
-                nvgStrokeColor(vg, nvgRGBA(120, 110, 100, 120))
+        behaviorModeBtnRect = nil
+
+        -- 战术标签 (行为指令按钮下方, 有战术时显示)
+        do
+            local tacticId = rawget(_G, "battleTacticId")
+            if tacticId then
+                local tacticName = tacticId
+                for _, td in ipairs(TACTIC_DEFS or {}) do
+                    if td.id == tacticId then tacticName = td.name; break end
+                end
+                local tagH = 24
+                nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, tagH, 3)
+                nvgFillColor(vg, nvgRGBA(45, 15, 65, 190)); nvgFill(vg)
+                nvgStrokeColor(vg, nvgRGBA(180, 90, 255, 150))
+                nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
+                nvgFontSize(vg, 18)
+                nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                DrawWhiteInkText(bx + btnW / 2, curY + tagH / 2, tacticName)
             end
-            nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
-            nvgFontSize(vg, 12)
-            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            local autoLabel = blocked and "禁用" or (isAuto and "自动 ON" or "自动 OFF")
-            DrawWhiteInkText(bx + btnW / 2, curY + btnH / 2, autoLabel)
-            autoBattleBtnRect = { x = bx, y = curY, w = btnW, h = btnH, isDesign = true }
-            curY = curY + btnH + btnGap
         end
 
-        -- 8. 规则按钮
-        nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 3)
-        nvgFillColor(vg, nvgRGBA(30, 30, 50, 180)); nvgFill(vg)
-        nvgStrokeColor(vg, nvgRGBA(140, 140, 180, 120)); nvgStrokeWidth(vg, 0.6); nvgStroke(vg)
-        nvgFontSize(vg, 13)
-        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-        DrawWhiteInkText(bx + btnW / 2, curY + btnH / 2, "规则")
-        battleRuleBtnRect = { x = bx, y = curY, w = btnW, h = btnH, isDesign = true }
-        curY = curY + btnH + btnGap
-
-        -- 9. 退出按钮 (教程战斗阶段step>=8也显示)
-        if not tutorialState.active or tutorialState.step >= 8 then
-            nvgBeginPath(vg); nvgRoundedRect(vg, bx, curY, btnW, btnH, 3)
-            nvgFillColor(vg, nvgRGBA(60, 20, 20, 160)); nvgFill(vg)
-            nvgStrokeColor(vg, nvgRGBA(180, 100, 80, 120)); nvgStrokeWidth(vg, 0.6); nvgStroke(vg)
-            nvgFontSize(vg, 14)
-            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            DrawWhiteInkText(bx + btnW / 2, curY + btnH / 2, "退出")
-            battleBackBtnRect = { x = bx, y = curY, w = btnW, h = btnH, isDesign = true }
-        else
-            battleBackBtnRect = nil
-        end
-
-        shopFightBtnRect = nil
-        autoMarchBtnRect = nil  -- 自动行军按钮在 DrawBottomActionBar 中绘制
+        autoMarchBtnRect = nil  -- 自动行军圈在 DrawBottomActionBar 中处理
     end
 end
 
@@ -302,7 +165,8 @@ function DrawBottomActionBar()
         skillBtnRects = {}
         return
     end
-    if gameState.battlePhase ~= "FIGHT" then
+    local isDeployPhase = (gameState.battlePhase == "DEPLOY")
+    if gameState.battlePhase ~= "FIGHT" and not isDeployPhase then
         autoMarchBtnRect = nil
         skillBtnRects = {}
         return
@@ -311,84 +175,117 @@ function DrawBottomActionBar()
     local t = gameState.gameTime
     nvgFontFaceId(vg, GetMainFont())
 
-    -- ======== 右下角三角排布圆形按钮 ========
-    -- 布局: 底部两个武技圈并排, 上方一个自动行军圈
-    --          [自动]
+    -- ======== 右下角武技圈 (两个并排) ========
     --        [武技1][武技2]
     local btnSc = gameSettings.btnScale or 1.0
-    local R = math.floor(26 * btnSc)        -- 圆形按钮半径 (受缩放)
-    local gap = math.floor(6 * btnSc)       -- 圈之间间距
-    local marginR = 8 + safeInsets.right   -- 右边距(含安全区)
-    local marginB = 12 + safeInsets.bottom -- 底部边距(含安全区)
+    local R = math.floor(46 * btnSc)        -- 圆形按钮半径 (放大至46, 直径92px)
+    local gap = math.floor(10 * btnSc)      -- 圈之间间距
+    local marginR = 10 + safeInsets.right  -- 右边距(含安全区)
+    local marginB = 14 + safeInsets.bottom -- 底部边距(含安全区)
 
-    -- 底部两圈的中心Y (下移一个身位, 贴近战场底部)
-    -- 应用设置中自定义的按钮位置偏移
     local btnOfsX = gameSettings.btnOffsetX or 0
     local btnOfsY = gameSettings.btnOffsetY or 0
-    local bottomCY = BATTLE_ZONE.bottom - marginB - R + R * 2 + btnOfsY
-    -- 底部两圈: 右圈和左圈
+    local bottomCY = BATTLE_ZONE.bottom - marginB - R + btnOfsY
     local rightCX = DESIGN_W - marginR - R + btnOfsX
+    -- 边界钳制: 确保按钮不超出安全区域 (无论 btnScale/btnOffset 如何)
+    bottomCY = math.min(bottomCY, BATTLE_ZONE.bottom - marginB - R)
+    rightCX  = math.min(rightCX,  DESIGN_W - marginR - R)
     local leftCX  = rightCX - R * 2 - gap
-    -- 上方自动行军圈: 在两圈正上方居中
-    local topCX = (leftCX + rightCX) / 2
-    local topCY = bottomCY - R * 2 - gap
 
     skillBtnRects = {}
+    autoMarchBtnRect = nil  -- 自动行军已移除
+    troopBtnRects = {}  -- 兵种选择按钮碰撞区域
 
-    -- ---- 绘制辅助函数: 圆形按钮 ----
-    local function drawCircleBtn(cx, cy, r, bgR, bgG, bgB, bgA, borderR, borderG, borderB, borderA)
-        nvgBeginPath(vg); nvgCircle(vg, cx, cy, r)
-        nvgFillColor(vg, nvgRGBA(bgR, bgG, bgB, bgA)); nvgFill(vg)
-        nvgBeginPath(vg); nvgCircle(vg, cx, cy, r)
-        nvgStrokeColor(vg, nvgRGBA(borderR, borderG, borderB, borderA))
-        nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
-    end
+    -- ---- 兵种选择按钮 (4个方形, 在武技圈左侧) ----
+    if gameState.battlePhase == "FIGHT" then
+        local troopKeys = { "infantry", "archer", "cavalry", "spear" }
+        local tbSize = math.floor(38 * btnSc)   -- 方形按钮边长
+        local tbGap = math.floor(6 * btnSc)     -- 按钮间距
+        local tbTotal = #troopKeys * tbSize + (#troopKeys - 1) * tbGap
+        -- 起始X: 武技圈左侧再偏移
+        local tbStartX = leftCX - R - 16 - tbTotal
+        local tbCY = bottomCY  -- 与武技圈同一水平线
 
-    -- ---- 1. 自动行军圈 (顶部) ----
-    local isAuto = gameState.autoMarch
-    local amPulse = isAuto and (0.7 + 0.3 * math.sin(t * 3)) or 1.0
-    if isAuto then
-        drawCircleBtn(topCX, topCY, R,
-            15, 70, 35, math.floor(220 * amPulse),
-            80, 255, 140, math.floor(200 * amPulse))
-    else
-        drawCircleBtn(topCX, topCY, R,
-            30, 25, 35, 200,
-            120, 110, 130, 100)
-    end
-    -- 文字
-    nvgFontSize(vg, math.floor(12 * btnSc))
-    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    if isAuto then
-        DrawWhiteInkText(topCX, topCY - 4 * btnSc, "自动")
-        nvgFontSize(vg, math.floor(10 * btnSc))
-        DrawWhiteInkText(topCX, topCY + 9 * btnSc, "ON")
-        -- 当前策略小标签
-        local stName = "五路"
-        local stClr = { 120, 220, 160 }
-        for _, st in ipairs(MARCH_STRATEGIES) do
-            if st.id == gameState.autoMarchStrategy then stName = st.name; stClr = st.color; break end
+        for i, tk in ipairs(troopKeys) do
+            local tt = TROOP_TYPES[tk]
+            local c = tt.color
+            local bx = tbStartX + (i - 1) * (tbSize + tbGap)
+            local by = tbCY - tbSize / 2
+            local isSel = (gameState.selectedTroopType == tk)
+
+            -- 统计该兵种活着的单位数
+            local cnt = 0
+            for _, u in ipairs(playerUnits) do
+                if u.alive and u.troopType == tk then cnt = cnt + 1 end
+            end
+            local hasUnits = (cnt > 0)
+
+            -- 按钮背景
+            nvgBeginPath(vg); nvgRoundedRect(vg, bx, by, tbSize, tbSize, 5)
+            if isSel then
+                local pulse = 0.7 + 0.3 * math.sin(t * 4)
+                nvgFillColor(vg, nvgRGBA(c[1], c[2], c[3], math.floor(120 * pulse)))
+            elseif hasUnits then
+                nvgFillColor(vg, nvgRGBA(c[1], c[2], c[3], 40))
+            else
+                nvgFillColor(vg, nvgRGBA(30, 25, 20, 180))
+            end
+            nvgFill(vg)
+
+            -- 边框
+            nvgBeginPath(vg); nvgRoundedRect(vg, bx, by, tbSize, tbSize, 5)
+            if isSel then
+                local pulse = 0.7 + 0.3 * math.sin(t * 4)
+                nvgStrokeColor(vg, nvgRGBA(c[1], c[2], c[3], math.floor(255 * pulse)))
+                nvgStrokeWidth(vg, 2.0)
+            elseif hasUnits then
+                nvgStrokeColor(vg, nvgRGBA(c[1], c[2], c[3], 140))
+                nvgStrokeWidth(vg, 1.0)
+            else
+                nvgStrokeColor(vg, nvgRGBA(80, 70, 60, 80))
+                nvgStrokeWidth(vg, 0.8)
+            end
+            nvgStroke(vg)
+
+            -- 兵种图标文字
+            nvgFontSize(vg, math.floor(20 * btnSc))
+            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            if hasUnits then
+                nvgFillColor(vg, nvgRGBA(c[1], c[2], c[3], 255))
+            else
+                nvgFillColor(vg, nvgRGBA(120, 110, 100, 120))
+            end
+            nvgText(vg, bx + tbSize / 2, by + tbSize / 2 - 4, tt.icon, nil)
+
+            -- 数量小字
+            nvgFontSize(vg, math.floor(14 * btnSc))
+            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_BOTTOM)
+            if hasUnits then
+                nvgFillColor(vg, nvgRGBA(220, 210, 200, 200))
+            else
+                nvgFillColor(vg, nvgRGBA(100, 90, 80, 100))
+            end
+            nvgText(vg, bx + tbSize / 2, by + tbSize - 1, tostring(cnt), nil)
+
+            -- 选中指示器 (底部小三角)
+            if isSel then
+                local triCX = bx + tbSize / 2
+                local triY = by - 4
+                nvgBeginPath(vg)
+                nvgMoveTo(vg, triCX - 5, triY - 6)
+                nvgLineTo(vg, triCX + 5, triY - 6)
+                nvgLineTo(vg, triCX, triY)
+                nvgClosePath(vg)
+                nvgFillColor(vg, nvgRGBA(c[1], c[2], c[3], 220))
+                nvgFill(vg)
+            end
+
+            -- 注册碰撞区域
+            troopBtnRects[tk] = { x = bx, y = by, w = tbSize, h = tbSize, isDesign = true }
         end
-        nvgFontSize(vg, math.floor(8 * btnSc))
-        nvgFillColor(vg, nvgRGBA(stClr[1], stClr[2], stClr[3], 200))
-        nvgText(vg, topCX, topCY + R + 7 * btnSc, stName, nil)
-    else
-        DrawWhiteInkText(topCX, topCY - 4 * btnSc, "行军")
-        nvgFontSize(vg, math.floor(10 * btnSc))
-        DrawWhiteInkText(topCX, topCY + 9 * btnSc, "OFF")
     end
-    -- 新手提示: 长按切换策略
-    if not gameSettings.shownMarchHint then
-        nvgFontSize(vg, math.floor(9 * btnSc))
-        local hintAlpha = math.floor(140 + 80 * math.sin((gameState.gameTime or 0) * 2.5))
-        nvgFillColor(vg, nvgRGBA(255, 220, 100, hintAlpha))
-        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
-        nvgText(vg, topCX, topCY + R + 14 * btnSc, "长按切换策略", nil)
-    end
-    -- 圆形碰撞检测用矩形近似
-    autoMarchBtnRect = { cx = topCX, cy = topCY, r = R, isCircle = true, isDesign = true }
 
-    -- ---- 2. 武技技能圈 (底部两个) ----
+    -- ---- 武技技能圈 (两个) ----
     local slotPositions = {
         { cx = leftCX,  cy = bottomCY },  -- slot 1 左
         { cx = rightCX, cy = bottomCY },  -- slot 2 右
@@ -403,7 +300,20 @@ function DrawBottomActionBar()
             local sc = sk.color
             local skPulse = 0.6 + 0.4 * math.sin(t * 2.5 + slot * 1.2)
 
-            if sk.cooldown > 0 then
+            if isDeployPhase then
+                -- ---- DEPLOY阶段: 灰色禁用显示 ----
+                nvgBeginPath(vg); nvgCircle(vg, pos.cx, pos.cy, R)
+                nvgFillColor(vg, nvgRGBA(30, 25, 20, 200)); nvgFill(vg)
+                nvgBeginPath(vg); nvgCircle(vg, pos.cx, pos.cy, R)
+                nvgStrokeColor(vg, nvgRGBA(80, 70, 60, 100))
+                nvgStrokeWidth(vg, 1.0); nvgStroke(vg)
+
+                nvgGlobalAlpha(vg, 0.25)
+                drawSkillIcon(sk.iconIdx, pos.cx - R + 5, pos.cy - R + 5, (R - 5) * 2, R)
+                nvgGlobalAlpha(vg, 1.0)
+
+                -- 不注册点击区域 (DEPLOY阶段不可用)
+            elseif sk.cooldown > 0 then
                 -- ---- 冷却中: 暗色底 + 扇形冷却覆盖 ----
                 local cdRatio = sk.cooldown / sk.maxCooldown
                 -- 暗底
@@ -431,7 +341,7 @@ function DrawBottomActionBar()
                 nvgGlobalAlpha(vg, 1.0)
 
                 -- 冷却秒数
-                nvgFontSize(vg, math.floor(16 * btnSc))
+                nvgFontSize(vg, math.floor(26 * btnSc))
                 nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 DrawWhiteInkText(pos.cx, pos.cy + 2, string.format("%.0f", math.ceil(sk.cooldown)))
             else
@@ -457,27 +367,12 @@ function DrawBottomActionBar()
             nvgBeginPath(vg); nvgCircle(vg, pos.cx, pos.cy, R)
             nvgStrokeColor(vg, nvgRGBA(100, 90, 80, 60))
             nvgStrokeWidth(vg, 1.0); nvgStroke(vg)
-            nvgFontSize(vg, math.floor(9 * btnSc))
+            nvgFontSize(vg, math.floor(18 * btnSc))
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             DrawWhiteInkText(pos.cx, pos.cy, "空")
         end
     end
 
-    -- 新手策略提示 (前3场战斗FIGHT阶段显示)
-    if (gameSettings.battleCount or 0) < 3 and not tutorialState.active then
-        local hintAlpha = math.floor(120 + 60 * math.sin(t * 2.5))
-        nvgFontSize(vg, math.floor(9 * btnSc))
-        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
-        if not isAuto then
-            -- 行军OFF时提示开启
-            nvgFillColor(vg, nvgRGBA(180, 220, 140, hintAlpha))
-            nvgText(vg, topCX, topCY - R - 14 * btnSc, "点击开启自动行军", nil)
-        else
-            -- 行军ON时提示长按换策略
-            nvgFillColor(vg, nvgRGBA(200, 180, 120, hintAlpha))
-            nvgText(vg, topCX, topCY - R - 14 * btnSc, "长按切换策略", nil)
-        end
-    end
 end
 
 
@@ -567,13 +462,13 @@ function DrawStrategyWheel()
         DrawWhiteInkText(tx, ty, st.name)
 
         -- 简短描述（始终显示）
-        nvgFontSize(vg, 11)
+        nvgFontSize(vg, 18)
         nvgFillColor(vg, nvgRGBA(cc.hi[1], cc.hi[2], cc.hi[3], 180))
         nvgText(vg, tx, ty + 18, st.desc, nil)
     end
 
     -- 提示文字
-    nvgFontSize(vg, 10)
+    nvgFontSize(vg, 18)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     local hintAlpha = math.floor(100 + 60 * math.sin(t * 2.5))
     nvgFillColor(vg, nvgRGBA(180, 165, 130, hintAlpha))
@@ -582,6 +477,112 @@ function DrawStrategyWheel()
     nvgRestore(vg)
 end
 
+-- ============================================================================
+-- 撤退/追击弹窗渲染
+-- ============================================================================
+
+--- 玩家撤退被追击的提示 (倒计时自动消失)
+function DrawRetreatPursuitNotice()
+    local popup = gameState.retreatPopup
+    if not popup then return end
+    nvgSave(vg)
+    nvgFontFaceId(vg, GetMainFont())
+    local pw, ph = 420, 80
+    local px = (DESIGN_W - pw) / 2
+    local py = DESIGN_H * 0.25
+    -- 暗红背景
+    nvgBeginPath(vg); nvgRoundedRect(vg, px, py, pw, ph, 8)
+    nvgFillColor(vg, nvgRGBA(80, 15, 15, 220)); nvgFill(vg)
+    nvgStrokeColor(vg, nvgRGBA(255, 80, 60, 200))
+    nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
+    -- 文字
+    nvgFontSize(vg, 24)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(255, 200, 180, 255))
+    nvgText(vg, px + pw / 2, py + ph / 2, popup.msg, nil)
+    nvgRestore(vg)
+end
+
+--- 敌方撤退弹窗 (暂停战斗, 玩家选择追击/放行)
+function DrawEnemyRetreatPopup()
+    local popup = gameState.enemyRetreatPopup
+    if not popup then return end
+    nvgSave(vg)
+    nvgFontFaceId(vg, GetMainFont())
+    -- 半透明遮罩
+    nvgBeginPath(vg); nvgRect(vg, 0, 0, DESIGN_W, DESIGN_H)
+    nvgFillColor(vg, nvgRGBA(0, 0, 0, 120)); nvgFill(vg)
+    -- 弹窗面板
+    local pw, ph = 380, 180
+    local px = (DESIGN_W - pw) / 2
+    local py = (DESIGN_H - ph) / 2
+    nvgBeginPath(vg); nvgRoundedRect(vg, px, py, pw, ph, 10)
+    nvgFillColor(vg, nvgRGBA(35, 30, 25, 240)); nvgFill(vg)
+    nvgStrokeColor(vg, nvgRGBA(220, 180, 80, 200))
+    nvgStrokeWidth(vg, 2.0); nvgStroke(vg)
+    -- 标题
+    nvgFontSize(vg, 26)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(255, 220, 80, 255))
+    nvgText(vg, px + pw / 2, py + 36, "敌军试图撤退!", nil)
+    -- 说明
+    nvgFontSize(vg, 24)
+    nvgFillColor(vg, nvgRGBA(220, 210, 190, 220))
+    nvgText(vg, px + pw / 2, py + 72, "是否下令追击?", nil)
+    -- 按钮
+    local btnW, btnH = 120, 40
+    local gap = 30
+    local btnY = py + ph - 56
+    local btn1X = px + pw / 2 - btnW - gap / 2
+    local btn2X = px + pw / 2 + gap / 2
+    -- [追击] 按钮 - 红色
+    nvgBeginPath(vg); nvgRoundedRect(vg, btn1X, btnY, btnW, btnH, 6)
+    nvgFillColor(vg, nvgRGBA(160, 50, 30, 220)); nvgFill(vg)
+    nvgStrokeColor(vg, nvgRGBA(255, 120, 80, 180))
+    nvgStrokeWidth(vg, 1.0); nvgStroke(vg)
+    nvgFontSize(vg, 24)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(255, 240, 220, 255))
+    nvgText(vg, btn1X + btnW / 2, btnY + btnH / 2, "追击", nil)
+    gameState.btn_enemyRetreatPursue = { x = btn1X, y = btnY, w = btnW, h = btnH }
+    -- [放行] 按钮 - 灰色
+    nvgBeginPath(vg); nvgRoundedRect(vg, btn2X, btnY, btnW, btnH, 6)
+    nvgFillColor(vg, nvgRGBA(60, 60, 55, 220)); nvgFill(vg)
+    nvgStrokeColor(vg, nvgRGBA(140, 140, 120, 150))
+    nvgStrokeWidth(vg, 1.0); nvgStroke(vg)
+    nvgFontSize(vg, 24)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(220, 210, 190, 255))
+    nvgText(vg, btn2X + btnW / 2, btnY + btnH / 2, "放行", nil)
+    gameState.btn_enemyRetreatLetGo = { x = btn2X, y = btnY, w = btnW, h = btnH }
+    nvgRestore(vg)
+end
+
+--- 追击结果通知 (倒计时自动消失)
+function DrawPursuitResultNotice()
+    local popup = gameState.pursuitResultPopup
+    if not popup then return end
+    nvgSave(vg)
+    nvgFontFaceId(vg, GetMainFont())
+    local pw, ph = 420, 80
+    local px = (DESIGN_W - pw) / 2
+    local py = DESIGN_H * 0.25
+    local bgR, bgG, bgB = 15, 60, 25
+    local borderR, borderG, borderB = 80, 220, 120
+    if not popup.success then
+        bgR, bgG, bgB = 60, 50, 15
+        borderR, borderG, borderB = 200, 180, 60
+    end
+    nvgBeginPath(vg); nvgRoundedRect(vg, px, py, pw, ph, 8)
+    nvgFillColor(vg, nvgRGBA(bgR, bgG, bgB, 220)); nvgFill(vg)
+    nvgStrokeColor(vg, nvgRGBA(borderR, borderG, borderB, 200))
+    nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
+    nvgFontSize(vg, 24)
+    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+    nvgFillColor(vg, nvgRGBA(255, 240, 200, 255))
+    nvgText(vg, px + pw / 2, py + ph / 2, popup.msg, nil)
+    nvgRestore(vg)
+end
 
 -- ============================================================================
 -- 战斗规则弹窗
@@ -706,7 +707,7 @@ function DrawBattleRulesPopup()
     nvgBeginPath(vg); nvgRoundedRect(vg, closeBtnX, closeBtnY, closeBtnW, closeBtnH, 6)
     nvgFillColor(vg, nvgRGBA(60, 50, 35, 220)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(200, 180, 120, 180)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-    nvgFontSize(vg, 16)
+    nvgFontSize(vg, 24)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     nvgFillColor(vg, nvgRGBA(255, 240, 200, 240))
     nvgText(vg, DESIGN_W / 2, closeBtnY + closeBtnH / 2, "知道了", nil)
@@ -835,7 +836,7 @@ function DrawPhaseRulePopup()
     nvgFillColor(vg, nvgRGBA(60, 50, 35, 220)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(themeColor[1], themeColor[2], themeColor[3], 180))
     nvgStrokeWidth(vg, 1); nvgStroke(vg)
-    nvgFontSize(vg, 16)
+    nvgFontSize(vg, 24)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     nvgFillColor(vg, nvgRGBA(255, 240, 200, 240))
     nvgText(vg, DESIGN_W / 2, closeBtnY + closeBtnH / 2, "知道了", nil)
@@ -879,7 +880,7 @@ function DrawPowerExplainPopup()
     nvgStrokeColor(vg, nvgRGBA(180, 140, 70, 100)); nvgStrokeWidth(vg, 0.8); nvgStroke(vg)
 
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
-    nvgFontSize(vg, 14)
+    nvgFontSize(vg, 22)
     local lx2 = px + 20
     local ly = sepY2 + 10
     local lines = {
@@ -904,7 +905,7 @@ function DrawPowerExplainPopup()
     nvgBeginPath(vg); nvgRoundedRect(vg, cbX, cbY, cbW, cbH, 6)
     nvgFillColor(vg, nvgRGBA(50, 40, 30, 220)); nvgFill(vg)
     nvgStrokeColor(vg, nvgRGBA(180, 140, 70, 180)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-    nvgFontSize(vg, 15)
+    nvgFontSize(vg, 22)
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
     nvgFillColor(vg, nvgRGBA(255, 240, 200, 240))
     nvgText(vg, DESIGN_W / 2, cbY + cbH / 2, "关闭", nil)
@@ -962,18 +963,18 @@ function DrawSkillInfoPopup()
 
     -- 描述
     nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
-    nvgFontSize(vg, 14)
+    nvgFontSize(vg, 22)
     nvgFillColor(vg, nvgRGBA(210, 200, 190, 220))
     nvgTextBox(vg, px + 20, py + 50, pw - 40, tech.desc, nil)
 
     -- CD信息
-    nvgFontSize(vg, 13)
+    nvgFontSize(vg, 20)
     nvgFillColor(vg, nvgRGBA(180, 180, 200, 200))
     nvgText(vg, px + 20, py + 130, string.format("冷却: %.0f秒  伤害: %d  类型: %s",
         sk.maxCooldown, sk.damage, sk.skillType == "line" and "直线" or (sk.skillType == "rect" and "矩形" or "圆形")), nil)
 
     -- 当前状态
-    nvgFontSize(vg, 13)
+    nvgFontSize(vg, 20)
     if sk.cooldown > 0 then
         nvgFillColor(vg, nvgRGBA(255, 120, 80, 200))
         nvgText(vg, px + 20, py + 148, string.format("冷却中: %.1f秒", sk.cooldown), nil)
@@ -984,9 +985,146 @@ function DrawSkillInfoPopup()
 
     -- 关闭提示
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFontSize(vg, 13)
+    nvgFontSize(vg, 20)
     nvgFillColor(vg, nvgRGBA(160, 150, 140, 160))
     nvgText(vg, DESIGN_W / 2, py + ph - 16, "点击任意处关闭", nil)
+
+    nvgRestore(vg)
+end
+
+
+-- ============================================================================
+-- DEPLOY 阶段阵型选择面板 (顶部水平排列, 设计坐标)
+-- ============================================================================
+function DrawDeployFormationPanel()
+    if fontId < 0 then return end
+    if gameState.battlePhase ~= "DEPLOY" then return end
+
+    nvgSave(vg)
+    nvgFontFaceId(vg, GetMainFont())
+
+    local selId = deploySelectedFormation or DEFAULT_FORMATION_ID
+    local enemyFormId = gameState.enemyFormationId or DEFAULT_FORMATION_ID
+
+    -- 面板布局参数 (设计坐标 1024×571)
+    local panelW = 520
+    local panelH = 130
+    local panelX = (DESIGN_W - panelW) / 2
+    local panelY = 28
+
+    -- 半透明背景
+    nvgBeginPath(vg)
+    nvgRoundedRect(vg, panelX, panelY, panelW, panelH, 8)
+    nvgFillColor(vg, nvgRGBA(10, 8, 6, 180))
+    nvgFill(vg)
+    nvgBeginPath(vg)
+    nvgRoundedRect(vg, panelX, panelY, panelW, panelH, 8)
+    nvgStrokeColor(vg, nvgRGBA(120, 100, 70, 120))
+    nvgStrokeWidth(vg, 1.0)
+    nvgStroke(vg)
+
+    -- 标题
+    nvgFontSize(vg, 20)
+    nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_TOP)
+    nvgFillColor(vg, nvgRGBA(200, 180, 140, 200))
+    nvgText(vg, panelX + 8, panelY + 3, "阵型选择", nil)
+
+    -- 5个阵型按钮
+    local btnW = 92
+    local btnH = 72
+    local btnGap = 6
+    local totalBtnsW = #FORMATIONS * btnW + (#FORMATIONS - 1) * btnGap
+    local startX = panelX + (panelW - totalBtnsW) / 2
+    local btnY = panelY + 26
+
+    deployFormationBtnRects = {}
+
+    for i, form in ipairs(FORMATIONS) do
+        local bx = startX + (i - 1) * (btnW + btnGap)
+        local isSel = (form.id == selId)
+
+        -- 按钮背景
+        nvgBeginPath(vg)
+        nvgRoundedRect(vg, bx, btnY, btnW, btnH, 5)
+        if isSel then
+            nvgFillColor(vg, nvgRGBA(40, 65, 30, 230))
+        else
+            nvgFillColor(vg, nvgRGBA(25, 22, 18, 200))
+        end
+        nvgFill(vg)
+
+        -- 按钮边框
+        nvgBeginPath(vg)
+        nvgRoundedRect(vg, bx, btnY, btnW, btnH, 5)
+        if isSel then
+            local pulse = 0.7 + 0.3 * math.sin(gameState.gameTime * 3)
+            nvgStrokeColor(vg, nvgRGBA(100, 255, 140, math.floor(220 * pulse)))
+            nvgStrokeWidth(vg, 1.5)
+        else
+            nvgStrokeColor(vg, nvgRGBA(100, 90, 70, 130))
+            nvgStrokeWidth(vg, 0.8)
+        end
+        nvgStroke(vg)
+
+        -- 阵型名称
+        nvgFontSize(vg, 20)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
+        if isSel then
+            nvgFillColor(vg, nvgRGBA(255, 240, 200, 255))
+        else
+            nvgFillColor(vg, nvgRGBA(200, 190, 170, 220))
+        end
+        nvgText(vg, bx + btnW / 2, btnY + 4, form.name, nil)
+
+        -- 克制指示 (vs 敌方阵型)
+        local counterMult = GetFormationCounterMult(form.id, enemyFormId)
+        local counterLabel, counterColor
+        if counterMult > 1.05 then
+            counterLabel = "▲克制"
+            counterColor = {100, 255, 120, 255}
+        elseif counterMult < 0.95 then
+            counterLabel = "▼被克"
+            counterColor = {255, 100, 80, 255}
+        else
+            counterLabel = "—中立"
+            counterColor = {180, 170, 160, 180}
+        end
+        nvgFontSize(vg, 18)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
+        nvgFillColor(vg, nvgRGBA(counterColor[1], counterColor[2], counterColor[3], counterColor[4]))
+        nvgText(vg, bx + btnW / 2, btnY + 28, counterLabel, nil)
+
+        -- 攻防倍率小字
+        local statStr = string.format("攻%.0f%% 防%.0f%%", form.playerAtkMult * 100, form.playerDefMult * 100)
+        nvgFontSize(vg, 18)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
+        nvgFillColor(vg, nvgRGBA(160, 150, 140, 180))
+        nvgText(vg, bx + btnW / 2, btnY + 50, statStr, nil)
+
+        -- 记录碰撞矩形
+        deployFormationBtnRects[form.id] = { x = bx, y = btnY, w = btnW, h = btnH }
+    end
+
+    -- 底部信息条: 当前阵型描述 + 适合兵种
+    local selForm = nil
+    for _, f in ipairs(FORMATIONS) do if f.id == selId then selForm = f; break end end
+    if selForm then
+        nvgFontSize(vg, 18)
+        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
+        nvgFillColor(vg, nvgRGBA(180, 170, 140, 200))
+        local infoStr = selForm.desc .. "  |  适合: " .. selForm.suitFor
+        nvgText(vg, DESIGN_W / 2, panelY + panelH - 24, infoStr, nil)
+    end
+
+    -- 敌方阵型提示
+    local enemyForm = nil
+    for _, f in ipairs(FORMATIONS) do if f.id == enemyFormId then enemyForm = f; break end end
+    if enemyForm then
+        nvgFontSize(vg, 18)
+        nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
+        nvgFillColor(vg, nvgRGBA(255, 140, 100, 180))
+        nvgText(vg, panelX + panelW - 8, panelY + 3, "敌阵: " .. enemyForm.name, nil)
+    end
 
     nvgRestore(vg)
 end

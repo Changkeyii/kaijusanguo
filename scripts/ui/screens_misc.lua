@@ -326,7 +326,7 @@ function DrawDevEditorScreen()
 
         -- 布局选择器 (顶部两行按钮: 第1行=默认+讨伐1~4, 第2行=讨伐5~7)
         local selY = clipTop + 4
-        local selBtnH = 24
+        local selBtnH = 32
         local selGap = 3
         local availW = W - pad * 2
         -- 简短标签
@@ -339,7 +339,7 @@ function DrawDevEditorScreen()
             local isActive = (li == layoutIdx)
             nvgBeginPath(vg); nvgRoundedRect(vg, bx, selY, selBtnW1, selBtnH, 4)
             nvgFillColor(vg, isActive and nvgRGBA(50, 100, 180, 230) or nvgRGBA(25, 30, 45, 200)); nvgFill(vg)
-            nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, isActive and nvgRGBA(240, 248, 255, 255) or nvgRGBA(140, 160, 190, 200))
             nvgText(vg, bx + selBtnW1 / 2, selY + selBtnH / 2, shortNames[li] or ("L" .. li), nil)
             editorState.btnRects["layout_" .. li] = { x = bx, y = selY, w = selBtnW1, h = selBtnH }
@@ -354,7 +354,7 @@ function DrawDevEditorScreen()
             local isActive = (li == layoutIdx)
             nvgBeginPath(vg); nvgRoundedRect(vg, bx, selY2, selBtnW2, selBtnH, 4)
             nvgFillColor(vg, isActive and nvgRGBA(50, 100, 180, 230) or nvgRGBA(25, 30, 45, 200)); nvgFill(vg)
-            nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, isActive and nvgRGBA(240, 248, 255, 255) or nvgRGBA(140, 160, 190, 200))
             nvgText(vg, bx + selBtnW2 / 2, selY2 + selBtnH / 2, shortNames[li] or ("L" .. li), nil)
             editorState.btnRects["layout_" .. li] = { x = bx, y = selY2, w = selBtnW2, h = selBtnH }
@@ -474,7 +474,7 @@ function DrawDevEditorScreen()
         local infoY = prevY + prevH + 4
         local selCount = 0
         for _ in pairs(editorState.selectedSlots) do selCount = selCount + 1 end
-        nvgFontSize(vg, 15)
+        nvgFontSize(vg, 22)
         nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
         DrawWhiteInkText(pad, infoY + 7,
             string.format("敌%d 我%d | 选中%d", #layout.enemySlots, #layout.playerSlots, selCount))
@@ -489,7 +489,7 @@ function DrawDevEditorScreen()
 
         -- === 底部: 操作按钮行 (2行: 选择按钮 + 撤销/保存) ===
         local btnY1 = infoY + 18
-        local btnH = 26
+        local btnH = 32
         local btnGap = 4
         -- 第1行: 选我方 | 选敌方 | 清除选择
         local row1Btns = {
@@ -502,7 +502,7 @@ function DrawDevEditorScreen()
             local bx = pad + (bi - 1) * (r1BtnW + btnGap)
             nvgBeginPath(vg); nvgRoundedRect(vg, bx, btnY1, r1BtnW, btnH, 4)
             nvgFillColor(vg, nvgRGBA(btn[3][1], btn[3][2], btn[3][3], 200)); nvgFill(vg)
-            nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(btn[4][1], btn[4][2], btn[4][3], 240))
             nvgText(vg, bx + r1BtnW / 2, btnY1 + btnH / 2, btn[2], nil)
             editorState.btnRects[btn[1]] = { x = bx, y = btnY1, w = r1BtnW, h = btnH }
@@ -524,7 +524,7 @@ function DrawDevEditorScreen()
             local bx = pad + (bi - 1) * (r2BtnW + btnGap)
             nvgBeginPath(vg); nvgRoundedRect(vg, bx, btnY2, r2BtnW, btnH, 4)
             nvgFillColor(vg, nvgRGBA(btn[3][1], btn[3][2], btn[3][3], 200)); nvgFill(vg)
-            nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(btn[4][1], btn[4][2], btn[4][3], 240))
             nvgText(vg, bx + r2BtnW / 2, btnY2 + btnH / 2, btn[2], nil)
             editorState.btnRects[btn[1]] = { x = bx, y = btnY2, w = r2BtnW, h = btnH }
@@ -576,349 +576,7 @@ end
 
 
 -- ============================================================================
+-- 新手引导系统已移除，DrawTutorial* 函数已删除
+-- ============================================================================
 
---- 绘制教程引导遮罩 + 高亮 + 提示文字 (step 2-13)
-function DrawTutorialGuideOverlay()
-    local ts = tutorialState
-    if not ts.active then return end
-    local W, H = DESIGN_W, DESIGN_H
-    local step = ts.step
-
-    -- 确定当前步骤的目标按钮和提示文字
-    local targetRect = nil
-    local hintText = nil
-
-    if step == 2 then
-        targetRect = settingsPage.btnRect
-        hintText = "点击「设置」按钮"
-    elseif step == 3 then
-        targetRect = settingsPage.autoMarchToggleRect
-        hintText = "开启「自动行军」"
-    elseif step == 4 then
-        targetRect = settingsPage.adjustPosBtnRect
-        hintText = "点击「调整位置」适配UI"
-    elseif step == 5 then
-        hintText = "拖动调整UI位置，完成后点击确认"
-    elseif step == 6 then
-        targetRect = menuBtnRects and menuBtnRects.gacha
-        hintText = "点击「召唤武灵」抽取角色"
-    elseif step == 7 then
-        if gachaState.showResults and gachaConfirmBtnRect then
-            targetRect = gachaConfirmBtnRect
-            hintText = "点击确认召唤结果"
-        elseif gachaState.pulling then
-            hintText = "召唤中..."
-        else
-            targetRect = gachaSingleBtnRect
-            hintText = "点击「单抽」召唤武灵"
-        end
-    elseif step == 8 then
-        hintText = "将武灵拖放到石台上"
-    elseif step == 9 then
-        targetRect = battleChangeBgBtnRect
-        hintText = "点击「换战场」切换战斗风格"
-    elseif step == 10 then
-        targetRect = shopFightBtnRect
-        hintText = "点击「开战」开始战斗!"
-    elseif step == 11 then
-        targetRect = shopRefreshBtnRect
-        hintText = "点击「刷新」获取新武灵"
-    elseif step == 12 then
-        hintText = "拖拽武灵部署到石台上"
-    elseif step == 13 then
-        hintText = "消灭所有敌人!"
-    else
-        return
-    end
-
-    -- 半透明遮罩 (有目标按钮时镂空高亮)
-    if targetRect then
-        local r = targetRect
-        local pad = 8
-        local hx, hy = r.x - pad, r.y - pad
-        local hw, hh = r.w + pad * 2, r.h + pad * 2
-
-        -- 四周遮罩 (上/下/左/右)
-        nvgBeginPath(vg); nvgRect(vg, 0, 0, W, hy)
-        nvgFillColor(vg, nvgRGBA(5, 5, 12, 160)); nvgFill(vg)
-        nvgBeginPath(vg); nvgRect(vg, 0, hy + hh, W, H - hy - hh)
-        nvgFillColor(vg, nvgRGBA(5, 5, 12, 160)); nvgFill(vg)
-        nvgBeginPath(vg); nvgRect(vg, 0, hy, hx, hh)
-        nvgFillColor(vg, nvgRGBA(5, 5, 12, 160)); nvgFill(vg)
-        nvgBeginPath(vg); nvgRect(vg, hx + hw, hy, W - hx - hw, hh)
-        nvgFillColor(vg, nvgRGBA(5, 5, 12, 160)); nvgFill(vg)
-
-        -- 高亮边框 (金色脉动)
-        local pulse = 0.7 + 0.3 * math.sin(ts.hintTimer * 4)
-        local ga = math.floor(200 * pulse)
-        nvgBeginPath(vg); nvgRoundedRect(vg, hx, hy, hw, hh, 6)
-        nvgStrokeColor(vg, nvgRGBA(255, 200, 80, ga))
-        nvgStrokeWidth(vg, 2.5); nvgStroke(vg)
-
-        -- 手指动画 (在目标下方)
-        local fingerX = r.x + r.w / 2
-        local fingerY = r.y + r.h + 18 + ts.fingerY
-        nvgFontFaceId(vg, GetMainFont())
-        nvgFontSize(vg, 28)
-        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_TOP)
-        nvgFillColor(vg, nvgRGBA(255, 220, 100, 230))
-        nvgText(vg, fingerX, fingerY, "^", nil)
-    else
-        -- 无目标按钮: 淡遮罩 + 居中提示
-        nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
-        nvgFillColor(vg, nvgRGBA(5, 5, 12, 80)); nvgFill(vg)
-    end
-
-    -- 提示文字 (显示在屏幕上方)
-    if hintText then
-        local textY = 80
-        if targetRect and targetRect.y < H * 0.3 then
-            textY = targetRect.y + targetRect.h + 60
-        end
-        nvgFontFaceId(vg, GetMainFont())
-        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-
-        -- 文字背景条
-        nvgFontSize(vg, 24)
-        local tw = nvgTextBounds(vg, 0, 0, hintText, nil)
-        local bgW = tw + 40
-        local bgH = 44
-        local bgX = (W - bgW) / 2
-        nvgBeginPath(vg); nvgRoundedRect(vg, bgX, textY - bgH / 2, bgW, bgH, 10)
-        nvgFillColor(vg, nvgRGBA(20, 15, 35, 200)); nvgFill(vg)
-        nvgStrokeColor(vg, nvgRGBA(180, 140, 255, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-
-        -- 文字
-        DrawWhiteInkText(W / 2, textY, hintText)
-    end
-
-    -- 退出按钮 (步骤 8-13 战斗中可退出)
-    if step >= 8 and step <= 13 then
-        local exitW, exitH = 80, 32
-        local exitX, exitY = W - exitW - 12, 10
-        nvgBeginPath(vg); nvgRoundedRect(vg, exitX, exitY, exitW, exitH, 6)
-        nvgFillColor(vg, nvgRGBA(60, 40, 80, 180)); nvgFill(vg)
-        nvgFontFaceId(vg, GetMainFont())
-        nvgFontSize(vg, 18)
-        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-        DrawWhiteInkText(exitX + exitW / 2, exitY + exitH / 2, "跳过")
-        ts.tutorialSkipBtnRect = { x = exitX, y = exitY, w = exitW, h = exitH }
-    end
-end
-
-
-function DrawTutorialExitConfirmPopup()
-    local ts = tutorialState
-    if not ts.exitConfirm then return end
-    local W, H = DESIGN_W, DESIGN_H
-
-    -- 半透明遮罩
-    nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
-    nvgFillColor(vg, nvgRGBA(5, 5, 12, 120)); nvgFill(vg)
-
-    -- 弹窗面板 (放大)
-    local pw, ph = 380, 220
-    local px, py = (W - pw) / 2, (H - ph) / 2 - 20
-    -- 底板
-    nvgBeginPath(vg); nvgRoundedRect(vg, px, py, pw, ph, 12)
-    local bg = nvgLinearGradient(vg, px, py, px, py + ph,
-        nvgRGBA(40, 30, 60, 245), nvgRGBA(25, 18, 40, 245))
-    nvgFillPaint(vg, bg); nvgFill(vg)
-    nvgStrokeColor(vg, nvgRGBA(180, 140, 255, 120)); nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
-
-    -- 标题
-    nvgFontFaceId(vg, GetMainFont())
-    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFontSize(vg, 32)
-    DrawWhiteInkText(W / 2, py + 48, "退出战斗引导")
-
-    -- 说明文字
-    nvgFontSize(vg, 24)
-    DrawWhiteInkText(W / 2, py + 95, "确认退出并直接领取奖励？")
-
-    -- 按钮
-    local btnW2, btnH2 = 130, 44
-    local gap = 28
-    local btnY = py + ph - 64
-    local confirmX = W / 2 - btnW2 - gap / 2
-    local cancelX = W / 2 + gap / 2
-
-    -- 确认按钮
-    nvgBeginPath(vg); nvgRoundedRect(vg, confirmX, btnY, btnW2, btnH2, 8)
-    local cbg = nvgLinearGradient(vg, confirmX, btnY, confirmX, btnY + btnH2,
-        nvgRGBA(255, 200, 80, 220), nvgRGBA(220, 160, 40, 220))
-    nvgFillPaint(vg, cbg); nvgFill(vg)
-    nvgFontSize(vg, 26)
-    nvgFillColor(vg, nvgRGBA(50, 30, 10, 255))
-    nvgText(vg, confirmX + btnW2 / 2, btnY + btnH2 / 2, "确认退出", nil)
-    ts.exitConfirmBtnRect = { x = confirmX, y = btnY, w = btnW2, h = btnH2 }
-
-    -- 取消按钮
-    nvgBeginPath(vg); nvgRoundedRect(vg, cancelX, btnY, btnW2, btnH2, 8)
-    nvgFillColor(vg, nvgRGBA(60, 50, 80, 200)); nvgFill(vg)
-    nvgStrokeColor(vg, nvgRGBA(140, 120, 180, 140)); nvgStrokeWidth(vg, 1.0); nvgStroke(vg)
-    nvgFontSize(vg, 26)
-    DrawWhiteInkText(cancelX + btnW2 / 2, btnY + btnH2 / 2, "继续战斗")
-    ts.exitCancelBtnRect = { x = cancelX, y = btnY, w = btnW2, h = btnH2 }
-end
-
-
---- 绘制胜利过渡 (step 14)
-function DrawTutorialVictoryTransition()
-    local ts = tutorialState
-    local W, H = DESIGN_W, DESIGN_H
-    local t = ts.fadeTimer
-
-    -- 渐黑遮罩
-    local alpha = math.min(1, t / 2.0)
-    nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
-    nvgFillColor(vg, nvgRGBA(5, 5, 10, math.floor(255 * alpha))); nvgFill(vg)
-
-    -- 文字 "试炼完成!"
-    if t > 0.5 then
-        local textAlpha = math.min(1, (t - 0.5) / 1.0)
-        nvgFontFaceId(vg, GetMainFont())
-        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-
-        -- 光晕
-        local glowR = 60 * textAlpha
-        local glow = nvgRadialGradient(vg, W / 2, H / 2 - 20, 5, glowR,
-            nvgRGBA(255, 220, 80, math.floor(60 * textAlpha)),
-            nvgRGBA(255, 200, 50, 0))
-        nvgBeginPath(vg); nvgCircle(vg, W / 2, H / 2 - 20, glowR)
-        nvgFillPaint(vg, glow); nvgFill(vg)
-
-        nvgFontSize(vg, 43)
-        nvgFillColor(vg, nvgRGBA(255, 230, 100, math.floor(255 * textAlpha)))
-        nvgText(vg, W / 2, H / 2 - 20, "试炼完成!", nil)
-
-        nvgFontSize(vg, 23)
-        nvgFillColor(vg, nvgRGBA(220, 200, 150, math.floor(200 * textAlpha)))
-        nvgText(vg, W / 2, H / 2 + 20, "欢迎来到讨伐...", nil)
-    end
-end
-
-
---- 教程初始奖励弹窗 (step 15)
-function DrawTutorialRewardPopup()
-    local ts = tutorialState
-    local W, H = DESIGN_W, DESIGN_H
-    local reward = ts.tutorialReward
-    if not reward then return end
-
-    -- 全屏黑底
-    nvgBeginPath(vg); nvgRect(vg, 0, 0, W, H)
-    nvgFillColor(vg, nvgRGBA(12, 12, 22, 230)); nvgFill(vg)
-
-    local popAlpha = math.min(1, ts.stepTimer / 0.5)
-    nvgSave(vg)
-    nvgGlobalAlpha(vg, popAlpha)
-
-    -- 标题
-    nvgFontFaceId(vg, GetMainFont())
-    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    nvgFontSize(vg, 39)
-    DrawWhiteInkText(W / 2, H * 0.22, "初始奖励")
-
-    nvgFontSize(vg, 19)
-    DrawWhiteInkText(W / 2, H * 0.28, "恭喜完成试炼，获得初始奖励！")
-
-    -- 兵甲展示卡片
-    local cardW, cardH = 140, 180
-    local cx = W / 2 - cardW / 2
-    local cy = H * 0.34
-    local tierInfo = EQUIP_TIERS[reward.tier]
-    local setInfo = EQUIPMENT_SETS[reward.setIdx]
-    local piece = setInfo.pieces[reward.slotIdx]
-    local tc = tierInfo.color
-
-    -- 卡片背景
-    nvgBeginPath(vg); nvgRoundedRect(vg, cx, cy, cardW, cardH, 8)
-    nvgFillColor(vg, nvgRGBA(25, 20, 35, 220)); nvgFill(vg)
-    nvgStrokeColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 200))
-    nvgStrokeWidth(vg, 2); nvgStroke(vg)
-
-    -- 光晕
-    local glowPulse = 0.7 + 0.3 * math.sin(ts.stepTimer * 2)
-    local glowR = 50 * glowPulse
-    local glow = nvgRadialGradient(vg, W / 2, cy + cardH / 2 - 20, 5, glowR,
-        nvgRGBA(tc[1], tc[2], tc[3], math.floor(60 * glowPulse)),
-        nvgRGBA(tc[1], tc[2], tc[3], 0))
-    nvgBeginPath(vg); nvgCircle(vg, W / 2, cy + cardH / 2 - 20, glowR)
-    nvgFillPaint(vg, glow); nvgFill(vg)
-
-    -- 兵甲图标
-    local iconSize = 80
-    local iconX = W / 2 - iconSize / 2
-    local iconY = cy + 15
-    if IMG.equipmentSheet and IMG.equipmentSheet > 0 then
-        DrawEquipTierBg(iconX, iconY, iconSize, iconSize, reward.tier, 5)
-        DrawCardImage(iconX, iconY, iconSize, iconSize,
-            IMG.equipmentSheet, reward.slotIdx - 1, reward.setIdx - 1,
-            EQUIP_SHEET_COLS, EQUIP_SHEET_ROWS)
-    end
-
-    -- 兵甲名称
-    nvgFontSize(vg, 21)
-    nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 255))
-    nvgText(vg, W / 2, iconY + iconSize + 18, piece.name, nil)
-
-    -- 品阶
-    nvgFontSize(vg, 17)
-    nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], 180))
-    nvgText(vg, W / 2, iconY + iconSize + 40, tierInfo.name, nil)
-
-    -- 套装名
-    nvgFontSize(vg, 15)
-    DrawWhiteInkText(W / 2, iconY + iconSize + 58, setInfo.name)
-
-    -- 武技奖励展示 (武技7)
-    local skillRewardIdx = 7
-    local skillRewardTech = SKILL_TECHNIQUES[skillRewardIdx]
-    if skillRewardTech then
-        local skTier = SKILL_TIERS[skillRewardTech.tier]
-        local stc = skTier.color
-        local skCardW, skCardH = 80, 90
-        local skCx = W / 2 - skCardW / 2
-        local skCy = cy + cardH + 12
-        -- 小标题
-        nvgFontSize(vg, 17)
-        nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-        DrawWhiteInkText(W / 2, skCy - 6, "额外赠送武技")
-        -- 武技小卡片
-        nvgBeginPath(vg); nvgRoundedRect(vg, skCx, skCy + 6, skCardW, skCardH, 6)
-        nvgFillColor(vg, nvgRGBA(25, 20, 35, 220)); nvgFill(vg)
-        nvgStrokeColor(vg, nvgRGBA(stc[1], stc[2], stc[3], 180))
-        nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
-        -- 武技图标
-        local skIconSz = 48
-        drawSkillIcon(skillRewardTech.iconIdx, W / 2 - skIconSz / 2, skCy + 12, skIconSz, 4)
-        -- 武技名
-        nvgFontSize(vg, 17)
-        nvgFillColor(vg, nvgRGBA(stc[1], stc[2], stc[3], 240))
-        nvgText(vg, W / 2, skCy + 12 + skIconSz + 16, skillRewardTech.name, nil)
-        -- 调整领取按钮Y位置
-        cy = skCy + skCardH -- 更新基准
-    end
-
-    -- 领取按钮
-    local btnW, btnH = 160, 44
-    local btnX = W / 2 - btnW / 2
-    local btnY = cy + 30
-    local btnPulse = 0.85 + 0.15 * math.sin(ts.stepTimer * 3)
-
-    nvgBeginPath(vg); nvgRoundedRect(vg, btnX, btnY, btnW, btnH, 8)
-    local btnGrad = nvgLinearGradient(vg, btnX, btnY, btnX, btnY + btnH,
-        nvgRGBA(255, 200, 60, math.floor(255 * btnPulse)),
-        nvgRGBA(220, 160, 30, math.floor(255 * btnPulse)))
-    nvgFillPaint(vg, btnGrad); nvgFill(vg)
-
-    nvgFontSize(vg, 23)
-    nvgFillColor(vg, nvgRGBA(40, 20, 0, 255))
-    nvgText(vg, W / 2, btnY + btnH / 2, "领取", nil)
-
-    -- 保存按钮区域供点击检测
-    ts.rewardBtnRect = { x = btnX, y = btnY, w = btnW, h = btnH }
-
-    nvgRestore(vg)
-end
+--[[ 已移除: DrawTutorialGuideOverlay / DrawTutorialExitConfirmPopup / DrawTutorialVictoryTransition / DrawTutorialRewardPopup ]]

@@ -323,12 +323,12 @@ function HandleKeyDown(eventType, eventData)
                 local newName = factionUI.renameInput or ""
                 if #newName > 0 then
                     if (playerInfo.jade or 0) < 1000 then
-                        ShowToast("虎符不足，改名需要1000虎符")
+                        ShowToast("玉壁不足，改名需要1000玉壁")
                     else
                         playerInfo.jade = playerInfo.jade - 1000
                         CloudManager.RenameFaction(newName, function(ok, reason)
                             if ok then
-                                ShowToast("阵营已更名为「" .. newName .. "」(-1000虎符)")
+                                ShowToast("阵营已更名为「" .. newName .. "」(-1000玉壁)")
                                 factionUI.loaded = false; factionUI.loading = false
                                 if SaveGameProgress then SaveGameProgress() end
                             else

@@ -12,27 +12,6 @@ local DataManager = require("server.DataManager")
 local RankedMatchmaker = require("server.RankedMatchmaker")
 local CloudService = require("server.CloudService")
 
-require "LuaScripts/Utilities/Sample"
-
--- ============================================================================
--- Headless 模式兼容（服务端无图形）
--- ============================================================================
-if GetGraphics() == nil then
-    local mockGraphics = {
-        SetWindowIcon = function() end,
-        SetWindowTitleAndIcon = function() end,
-        GetWidth = function() return 1920 end,
-        GetHeight = function() return 1080 end,
-        GetDPR = function() return 1.0 end,
-    }
-    function GetGraphics() return mockGraphics end
-    graphics = mockGraphics
-    console = { background = {} }
-    function GetConsole() return console end
-    debugHud = {}
-    function GetDebugHud() return debugHud end
-end
-
 -- ============================================================================
 -- 变量
 -- ============================================================================
@@ -52,7 +31,6 @@ local scene_ = nil
 -- ============================================================================
 
 function Server.Start()
-    SampleStart()
     Shared.RegisterEvents()
 
     -- 创建空场景（网络同步必需）
@@ -267,6 +245,13 @@ function Server.Broadcast(eventName, data)
     for _, conn in pairs(serverConnections_) do
         conn:SendRemoteEvent(eventName, true, data)
     end
+end
+
+-- ============================================================================
+-- 全局入口：引擎以 Server.lua 为服务端入口时需要全局 Start()
+-- ============================================================================
+function Start()
+    Server.Start()
 end
 
 return Server

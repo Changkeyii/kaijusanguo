@@ -16,7 +16,36 @@ function DrawGameResultOverlay()
     nvgFontFaceId(vg, GetMainFont())
     nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
 
+    local AnimR = require("ui.anim")
+    local rt = gameState.resultTimer or 0
+
+    -- 标题弹入动画: 0.1s 延迟后 0.5s easeOutBack
+    local titleP = math.max(0, math.min(1, (rt - 0.1) / 0.5))
+    local titleScale = 0.3 + 0.7 * AnimR.easeOutBack(titleP)
+    local titleAlpha = AnimR.easeOutQuad(math.min(1, titleP / 0.6))
+
+    -- 副标题淡入: 0.4s 延迟后 0.4s
+    local subP = math.max(0, math.min(1, (rt - 0.4) / 0.4))
+    local subAlpha = AnimR.easeOutQuad(subP)
+
     if gameState.phase == "WIN" then
+        -- 胜利等级: 基于存活兵力比例
+        local survPct = #playerUnits / math.max(1, gameState.initialPlayerUnits or 1)
+        local victoryTitle, victorySubtitle
+        if survPct >= 0.8 then
+            victoryTitle = "大获全胜!"
+            victorySubtitle = "敌军全军覆没，我军几无损失"
+        elseif survPct >= 0.5 then
+            victoryTitle = "旗开得胜!"
+            victorySubtitle = "敌军已被击溃"
+        elseif survPct >= 0.2 then
+            victoryTitle = "险胜!"
+            victorySubtitle = "虽然惨烈，但我军取得胜利"
+        else
+            victoryTitle = "惨胜..."
+            victorySubtitle = "我军伤亡惨重，仅存残部"
+        end
+
         -- 胜利: 金色光晕
         local pulse = 0.8 + 0.2 * math.sin(gameState.gameTime * 4)
         local glowR = 80 * fadeAlpha * pulse
@@ -26,16 +55,26 @@ function DrawGameResultOverlay()
         nvgBeginPath(vg); nvgCircle(vg, centerX, centerY - 10, glowR)
         nvgFillPaint(vg, glow); nvgFill(vg)
 
-        -- 大字
+        -- 大字 (弹入缩放)
+        nvgSave(vg)
+        nvgTranslate(vg, centerX, centerY - 15)
+        nvgScale(vg, titleScale, titleScale)
+        nvgTranslate(vg, -centerX, -(centerY - 15))
         nvgFontSize(vg, 63)
-        nvgFillColor(vg, nvgRGBA(255, 230, 80, math.floor(255 * fadeAlpha)))
-        nvgText(vg, centerX, centerY - 15, "大捷!", nil)
+        nvgFillColor(vg, nvgRGBA(255, 230, 80, math.floor(255 * fadeAlpha * titleAlpha)))
+        nvgText(vg, centerX, centerY - 15, victoryTitle, nil)
+        nvgRestore(vg)
 
-        -- 副文
+        -- 副文 (淡入)
         nvgFontSize(vg, 30)
-        nvgFillColor(vg, nvgRGBA(255, 240, 180, math.floor(200 * fadeAlpha)))
-        nvgText(vg, centerX, centerY + 20, "敌方阵地已被击破", nil)
+        nvgFillColor(vg, nvgRGBA(255, 240, 180, math.floor(200 * fadeAlpha * subAlpha)))
+        nvgText(vg, centerX, centerY + 20, victorySubtitle, nil)
     else
+        -- 失败标题: 区分撤退和全灭
+        local isRetreat = gameState.retreated
+        local defeatTitle = isRetreat and "撤退" or "败北..."
+        local defeatSubtitle = isRetreat and "明智之举，保存实力以图再战" or "我军全军覆没"
+
         -- 失败: 暗红光晕
         local pulse = 0.8 + 0.2 * math.sin(gameState.gameTime * 3)
         local glowR = 70 * fadeAlpha * pulse
@@ -45,28 +84,40 @@ function DrawGameResultOverlay()
         nvgBeginPath(vg); nvgCircle(vg, centerX, centerY - 10, glowR)
         nvgFillPaint(vg, glow); nvgFill(vg)
 
-        -- 大字
+        -- 大字 (弹入缩放)
+        nvgSave(vg)
+        nvgTranslate(vg, centerX, centerY - 15)
+        nvgScale(vg, titleScale, titleScale)
+        nvgTranslate(vg, -centerX, -(centerY - 15))
         nvgFontSize(vg, 63)
-        nvgFillColor(vg, nvgRGBA(255, 80, 60, math.floor(255 * fadeAlpha)))
-        nvgText(vg, centerX, centerY - 15, "败北...", nil)
+        nvgFillColor(vg, nvgRGBA(255, 80, 60, math.floor(255 * fadeAlpha * titleAlpha)))
+        nvgText(vg, centerX, centerY - 15, defeatTitle, nil)
+        nvgRestore(vg)
 
-        -- 副文
+        -- 副文 (淡入)
         nvgFontSize(vg, 30)
-        nvgFillColor(vg, nvgRGBA(255, 160, 140, math.floor(200 * fadeAlpha)))
-        nvgText(vg, centerX, centerY + 20, "我方阵地已被攻破", nil)
+        nvgFillColor(vg, nvgRGBA(255, 160, 140, math.floor(200 * fadeAlpha * subAlpha)))
+        nvgText(vg, centerX, centerY + 20, defeatSubtitle, nil)
     end
 
-    -- 战绩统计
+    -- 战绩统计 (数字跑表: 0.7s 延迟后 0.6s 计数上升)
     if fadeAlpha > 0.5 then
         local statAlpha = math.min(1, (fadeAlpha - 0.5) * 2)
         local statY = centerY + 50
         nvgFontSize(vg, 27)
         nvgFillColor(vg, nvgRGBA(220, 200, 130, math.floor(220 * statAlpha)))
-        nvgText(vg, centerX, statY, "斩杀: " .. gameState.totalKills .. "   军资: " .. gameState.gold, nil)
+        local aliveP = #playerUnits
+        local totalP = gameState.initialPlayerUnits or aliveP
+        -- 数字跑表动画
+        local countP = math.max(0, math.min(1, (rt - 0.7) / 0.6))
+        local countEase = AnimR.easeOutCubic(countP)
+        local dispKills = math.floor(gameState.totalKills * TROOP_DISPLAY_SCALE * countEase)
+        local dispAlive = math.floor(aliveP * TROOP_DISPLAY_SCALE * countEase)
+        local dispTotalP = totalP * TROOP_DISPLAY_SCALE
+        nvgText(vg, centerX, statY, "斩杀: " .. dispKills .. "   存活: " .. dispAlive .. "/" .. dispTotalP, nil)
 
         -- ★ 胜利奖励: 1秒后弹出大弹窗
         if gameState.phase == "WIN" then
-            local rt = gameState.resultTimer or 0
             if rt > 1.0 and not gameState.showRewardPopup then
                 gameState.showRewardPopup = true
                 gameState.rewardPopupTimer = 0
@@ -79,7 +130,7 @@ function DrawGameResultOverlay()
             end
         end
 
-        -- LOSE时: 排位积分变化 或 广告获取虎符按钮
+        -- LOSE时: 排位积分变化 或 广告获取玉壁按钮
         if gameState.phase == "LOSE" and gameState.isRanked then
             -- 排位失败: 显示积分变化
             local rDelta = gameState.rankedDelta or 0
@@ -105,32 +156,16 @@ function DrawGameResultOverlay()
             nvgFillColor(vg, nvgRGBA(30, 25, 20, retAlpha2))
             nvgText(vg, centerX, rdY + 70, "点击空白处返回", nil)
         elseif gameState.phase == "LOSE" then
-            local adBtnW = 140
-            local adBtnH = 32
-            local adBtnX = centerX - adBtnW / 2
-            local adBtnY = statY + 22
-            local adPulse = 0.7 + 0.3 * math.sin(gameState.gameTime * 4.0)
-            nvgBeginPath(vg); nvgRoundedRect(vg, adBtnX, adBtnY, adBtnW, adBtnH, 6)
-            nvgFillColor(vg, nvgRGBA(25, 50, 30, math.floor(200 * statAlpha * adPulse))); nvgFill(vg)
-            nvgBeginPath(vg); nvgRoundedRect(vg, adBtnX, adBtnY, adBtnW, adBtnH, 6)
-            nvgStrokeWidth(vg, 1)
-            nvgStrokeColor(vg, nvgRGBA(80, 200, 100, math.floor(180 * statAlpha * adPulse))); nvgStroke(vg)
-            nvgFontSize(vg, 22)
-            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            nvgFillColor(vg, nvgRGBA(120, 255, 140, math.floor(240 * statAlpha * adPulse)))
-            nvgText(vg, centerX, adBtnY + adBtnH / 2, "看广告 +" .. GameConfig.AD_REVIVE_BONUS_JADE .. "虎符", nil)
-            adRects.revive = { x = adBtnX, y = adBtnY, w = adBtnW, h = adBtnH }
-
             -- 提示点击返回
             nvgFontSize(vg, 27)
             local retAlpha = math.floor(120 * statAlpha)
             nvgFillColor(vg, nvgRGBA(255, 255, 255, math.floor(retAlpha * 0.54)))
-            nvgText(vg, centerX - 1, statY + 80, "点击空白处返回", nil)
-            nvgText(vg, centerX + 1, statY + 80, "点击空白处返回", nil)
-            nvgText(vg, centerX, statY + 79, "点击空白处返回", nil)
-            nvgText(vg, centerX, statY + 81, "点击空白处返回", nil)
+            nvgText(vg, centerX - 1, statY + 50, "点击空白处返回", nil)
+            nvgText(vg, centerX + 1, statY + 50, "点击空白处返回", nil)
+            nvgText(vg, centerX, statY + 49, "点击空白处返回", nil)
+            nvgText(vg, centerX, statY + 51, "点击空白处返回", nil)
             nvgFillColor(vg, nvgRGBA(30, 25, 20, retAlpha))
-            nvgText(vg, centerX, statY + 80, "点击空白处返回", nil)
+            nvgText(vg, centerX, statY + 50, "点击空白处返回", nil)
         end
     end
 end
@@ -170,12 +205,16 @@ function DrawRewardPopup()
     local panelH = H * 0.55
     local panelX = centerX - panelW / 2
     local panelY = H * 0.22
-    -- 缩放动画
-    local popScale = popT < 0.3 and (0.85 + 0.15 * (popT / 0.3)) or 1.0
+    -- 弹性缩放动画 (easeOutBack)
+    local AnimRP = require("ui.anim")
+    local popScale, popAlphaFactor = AnimRP.PopupScaleAlpha(popT)
+    popAlpha = popAlpha * popAlphaFactor
     nvgSave(vg)
-    nvgTranslate(vg, centerX, panelY + panelH / 2)
-    nvgScale(vg, popScale, popScale)
-    nvgTranslate(vg, -centerX, -(panelY + panelH / 2))
+    if popScale < 0.999 then
+        nvgTranslate(vg, centerX, panelY + panelH / 2)
+        nvgScale(vg, popScale, popScale)
+        nvgTranslate(vg, -centerX, -(panelY + panelH / 2))
+    end
 
     -- 面板背景
     nvgBeginPath(vg); nvgRoundedRect(vg, panelX, panelY, panelW, panelH, 14)
@@ -310,7 +349,7 @@ function DrawRewardPopup()
 
     -- 收集所有奖励项
     local rewards = {}
-    -- 虎符
+    -- 玉壁
     local jadeAmt = gameState.winJade or 0
     if jadeAmt > 0 then
         table.insert(rewards, { type = "jade", amount = jadeAmt })
@@ -332,8 +371,20 @@ function DrawRewardPopup()
             table.insert(rewards, { type = "frag", data = fd })
         end
     end
+    -- 招揽武将
+    if gameState.recruitResult then
+        table.insert(rewards, { type = "recruit", data = gameState.recruitResult })
+    end
 
-    local contentH = #rewards * (itemH + itemGap) - itemGap
+    local recruitH = 110  -- 招揽武将条更高，需要显示台词
+    local contentH = 0
+    local itemOffsets = {}
+    for ri, rw in ipairs(rewards) do
+        itemOffsets[ri] = contentH
+        local h = (rw.type == "recruit") and recruitH or itemH
+        contentH = contentH + h + itemGap
+    end
+    if #rewards > 0 then contentH = contentH - itemGap end
     local scrollY = gameState.rewardScrollY or 0
     local maxScroll = 0
     local minScroll = math.min(0, -(contentH - listH))
@@ -345,7 +396,8 @@ function DrawRewardPopup()
     nvgScissor(vg, listX, listY, listW, listH)
 
     for ri, rw in ipairs(rewards) do
-        local iy = listY + (ri - 1) * (itemH + itemGap) + scrollY
+        local thisH = (rw.type == "recruit") and recruitH or itemH
+        local iy = listY + itemOffsets[ri] + scrollY
         -- 延迟出现动画
         local itemDelay = (ri - 1) * 0.2
         local itemAlpha = math.min(1, math.max(0, (popT - 0.2 - itemDelay) / 0.3))
@@ -353,10 +405,10 @@ function DrawRewardPopup()
         local ia = math.floor(240 * itemAlpha * popAlpha)
 
         -- 跳过不可见
-        if iy + itemH < listY or iy > listY + listH then goto continue_reward end
+        if iy + thisH < listY or iy > listY + listH then goto continue_reward end
 
         if rw.type == "jade" then
-            -- 虎符奖励条
+            -- 玉壁奖励条
             nvgBeginPath(vg); nvgRoundedRect(vg, listX, iy, listW, itemH, 8)
             nvgFillColor(vg, nvgRGBA(35, 25, 55, ia)); nvgFill(vg)
             nvgBeginPath(vg); nvgRoundedRect(vg, listX, iy, listW, itemH, 8)
@@ -375,7 +427,7 @@ function DrawRewardPopup()
             nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             nvgFontSize(vg, 37)
             nvgFillColor(vg, nvgRGBA(210, 180, 255, ia))
-            nvgText(vg, listX + 66, iy + itemH / 2, "虎符", nil)
+            nvgText(vg, listX + 66, iy + itemH / 2, "玉壁", nil)
             nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
             nvgFontSize(vg, 43)
             nvgFillColor(vg, nvgRGBA(230, 200, 255, ia))
@@ -432,7 +484,7 @@ function DrawRewardPopup()
                         IMG.equipmentSheet, eqData.slotIdx - 1, eqData.setIdx - 1, EQUIP_SHEET_COLS, EQUIP_SHEET_ROWS)
                 end
                 -- 阶级标签
-                nvgBeginPath(vg); nvgRoundedRect(vg, listX + 12, iy + 6, 36, 18, 4)
+                nvgBeginPath(vg); nvgRoundedRect(vg, listX + 12, iy + 6, 40, 24, 4)
                 nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], ia)); nvgFill(vg)
                 nvgFontSize(vg, 27); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 nvgFillColor(vg, nvgRGBA(255, 255, 255, ia))
@@ -488,7 +540,7 @@ function DrawRewardPopup()
             nvgClosePath(vg)
             nvgFillColor(vg, nvgRGBA(255, 255, 255, math.floor(ia * 0.6))); nvgFill(vg)
             -- 阶级标签
-            nvgBeginPath(vg); nvgRoundedRect(vg, listX + 12, iy + 6, 36, 18, 4)
+            nvgBeginPath(vg); nvgRoundedRect(vg, listX + 12, iy + 6, 40, 24, 4)
             nvgFillColor(vg, nvgRGBA(tc[1], tc[2], tc[3], ia)); nvgFill(vg)
             nvgFontSize(vg, 25); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(255, 255, 255, ia))
@@ -503,6 +555,80 @@ function DrawRewardPopup()
             nvgFontSize(vg, 37)
             nvgFillColor(vg, nvgRGBA(200, 180, 255, ia))
             nvgText(vg, listX + listW - 16, iy + itemH / 2, "+1 残片", nil)
+
+        elseif rw.type == "recruit" then
+            local rd = rw.data
+            local qc = QUALITY_COLORS[rd.quality] or { 200, 195, 180 }
+            local qg = QUALITY_GLOW[rd.quality] or { 200, 195, 180, 0 }
+            local qName = QUALITY_NAMES[rd.quality] or "?"
+            -- 招揽奖励条 (更高, 110px)
+            nvgBeginPath(vg); nvgRoundedRect(vg, listX, iy, listW, recruitH, 8)
+            nvgFillColor(vg, nvgRGBA(18, 15, 30, ia)); nvgFill(vg)
+            nvgBeginPath(vg); nvgRoundedRect(vg, listX, iy, listW, recruitH, 8)
+            nvgStrokeColor(vg, nvgRGBA(qc[1], qc[2], qc[3], math.floor(ia * 0.8)))
+            nvgStrokeWidth(vg, 1.5); nvgStroke(vg)
+            -- 品质光晕
+            if qg[4] and qg[4] > 0 then
+                local rPulse = 0.7 + 0.3 * math.sin(t * 3.5)
+                local rGlow = nvgBoxGradient(vg, listX, iy, listW, recruitH, 8, 14,
+                    nvgRGBA(qc[1], qc[2], qc[3], math.floor(qg[4] * 0.4 * rPulse * itemAlpha)),
+                    nvgRGBA(qc[1], qc[2], qc[3], 0))
+                nvgBeginPath(vg); nvgRoundedRect(vg, listX - 2, iy - 2, listW + 4, recruitH + 4, 10)
+                nvgFillPaint(vg, rGlow); nvgFill(vg)
+            end
+            -- 武将头像 (圆形)
+            local avatarR = 30
+            local avatarCx = listX + 14 + avatarR
+            local avatarCy = iy + recruitH / 2
+            local heroImg = rd.singleImg and IMG[rd.singleImg]
+            if heroImg and heroImg > 0 then
+                local pat = nvgImagePattern(vg, avatarCx - avatarR, avatarCy - avatarR,
+                    avatarR * 2, avatarR * 2, 0, heroImg, itemAlpha)
+                nvgBeginPath(vg); nvgCircle(vg, avatarCx, avatarCy, avatarR)
+                nvgFillPaint(vg, pat); nvgFill(vg)
+            else
+                nvgBeginPath(vg); nvgCircle(vg, avatarCx, avatarCy, avatarR)
+                nvgFillColor(vg, nvgRGBA(30, 25, 45, ia)); nvgFill(vg)
+                nvgFontSize(vg, 28)
+                nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                nvgFillColor(vg, nvgRGBA(qc[1], qc[2], qc[3], ia))
+                nvgText(vg, avatarCx, avatarCy, string.sub(rd.name or "?", 1, 3), nil)
+            end
+            -- 头像边框
+            nvgBeginPath(vg); nvgCircle(vg, avatarCx, avatarCy, avatarR)
+            nvgStrokeColor(vg, nvgRGBA(qc[1], qc[2], qc[3], ia))
+            nvgStrokeWidth(vg, 2); nvgStroke(vg)
+            -- 品质标签
+            nvgBeginPath(vg); nvgRoundedRect(vg, avatarCx - 12, iy + 4, 24, 20, 4)
+            nvgFillColor(vg, nvgRGBA(qc[1], qc[2], qc[3], ia)); nvgFill(vg)
+            nvgFontSize(vg, 22); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+            nvgFillColor(vg, nvgRGBA(255, 255, 255, ia))
+            nvgText(vg, avatarCx, iy + 13, qName, nil)
+            -- 武将名称
+            local textX = listX + 14 + avatarR * 2 + 14
+            nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 35)
+            nvgFillColor(vg, nvgRGBA(qc[1], qc[2], qc[3], ia))
+            nvgText(vg, textX, iy + 30, rd.name or "???", nil)
+            -- "招揽" 标签
+            nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 29)
+            nvgFillColor(vg, nvgRGBA(120, 255, 160, ia))
+            nvgText(vg, listX + listW - 14, iy + 30, "招揽成功", nil)
+            -- 台词 (较小字体, 斜体感)
+            nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
+            nvgFontSize(vg, 25)
+            nvgFillColor(vg, nvgRGBA(220, 210, 180, math.floor(ia * 0.85)))
+            local quote = rd.quote or ("末将" .. (rd.name or "") .. "，愿为主公效力！")
+            nvgText(vg, textX, iy + 68, "\"" .. quote .. "\"", nil)
+            -- 武技信息 (如果有)
+            if rd.skill then
+                nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
+                nvgFontSize(vg, 23)
+                nvgFillColor(vg, nvgRGBA(180, 170, 220, math.floor(ia * 0.7)))
+                nvgText(vg, listX + listW - 14, iy + recruitH - 18,
+                    "武技: " .. (rd.skill.name or ""), nil)
+            end
         end
         ::continue_reward::
     end
@@ -641,21 +767,21 @@ function DrawExploreExitConfirmPopup()
     end
 
     -- 说明文字
-    nvgFontSize(vg, 17)
+    nvgFontSize(vg, 24)
     nvgFillColor(vg, nvgRGBA(200, 180, 140, 220))
     if confirmType == "abyss_exit" then
         nvgText(vg, centerX, titleY + 38, "退出讨伐将保留30%收获", nil)
-        nvgFontSize(vg, 14)
+        nvgFontSize(vg, 22)
         nvgFillColor(vg, nvgRGBA(180, 160, 120, 180))
         nvgText(vg, centerX, titleY + 56, "返回讨伐战页面", nil)
     else
         nvgText(vg, centerX, titleY + 38, "将丢失10%~30%已获得的战利品", nil)
-        nvgFontSize(vg, 14)
+        nvgFontSize(vg, 22)
         nvgFillColor(vg, nvgRGBA(180, 160, 120, 180))
         nvgText(vg, centerX, titleY + 56, "并回到探索副本地图中", nil)
     end
 
-    -- 广告翻倍虎符按钮 (仅撤离结算时显示, 退出确认弹窗不显示)
+    -- 广告翻倍玉壁按钮 (仅撤离结算时显示, 退出确认弹窗不显示)
     exploreConfirmBtnRects.adDouble = nil
 
     -- 底部按钮区域

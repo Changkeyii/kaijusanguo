@@ -1,12 +1,12 @@
 -- ============================================================================
--- TradeManager - 浜ゆ槗琛岀郴缁?(鍗曚竴鍏叡甯傚満琛ㄦ灦鏋?"
--- 鍩轰簬 CloudAPI 鎺掕姒?API 瀹炵幇璺ㄧ帺瀹惰澶囦氦鏄?"
+-- TradeManager - 交易行系统 (单一公共市场表架构)
+-- 基于 clientCloud 排行榜 API 实现跨玩家装备交易
 --
--- 鏋舵瀯璇存槑:
---   浣跨敤鍚屼竴涓?rank list (trade_ts / trade_data) 浣滀负"鍏叡甯傚満琛?"
---   姣忎釜玩家鐨?slot 鍖呭惈: listings(涓婃灦) + purchases(璐拱璁板綍)
---   涔板璐拱鍚?鈫?鍐欏叆鑷繁 slot 鐨?purchases 鈫?鍗栧鎵弿鍏叡琛ㄥ嵆鍙彂鐜?"
---   鍗栧棰嗗彇鍚?鈫?鍒犻櫎 listing + 娓呯悊鍏叡琛?"
+-- 架构说明:
+--   使用同一个 rank list (trade_ts / trade_data) 作为"公共市场表"
+--   每个玩家的 slot 包含: listings(上架) + purchases(购买记录)
+--   买家购买后 → 写入自己 slot 的 purchases → 卖家扫描公共表即可发现
+--   卖家领取后 → 删除 listing + 清理公共表
 -- ============================================================================
 ---@diagnostic disable: undefined-global
 
@@ -16,50 +16,50 @@ local GameConfig = require("game_config")
 local TRADE = GameConfig.TRADE
 
 -- ============================================================================
--- 浜戠 Key 瀹氫箟 (鍗曚竴鍏叡甯傚満琛?"
+-- 云端 Key 定义 (单一公共市场表)
 -- ============================================================================
 local PREFIX = "p_49dd_"
 local KEYS = {
-    trade_ts   = PREFIX .. "trade_ts",    -- SetInt: 鏇存柊鏃堕棿鎴?鎺掑簭鐢?"
+    trade_ts   = PREFIX .. "trade_ts",    -- SetInt: 更新时间戳(排序用)
     trade_data = PREFIX .. "trade_data",  -- Set: { listings, purchases, pendingJade, soldCount }
 }
 
 -- ============================================================================
--- 鏈湴鐘舵€?"
+-- 本地状态
 -- ============================================================================
 local state = {
     inited = false,
-    -- 鎴戠殑浜ゆ槗鏁版嵁 (鍚屾鍒颁簯绔?trade_data)
+    -- 我的交易数据 (同步到云端 trade_data)
     myData = {
-        listings = {},      -- 鍦ㄥ敭瑁呭: { [listingKey] = { equip, price, listTime, sellerName } }
-        purchases = {},     -- 鎴戠殑璐拱璁板綍(閫氱煡鍗栧): { [listingKey] = { sellerId, price, buyTime, buyerName } }
-        pendingJade = 0,    -- 寰呴鍙栬檸绗?"
-        soldCount = 0,      -- 绱鍞嚭
+        listings = {},      -- 在售装备: { [listingKey] = { equip, price, listTime, sellerName } }
+        purchases = {},     -- 我的购买记录(通知卖家): { [listingKey] = { sellerId, price, buyTime, buyerName } }
+        pendingJade = 0,    -- 待领取玉壁
+        soldCount = 0,      -- 累计售出
     },
-    -- 鍏煎鏃х増: myPurchases 鎸囧悜 myData.purchases (UI 杩囨护鐢?"
-    myPurchases = nil,      -- 浼氬湪 Init 涓缃负 myData.purchases 鐨勫紩鐢?"
-    -- 鏁版嵁鏄惁闇€瑕侀噸鏂颁笂浼?(涓婁紶澶辫触/鍚姩鏃跺緟鍚屾)
+    -- 兼容旧版: myPurchases 指向 myData.purchases (UI 过滤用)
+    myPurchases = nil,      -- 会在 Init 中设置为 myData.purchases 的引用
+    -- 数据是否需要重新上传 (上传失败/启动时待同步)
     dataNeedUpload = false,
     -- 甯傚満缂撳瓨
-    marketItems = {},       -- 鏁村悎鍚庣殑甯傚満鍒楄〃
+    marketItems = {},       -- 整合后的市场列表
     marketLoading = false,
     marketLoaded = false,
     lastRefreshTime = 0,
     lastCheckSalesTime = 0,
-    -- 宸插鐞嗙殑鍞嚭璁板綍 (閬垮厤閲嶅澶勭悊)
+    -- 已处理的售出记录 (避免重复处理)
     processedSales = {},
 }
 
 TradeManager.state = state
 
 -- ============================================================================
--- 鍒濆鍖?"
+-- 初始化
 -- ============================================================================
 function TradeManager.Init()
     if state.inited then return end
     state.inited = true
 
-    -- 浠庢湰鍦板瓨妗ｆ仮澶嶄氦鏄撴暟鎹?"
+    -- 从本地存档恢复交易数据
     if playerInfo and playerInfo.tradeData then
         state.myData = playerInfo.tradeData
         if not state.myData.listings then state.myData.listings = {} end
@@ -68,77 +68,77 @@ function TradeManager.Init()
         if not state.myData.soldCount then state.myData.soldCount = 0 end
     end
 
-    -- 鍏煎鏃х増: 杩佺Щ tradePurchases 鍒?myData.purchases
+    -- 兼容旧版: 迁移 tradePurchases 到 myData.purchases
     if playerInfo and playerInfo.tradePurchases then
         for lk, purchase in pairs(playerInfo.tradePurchases) do
             if not state.myData.purchases[lk] then
                 state.myData.purchases[lk] = purchase
             end
         end
-        playerInfo.tradePurchases = nil  -- 娓呴櫎鏃у瓧娈?"
-        state.dataNeedUpload = true      -- 闇€瑕侀噸鏂颁笂浼犲悎骞跺悗鐨勬暟鎹?"
+        playerInfo.tradePurchases = nil  -- 清除旧字段
+        state.dataNeedUpload = true      -- 需要重新上传合并后的数据
     end
 
     if playerInfo and playerInfo.tradeProcessed then
         state.processedSales = playerInfo.tradeProcessed
     end
 
-    -- myPurchases 浣滀负 myData.purchases 鐨勫紩鐢?(UI 鍏煎)
+    -- myPurchases 作为 myData.purchases 的引用 (UI 兼容)
     state.myPurchases = state.myData.purchases
 
-    -- 娓呯悊杩囨湡鏁版嵁
+    -- 清理过期数据
     TradeManager._cleanupOldData()
 
-    print("[TradeManager] 鍒濆鍖栧畬鎴? 鍦ㄥ敭" .. TradeManager.GetListingCount() ..
-          "浠? 璐拱璁板綍" .. TradeManager._countPurchases() .. "鏉?")
+    print("[TradeManager] 初始化完成, 在售" .. TradeManager.GetListingCount() ..
+          "件, 购买记录" .. TradeManager._countPurchases() .. "条")
 
-    -- 鍚姩鏃剁珛鍗充笂浼? 纭繚鏈湴鏁版嵁鍚屾鍒颁簯绔帓琛屾
-    -- (閲嶇櫥鍚庝簯绔?slot 鍙兘涓虹┖, 蹇呴』閲嶆柊涓婁紶 listings 鎵嶈兘璁╁叾浠栫帺瀹剁湅鍒?"
+    -- 启动时立即上传: 确保本地数据同步到云端排行榜
+    -- (重登后云端 slot 可能为空, 必须重新上传 listings 才能让其他玩家看到)
     if TradeManager.GetListingCount() > 0 or TradeManager._hasPendingPurchases() then
         state.dataNeedUpload = true
         TradeManager._publishMyData(function(ok)
             if ok then
-                print("[TradeManager] 鍚姩鏃舵暟鎹悓姝ユ垚鍔?")
+                print("[TradeManager] 启动时数据同步成功")
             else
-                print("[TradeManager] 鍚姩鏃舵暟鎹悓姝ュけ璐? 灏嗗湪Tick涓噸璇?")
+                print("[TradeManager] 启动时数据同步失败, 将在Tick中重试")
             end
         end)
     end
 end
 
---- 淇濆瓨浜ゆ槗鏁版嵁鍒版湰鍦板瓨妗?"
+--- 保存交易数据到本地存档
 local function saveLocal()
     if playerInfo then
         playerInfo.tradeData = state.myData
         playerInfo.tradeProcessed = state.processedSales
-        -- 娓呴櫎鏃х増瀛楁
+        -- 清除旧版字段
         playerInfo.tradePurchases = nil
     end
 end
 
 -- ============================================================================
--- 鍐呴儴宸ュ叿鍑芥暟
+-- 内部工具函数
 -- ============================================================================
 
---- 缁熻璐拱璁板綍鏁伴噺
+--- 统计购买记录数量
 function TradeManager._countPurchases()
     local count = 0
     for _ in pairs(state.myData.purchases) do count = count + 1 end
     return count
 end
 
---- 妫€鏌ユ槸鍚︽湁闇€瑕佷笂浼犵殑璐拱璁板綍
+--- 检查是否有需要上传的购买记录
 function TradeManager._hasPendingPurchases()
     return next(state.myData.purchases) ~= nil
 end
 
---- 娓呯悊杩囨湡鏁版嵁 (7澶╁墠鐨勮喘涔拌褰曞拰宸插鐞嗚褰?"
+--- 清理过期数据 (7天前的购买记录和已处理记录)
 function TradeManager._cleanupOldData()
     local now = os.time()
-    local CLEANUP_AGE = 7 * 86400  -- 7澶?"
+    local CLEANUP_AGE = 7 * 86400  -- 7天
     local changed = false
 
-    -- 娓呯悊鏃х殑璐拱璁板綍
+    -- 清理旧的购买记录
     for lk, purchase in pairs(state.myData.purchases) do
         if now - (purchase.buyTime or 0) > CLEANUP_AGE then
             state.myData.purchases[lk] = nil
@@ -146,7 +146,7 @@ function TradeManager._cleanupOldData()
         end
     end
 
-    -- 娓呯悊鏃х殑宸插鐞嗗敭鍑鸿褰?"
+    -- 清理旧的已处理售出记录
     for lk, timestamp in pairs(state.processedSales) do
         if now - timestamp > CLEANUP_AGE then
             state.processedSales[lk] = nil
@@ -156,15 +156,15 @@ function TradeManager._cleanupOldData()
 
     if changed then
         saveLocal()
-        print("[TradeManager] 娓呯悊杩囨湡鏁版嵁瀹屾垚")
+                print("[TradeManager] 启动时数据同步成功")
     end
 end
 
 -- ============================================================================
--- 鍏叡宸ュ叿鍑芥暟
+-- 公共工具函数
 -- ============================================================================
 
---- 鐢熸垚涓婃灦鍞竴鏍囪瘑 key
+--- 生成上架唯一标识 key
 ---@param sellerId number
 ---@param setIdx number
 ---@param uid number
@@ -173,25 +173,25 @@ local function makeListingKey(sellerId, setIdx, uid)
     return tostring(sellerId) .. "_" .. tostring(setIdx) .. "_" .. tostring(uid)
 end
 
---- 缁熻鍦ㄥ敭鏁伴噺
+--- 统计在售数量
 function TradeManager.GetListingCount()
     local count = 0
     for _ in pairs(state.myData.listings) do count = count + 1 end
     return count
 end
 
---- 娓呴櫎鎵€鏈変笂鏋惰褰曪紙CDK閲嶇疆鐢級
+--- 清除所有上架记录（CDK重置用）
 function TradeManager.ClearAllListings()
     state.myData.listings = {}
     state.myData.pendingJade = 0
     state.myData.soldCount = 0
     saveLocal()
     TradeManager._publishMyData(function(ok)
-        if ok then print("[TradeManager] 浜戠涓婃灦鏁版嵁宸叉竻闄?") end
+        if ok then print("[TradeManager] 云端上架数据已清除") end
     end)
 end
 
---- 妫€鏌ヨ澶囨槸鍚﹀彲浜ゆ槗
+--- 检查装备是否可交易
 ---@param tier number
 ---@return boolean, string?"
 function TradeManager.CanTrade(tier)
@@ -204,7 +204,7 @@ function TradeManager.CanTrade(tier)
     return true
 end
 
---- 鑾峰彇浠锋牸鑼冨洿
+--- 获取价格范围
 ---@param tier number
 ---@return number, number
 function TradeManager.GetPriceRange(tier)
@@ -215,7 +215,7 @@ function TradeManager.GetPriceRange(tier)
     return 0, 0
 end
 
---- 璁＄畻鍒版墜閲戦 (鎵ｉ櫎鎵嬬画璐?"
+--- 计算到手金额 (扣除手续费)
 ---@param price number
 ---@return number
 function TradeManager.CalcNetIncome(price)
@@ -226,9 +226,9 @@ end
 -- 涓婃灦
 -- ============================================================================
 
---- 涓婃灦瑁呭鍒颁氦鏄撹
----@param equipUid number 瑁呭UID
----@param price number 鍞环
+--- 上架装备到交易行
+---@param equipUid number 装备UID
+---@param price number
 ---@param callback? fun(ok:boolean, msg:string)
 function TradeManager.ListItem(equipUid, price, callback)
     callback = callback or function() end
@@ -295,10 +295,10 @@ function TradeManager.ListItem(equipUid, price, callback)
 
     TradeManager._publishMyData(function(ok)
         if ok then
-            print("[TradeManager] 涓婃灦鎴愬姛: " .. listingKey .. " 浠锋牸" .. price)
-            callback(true, "涓婃灦鎴愬姛")
+            print("[TradeManager] 上架成功: " .. listingKey .. " 价格" .. price)
+            callback(true, "上架成功")
         else
-            -- 涓婁紶澶辫触锛屾仮澶嶈澶?"
+            -- 上传失败，恢复装备
             table.insert(playerEquipment.owned, removed)
             state.myData.listings[listingKey] = nil
             saveLocal()
@@ -309,10 +309,10 @@ function TradeManager.ListItem(equipUid, price, callback)
 end
 
 -- ============================================================================
--- 涓嬫灦 / 棰嗗彇杩囨湡
+-- 涓嬫灦 / 领取杩囨湡
 -- ============================================================================
 
---- 涓诲姩涓嬫灦 (灏嗚澶囪繕鍥炰粨搴?"
+--- 主动下架 (将装备还回仓库)
 ---@param listingKey string
 ---@param callback? fun(ok:boolean, msg:string)
 function TradeManager.UnlistItem(listingKey, callback)
@@ -333,7 +333,7 @@ function TradeManager.UnlistItem(listingKey, callback)
 
     TradeManager._publishMyData(function(ok)
         if ok then
-            print("[TradeManager] 涓嬫灦鎴愬姛: " .. listingKey)
+            print("[TradeManager] 下架成功: " .. listingKey)
             callback(true, "装备已返回仓库")
         else
             callback(true, "装备已返回仓库（云端稍后同步）")
@@ -341,16 +341,16 @@ function TradeManager.UnlistItem(listingKey, callback)
     end)
 end
 
---- 棰嗗彇杩囨湡瑁呭 (涓庝笅鏋堕€昏緫鐩稿悓)
+--- 计算到手金额 (扣除手续费)
 function TradeManager.ClaimExpired(listingKey, callback)
     TradeManager.UnlistItem(listingKey, callback)
 end
 
 -- ============================================================================
--- 棰嗗彇铏庣
+-- 领取玉壁
 -- ============================================================================
 
---- 棰嗗彇寰呮敹铏庣
+--- 领取待收玉壁
 ---@param callback? fun(amount:number)
 function TradeManager.ClaimJade(callback)
     callback = callback or function() end
@@ -366,16 +366,16 @@ function TradeManager.ClaimJade(callback)
     if SaveGameProgress then SaveGameProgress() end
 
     TradeManager._publishMyData(function()
-        print("[TradeManager] 棰嗗彇铏庣: " .. amount)
+        print("[TradeManager] 领取玉壁: " .. amount)
         callback(amount)
     end)
 end
 
 -- ============================================================================
--- 鍒锋柊甯傚満 (娴忚鍏叡甯傚満琛?"
+-- 刷新市场 (浏览公共市场表)
 -- ============================================================================
 
---- 鍒锋柊甯傚満鍒楄〃
+--- 刷新市场列表
 ---@param callback? fun(items:table)
 function TradeManager.RefreshMarket(callback)
     callback = callback or function() end
@@ -394,16 +394,16 @@ function TradeManager.RefreshMarket(callback)
     state.marketLoading = true
     local myUid = CloudAPI.GetUserId()
 
-    -- 璇诲彇鍏叡甯傚満琛?(鎵€鏈変汉鐨?trade_data)
+    -- 读取公共市场表 (所有人的 trade_data)
     CloudAPI:GetRankList(KEYS.trade_ts, 0, 200, {
         ok = function(rankList)
             local items = {}
             local nowTime = os.time()
 
             -- ========================================
-            -- 鍚屾椂澶勭悊涓や欢浜?"
-            -- 1. 鎻愬彇浠栦汉鐨勪笂鏋跺垪琛?鈫?甯傚満娴忚
-            -- 2. 鎵弿浠栦汉鐨勮喘涔拌褰?鈫?妫€鏌ユ垜鐨勭墿鍝佹槸鍚﹀凡鍞嚭
+            -- 同时处理两件事:
+            -- 1. 提取他人的上架列表 → 市场浏览
+            -- 2. 扫描他人的购买记录 → 检查我的物品是否已售出
             -- ========================================
             local soldCount = 0
             local jadeEarned = 0
@@ -416,7 +416,7 @@ function TradeManager.RefreshMarket(callback)
                 if tradeData then
                     local isMe = (playerId == myUid)
 
-                    -- (1) 鎻愬彇鎵€鏈変汉鐨勪笂鏋跺垪琛紙鍖呭惈鑷繁鐨勶紝鏍囪 isMine锛?"
+                    -- (1) 提取所有人的上架列表（包含自己的，标记 isMine）
                     if tradeData.listings then
                         for lk, listing in pairs(tradeData.listings) do
                             local elapsed = nowTime - (listing.listTime or 0)
@@ -429,17 +429,17 @@ function TradeManager.RefreshMarket(callback)
                                     sellerId = playerId,
                                     listTime = listing.listTime,
                                     remainSec = TRADE.EXPIRE_SECONDS - elapsed,
-                                    isMine = isMe,  -- 鏍囪鏄惁涓鸿嚜宸辩殑鍟嗗搧
+                                    isMine = isMe,  -- 标记是否为自己的商品
                                 })
                             end
                         end
                     end
 
-                    -- (2) 鎵弿浠栦汉鐨勮喘涔拌褰?鈫?鎴戠殑鐗╁搧鏄惁宸插敭鍑猴紙鍙湅浠栦汉鏁版嵁锛?"
+                    -- (2) 扫描他人的购买记录 → 我的物品是否已售出（只看他人数据）
                     if not isMe and tradeData.purchases then
                         for lk, purchase in pairs(tradeData.purchases) do
                             local pSellerId = purchase.sellerId
-                            -- 鍏煎 JSON 瑙ｇ爜鍚?sellerId 鍙兘涓?string
+                            -- 兼容 JSON 解码后 sellerId 可能为 string
                             if type(pSellerId) == "string" then pSellerId = tonumber(pSellerId) end
                             if pSellerId == myUid and state.myData.listings[lk] then
                                 if not state.processedSales[lk] then
@@ -447,12 +447,12 @@ function TradeManager.RefreshMarket(callback)
                                     local netIncome = TradeManager.CalcNetIncome(listing.price)
                                     state.myData.pendingJade = (state.myData.pendingJade or 0) + netIncome
                                     state.myData.soldCount = (state.myData.soldCount or 0) + 1
-                                    state.myData.listings[lk] = nil  -- 绉婚櫎宸插敭
+                                    state.myData.listings[lk] = nil  -- 移除已售
                                     state.processedSales[lk] = os.time()
                                     soldCount = soldCount + 1
                                     jadeEarned = jadeEarned + netIncome
                                     salesChanged = true
-                                    print("[TradeManager] 鍞嚭: " .. lk .. " 鍒拌处" .. netIncome .. "铏庣")
+                                    print("[TradeManager] 售出: " .. lk .. " 到账" .. netIncome .. "玉壁")
                                 end
                             end
                         end
@@ -460,8 +460,8 @@ function TradeManager.RefreshMarket(callback)
                 end
             end
 
-            -- 杩囨护鎺夎嚜宸卞凡鍞嚭/宸蹭笅鏋剁殑鍟嗗搧
-            -- (浜戠鏁版嵁鍙兘灏氭湭鏇存柊, 浣嗘湰鍦?listings 宸茬Щ闄?"
+            -- 过滤掉自己已售出/已下架的商品
+            -- (云端数据可能尚未更新, 但本地 listings 已移除)
             do
                 local filtered = {}
                 for _, it in ipairs(items) do
@@ -472,7 +472,7 @@ function TradeManager.RefreshMarket(callback)
                 items = filtered
             end
 
-            -- 鎸夊搧闃堕檷搴? 鍚屽搧闃舵寜浠锋牸鍗囧簭
+            -- 按品阶降序, 同品阶按价格升序
             table.sort(items, function(a, b)
                 if a.equip.tier ~= b.equip.tier then return a.equip.tier > b.equip.tier end
                 return a.price < b.price
@@ -481,18 +481,18 @@ function TradeManager.RefreshMarket(callback)
             state.marketItems = items
             state.marketLoaded = true
             state.lastRefreshTime = os.time()
-            state.lastCheckSalesTime = os.time()  -- RefreshMarket 宸插寘鍚?CheckSales
-            print("[TradeManager] 甯傚満鍒锋柊瀹屾垚, " .. #items .. "浠跺湪鍞?")
+            state.lastCheckSalesTime = os.time()  -- RefreshMarket 已包含 CheckSales
+            print("[TradeManager] 市场刷新完成, " .. #items .. "件在售")
 
-            -- 濡傛灉鍙戠幇鏈夊敭鍑? 淇濆瓨骞朵笂浼?"
+            -- 如果发现有售出, 保存并上传
             if salesChanged then
                 saveLocal()
                 if SaveGameProgress then SaveGameProgress() end
                 TradeManager._publishMyData()
-                print("[TradeManager] 鍙戠幇" .. soldCount .. "绗斿敭鍑? 鍏?" .. jadeEarned .. "铏庣寰呴鍙?")
+                print("[TradeManager] 发现" .. soldCount .. "笔售出, 共" .. jadeEarned .. "玉壁待领取")
             end
 
-            -- 鎵归噺瑙ｆ瀽鍗栧鏄电О
+            -- 批量解析卖家昵称
             local sellerIdSet = {}
             local sellerIds = {}
             for _, it in ipairs(items) do
@@ -538,17 +538,17 @@ function TradeManager.RefreshMarket(callback)
         end,
         error = function(code, reason)
             state.marketLoading = false
-            print("[TradeManager] 甯傚満鍒锋柊澶辫触: " .. tostring(reason))
+            print("[TradeManager] 市场刷新失败: " .. tostring(reason))
             callback(state.marketItems)
         end,
     }, KEYS.trade_data)
 end
 
 -- ============================================================================
--- 璐拱
+-- 购买
 -- ============================================================================
 
---- 璐拱瑁呭 (鍚埛鏂伴獙璇?"
+--- 购买装备 (含刷新验证)
 ---@param listingKey string
 ---@param expectedSellerId number
 ---@param expectedPrice number
@@ -556,7 +556,7 @@ end
 function TradeManager.BuyItem(listingKey, expectedSellerId, expectedPrice, callback)
     callback = callback or function() end
 
-    -- 闃叉鑷喘
+    -- 防止自购
     local myUid = CloudAPI.GetUserId()
     if expectedSellerId == myUid then
         callback(false, "不能购买自己上架的装备")
@@ -568,7 +568,7 @@ function TradeManager.BuyItem(listingKey, expectedSellerId, expectedPrice, callb
         return
     end
 
-    -- 鍒锋柊楠岃瘉: 閲嶆柊鎷夊彇鍏叡甯傚満琛? 纭 listing 浠嶅瓨鍦?"
+    -- 刷新验证: 重新拉取公共市场表, 确认 listing 仍存在
     state.marketLoading = true
     CloudAPI:GetRankList(KEYS.trade_ts, 0, 200, {
         ok = function(rankList)
@@ -652,10 +652,10 @@ function TradeManager.BuyItem(listingKey, expectedSellerId, expectedPrice, callb
 end
 
 -- ============================================================================
--- 鍗栧鏀舵 (鎵弿鍏叡甯傚満琛ㄤ腑鐨勮喘涔拌褰?"
+-- 卖家收款 (扫描公共市场表中的购买记录)
 -- ============================================================================
 
---- 鎵弿鍏叡甯傚満琛? 妫€鏌ユ垜鐨勪笂鏋剁墿鍝佹槸鍚﹀凡琚喘涔?"
+--- 扫描公共市场表, 检查我的上架物品是否已被购买
 ---@param callback? fun(soldCount:number, jadeEarned:number)
 function TradeManager.CheckSales(callback)
     callback = callback or function() end
@@ -678,7 +678,7 @@ function TradeManager.CheckSales(callback)
         return
     end
 
-    -- 璇诲彇鍚屼竴涓叕鍏卞競鍦鸿〃
+    -- 读取同一个公共市场表
     CloudAPI:GetRankList(KEYS.trade_ts, 0, 200, {
         ok = function(rankList)
             local soldCount = 0
@@ -704,7 +704,7 @@ function TradeManager.CheckSales(callback)
                                     soldCount = soldCount + 1
                                     jadeEarned = jadeEarned + netIncome
                                     changed = true
-                                    print("[TradeManager] 鍞嚭: " .. lk .. " 鍒拌处" .. netIncome .. "铏庣")
+                                    print("[TradeManager] 售出: " .. lk .. " 到账" .. netIncome .. "玉壁")
                                 end
                             end
                         end
@@ -726,16 +726,16 @@ function TradeManager.CheckSales(callback)
     }, KEYS.trade_data)
 end
 
---- 閲嶇疆 CheckSales 鍐峰嵈 (杩涘叆浜ゆ槗琛屾椂璋冪敤)
+--- 重置 CheckSales 冷却 (进入交易行时调用)
 function TradeManager.ResetCheckSalesCD()
     state.lastCheckSalesTime = 0
 end
 
 -- ============================================================================
--- 杩囨湡妫€娴?"
+-- 过期检测
 -- ============================================================================
 
---- 鑾峰彇杩囨湡鐨勪笂鏋跺垪琛?"
+--- 获取过期的上架列表
 ---@return table[] expiredKeys
 function TradeManager.GetExpiredListings()
     local expired = {}
@@ -748,7 +748,7 @@ function TradeManager.GetExpiredListings()
     return expired
 end
 
---- 鑾峰彇鍦ㄥ敭(鏈繃鏈?鐨勪笂鏋跺垪琛?"
+--- 获取在售(未过期)的上架列表
 ---@return table[] activeListings
 function TradeManager.GetActiveListings()
     local active = {}
@@ -762,7 +762,7 @@ function TradeManager.GetActiveListings()
 end
 
 -- ============================================================================
--- 瀹氭椂浠诲姟 (鍦?HandleUpdate 涓皟鐢?"
+-- 定时任务 (在 HandleUpdate 中调用)
 -- ============================================================================
 
 local tickAccum = 0
@@ -772,26 +772,26 @@ function TradeManager.Tick(dt)
     if tickAccum < 30 then return end
     tickAccum = 0
 
-    -- 閲嶈瘯澶辫触鐨勬暟鎹笂浼?"
+    -- 重试失败的数据上传
     if state.dataNeedUpload then
         TradeManager._publishMyData(function(ok)
             if ok then
-                print("[TradeManager] 鏁版嵁閲嶈瘯涓婁紶鎴愬姛")
+                print("[TradeManager] 启动时数据同步成功")
             end
         end)
     end
 
-    -- 鑷姩妫€鏌ユ敹娆?"
+    -- 自动检查收款
     if TradeManager.GetListingCount() > 0 then
         TradeManager.CheckSales()
     end
 end
 
 -- ============================================================================
--- 浜戠鍚屾 (鍗曚竴涓婁紶鍑芥暟)
+    -- 已处理的售出记录 (避免重复处理)
 -- ============================================================================
 
---- 涓婁紶鎴戠殑浜ゆ槗鏁版嵁鍒板叕鍏卞競鍦鸿〃 (listings + purchases + pendingJade + soldCount)
+--- 上传我的交易数据到公共市场表 (listings + purchases + pendingJade + soldCount)
 ---@param callback? fun(ok:boolean)
 function TradeManager._publishMyData(callback)
     callback = callback or function() end
@@ -806,8 +806,8 @@ function TradeManager._publishMyData(callback)
                 callback(true)
             end,
             error = function(code, reason)
-                print("[TradeManager] 涓婁紶浜ゆ槗鏁版嵁澶辫触: " .. tostring(reason))
-                state.dataNeedUpload = true  -- 鏍囪闇€閲嶈瘯
+                print("[TradeManager] 上传交易数据失败: " .. tostring(reason))
+            state.dataNeedUpload = true  -- 标记待上传
                 callback(false)
             end,
         })

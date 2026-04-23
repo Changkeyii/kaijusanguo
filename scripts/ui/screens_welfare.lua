@@ -17,7 +17,7 @@ function DrawWelfareScreen()
     -- 签到奖励配置 (前两天武技残片, 第三天兵符)
     local SIGN_SKILL_IDS = { 18, 19, nil }  -- 武技索引
     local SIGN_LABELS  = { "第一天", "第二天", "第三天" }
-    -- 在线时长奖励配置: {所需秒数, 虎符数}
+    -- 在线时长奖励配置: {所需秒数, 玉壁数}
     local ONLINE_MILESTONES = {
         { time = 180,  jade = 300,  label = "3分钟"  },
         { time = 600,  jade = 500,  label = "10分钟" },
@@ -47,7 +47,7 @@ function DrawWelfareScreen()
     DrawHelpBtn(DESIGN_W - 14 - 30, backY + (backH - 30) / 2, 30)
 
     nvgFontSize(vg, 25)
-    DrawWhiteInkText(cx, 56, "每日登录领取虎符奖励")
+    DrawWhiteInkText(cx, 56, "每日登录领取玉壁奖励")
 
 
 
@@ -287,10 +287,10 @@ function DrawWelfareScreen()
                 nvgText(vg, cx2 + cardW3 / 2, cy2 + 118, "×49残片", nil)
             end
         else
-            -- 第3天: 20000虎符
+            -- 第3天: 20000玉壁
             nvgFontSize(vg, 23)
             nvgFillColor(vg, nvgRGBA(255, 220, 100, alpha2))
-            nvgText(vg, cx2 + cardW3 / 2, cy2 + 58, "虎符", nil)
+            nvgText(vg, cx2 + cardW3 / 2, cy2 + 58, "玉壁", nil)
             nvgFontSize(vg, 35)
             nvgFillColor(vg, nvgRGBA(255, 200, 60, alpha2))
             nvgText(vg, cx2 + cardW3 / 2, cy2 + 88, "×20000", nil)
@@ -325,7 +325,7 @@ function DrawWelfareScreen()
     end
 
     -- ==========================================
-    -- 5. 十日签到（每日广告领5000虎符）
+    -- 5. 十日签到（每日广告领5000玉壁）
     -- ==========================================
     local dsecY = secY + secH + 16
     local dsecH = 230
@@ -348,7 +348,7 @@ function DrawWelfareScreen()
     nvgFontSize(vg, 23)
     nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_MIDDLE)
     DrawWhiteInkText(secPad + secW - 16, dsecY + 24,
-        "进度 " .. dailyClaimed .. "/10  |  每日广告×5000虎符")
+        "进度 " .. dailyClaimed .. "/10  |  每日广告×5000玉壁")
 
     -- 10天网格: 5列×2行
     welfareState.dailySignInBtnRects = {}
@@ -403,7 +403,7 @@ function DrawWelfareScreen()
         nvgStrokeWidth(vg, 1.2); nvgStroke(vg)
 
         -- 天数
-        nvgFontSize(vg, 17)
+        nvgFontSize(vg, 24)
         nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
         nvgFillColor(vg, nvgRGBA(200, 190, 160, isClaimed and 150 or 230))
         nvgText(vg, dx + dCardW / 2, dy + 14, "第" .. i .. "天", nil)
@@ -412,21 +412,21 @@ function DrawWelfareScreen()
         if isClaimed then
             nvgFontSize(vg, 25)
             DrawWhiteInkText(dx + dCardW / 2, dy + 36, "✓")
-            nvgFontSize(vg, 15)
+            nvgFontSize(vg, 22)
             DrawWhiteInkText(dx + dCardW / 2, dy + 54, "已领取")
         elseif canClaim then
-            -- 虎符数量
+            -- 玉壁数量
             nvgFontSize(vg, 21)
             DrawWhiteInkText(dx + dCardW / 2, dy + 34, "+5000")
             -- 领取按钮
             local btnW3 = dCardW - 8
-            local btnH3 = 18
+            local btnH3 = 26
             local btnX3 = dx + 4
             local btnY3 = dy + dCardH - btnH3 - 5
             local pulse2 = 0.8 + 0.2 * math.sin(t * 4 + i * 0.5)
             nvgBeginPath(vg); nvgRoundedRect(vg, btnX3, btnY3, btnW3, btnH3, 4)
             nvgFillColor(vg, nvgRGBA(210, 160, 40, math.floor(220 * pulse2))); nvgFill(vg)
-            nvgFontSize(vg, 15)
+            nvgFontSize(vg, 22)
             nvgFillColor(vg, nvgRGBA(40, 20, 0, 240))
             nvgText(vg, btnX3 + btnW3 / 2, btnY3 + btnH3 / 2, "领取", nil)
             welfareState.dailySignInBtnRects[i] = { x = btnX3, y = btnY3, w = btnW3, h = btnH3 }
@@ -434,7 +434,7 @@ function DrawWelfareScreen()
             -- 锁定状态
             nvgFontSize(vg, 19)
             DrawWhiteInkText(dx + dCardW / 2, dy + 34, "5000")
-            nvgFontSize(vg, 14)
+            nvgFontSize(vg, 22)
             DrawWhiteInkText(dx + dCardW / 2, dy + 54, "未解锁")
         end
     end
@@ -561,7 +561,7 @@ function DrawWelfareScreen()
 
         nvgFontSize(vg, 25)
         nvgFillColor(vg, nvgRGBA(255, 210, 80, reached and 230 or 160))
-        nvgText(vg, textLX, oy + 58, "+" .. ms.jade .. " 虎符", nil)
+        nvgText(vg, textLX, oy + 58, "+" .. ms.jade .. " 玉壁", nil)
 
         -- 进度百分比
         if not reached then
@@ -761,18 +761,18 @@ function DrawDailyTasksAndAchievements()
             nvgFillColor(vg, claimed and nvgRGBA(120, 160, 120, 180) or nvgRGBA(255, 220, 140, 240))
             nvgText(vg, secPad + 16, cy + 17, task.name, nil)
 
-            nvgFontSize(vg, 16)
+            nvgFontSize(vg, 24)
             nvgFillColor(vg, done and nvgRGBA(80, 200, 80, 220) or nvgRGBA(180, 170, 140, 170))
             nvgText(vg, secPad + 128, cy + 17, prog .. "/" .. task.target, nil)
 
             -- Row 2: 描述 + 奖励标签
-            nvgFontSize(vg, 16)
+            nvgFontSize(vg, 24)
             nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(150, 145, 125, 170))
             nvgText(vg, secPad + 16, cy + 39, task.desc, nil)
 
             local rwX = secPad + secW * 0.52
-            nvgFontSize(vg, 15)
+            nvgFontSize(vg, 22)
             nvgFillColor(vg, nvgRGBA(200, 190, 130, 190))
             local rwStr = ""
             if task.reward.jade then rwStr = rwStr .. "石+" .. task.reward.jade .. " " end
@@ -788,16 +788,16 @@ function DrawDailyTasksAndAchievements()
             nvgBeginPath(vg); nvgRoundedRect(vg, btnX, btnY2, btnW2, btnH2, 5)
             if claimed then
                 nvgFillColor(vg, nvgRGBA(50, 60, 50, 140)); nvgFill(vg)
-                nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 DrawWhiteInkText(btnX + btnW2 / 2, btnY2 + btnH2 / 2, "已领取")
             elseif done then
                 nvgFillColor(vg, nvgRGBA(180, 140, 40, 230)); nvgFill(vg)
-                nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 DrawWhiteInkText(btnX + btnW2 / 2, btnY2 + btnH2 / 2, "领取")
             else
                 nvgFillColor(vg, nvgRGBA(40, 45, 55, 180)); nvgFill(vg)
                 nvgStrokeColor(vg, nvgRGBA(80, 75, 65, 100)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-                nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 DrawWhiteInkText(btnX + btnW2 / 2, btnY2 + btnH2 / 2, "未完成")
             end
             dailyTaskBtnRects[i] = { x = btnX, y = btnY2, w = btnW2, h = btnH2 }
@@ -822,7 +822,7 @@ function DrawDailyTasksAndAchievements()
         DrawWhiteInkText(secPad + 14, allY + allH / 2, "全勤奖励")
 
         nvgFontSize(vg, 19)
-        DrawWhiteInkText(secPad + 120, allY + allH / 2, "虎符+50")
+        DrawWhiteInkText(secPad + 120, allY + allH / 2, "玉壁+50")
 
         local abtnW = 64
         local abtnH = 30
@@ -915,18 +915,18 @@ function DrawDailyTasksAndAchievements()
             nvgFillColor(vg, claimed and nvgRGBA(100, 140, 180, 180) or nvgRGBA(160, 200, 255, 240))
             nvgText(vg, secPad + 16, cy + 17, task.name, nil)
 
-            nvgFontSize(vg, 16)
+            nvgFontSize(vg, 24)
             nvgFillColor(vg, done and nvgRGBA(80, 180, 220, 220) or nvgRGBA(140, 160, 180, 170))
             nvgText(vg, secPad + 128, cy + 17, prog .. "/" .. task.target, nil)
 
             -- Row 2: 描述 + 奖励标签
-            nvgFontSize(vg, 16)
+            nvgFontSize(vg, 24)
             nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(140, 145, 155, 170))
             nvgText(vg, secPad + 16, cy + 39, task.desc, nil)
 
             local rwX = secPad + secW * 0.52
-            nvgFontSize(vg, 15)
+            nvgFontSize(vg, 22)
             nvgFillColor(vg, nvgRGBA(180, 200, 230, 190))
             local rwStr = ""
             if task.reward.jade then rwStr = rwStr .. "石+" .. task.reward.jade .. " " end
@@ -942,16 +942,16 @@ function DrawDailyTasksAndAchievements()
             nvgBeginPath(vg); nvgRoundedRect(vg, btnX, btnY2, btnW2, btnH2, 5)
             if claimed then
                 nvgFillColor(vg, nvgRGBA(40, 50, 60, 140)); nvgFill(vg)
-                nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 DrawWhiteInkText(btnX + btnW2 / 2, btnY2 + btnH2 / 2, "已领取")
             elseif done then
                 nvgFillColor(vg, nvgRGBA(60, 140, 200, 230)); nvgFill(vg)
-                nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 DrawWhiteInkText(btnX + btnW2 / 2, btnY2 + btnH2 / 2, "领取")
             else
                 nvgFillColor(vg, nvgRGBA(35, 40, 55, 180)); nvgFill(vg)
                 nvgStrokeColor(vg, nvgRGBA(70, 80, 100, 100)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
-                nvgFontSize(vg, 16); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
+                nvgFontSize(vg, 24); nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
                 DrawWhiteInkText(btnX + btnW2 / 2, btnY2 + btnH2 / 2, "未达成")
             end
             weeklyTaskBtnRects[i] = { x = btnX, y = btnY2, w = btnW2, h = btnH2 }
@@ -974,7 +974,7 @@ function DrawDailyTasksAndAchievements()
             nvgFillColor(vg, nvgRGBA(math.floor(60 * glow), math.floor(150 * glow), math.floor(220 * glow), 230)); nvgFill(vg)
             nvgFontSize(vg, 21)
             nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            DrawWhiteInkText(abtnX + abtnW / 2, abtnY + abtnH / 2, "领取周全勤 +1300虎符")
+            DrawWhiteInkText(abtnX + abtnW / 2, abtnY + abtnH / 2, "领取周全勤 +1300玉壁")
         else
             nvgFillColor(vg, nvgRGBA(35, 40, 55, 180)); nvgFill(vg)
             nvgStrokeColor(vg, nvgRGBA(70, 80, 100, 120)); nvgStrokeWidth(vg, 1); nvgStroke(vg)
@@ -1084,8 +1084,8 @@ function DrawDailyTasksAndAchievements()
             nvgTextAlign(vg, NVG_ALIGN_LEFT + NVG_ALIGN_MIDDLE)
             nvgFillColor(vg, nvgRGBA(200, 190, 130, 200))
             local rwStr = ""
-            if ach.reward.jade then rwStr = rwStr .. "虎符+" .. ach.reward.jade .. " " end
-            if ach.reward.ticket then rwStr = rwStr .. "虎符+" .. (ach.reward.ticket * 10) end
+            if ach.reward.jade then rwStr = rwStr .. "玉壁+" .. ach.reward.jade .. " " end
+            if ach.reward.ticket then rwStr = rwStr .. "玉壁+" .. (ach.reward.ticket * 10) end
             nvgText(vg, rwX, cy + 22, rwStr, nil)
 
             -- 领取按钮

@@ -42,8 +42,8 @@ function LoadSettings()
             local fontKeyMap = { fangzheng = "wenkai", default = "xingshu", kai = "kuaile" }
             gameSettings.fontStyle = fontKeyMap[savedFont] or savedFont
             gameSettings.defaultBattlefield = data.defaultBattlefield or 1
-            if data.tutorialCompleted then gameSettings.tutorialCompleted = true end
-            if data.tutorialRewardClaimed then gameSettings.tutorialRewardClaimed = true end
+            gameSettings.guideCompleted = data.guideCompleted or false
+
             -- 每日免广告卡
             gameSettings.dailyAdCount = data.dailyAdCount or 0
             gameSettings.dailyAdDate = data.dailyAdDate or ""
@@ -374,10 +374,7 @@ function ApplySaveData(data)
     if data.lastWeeklySettled then
         welfareState.lastWeeklySettled = data.lastWeeklySettled
     end
-    -- 新手引导奖励领取标记（终身只领一次）
-    if data.tutorialRewardClaimed then
-        gameSettings.tutorialRewardClaimed = true
-    end
+
     -- 兵符系统数据恢复 (JSON序列化会将数字key变为字符串key，必须修复)
     if data.sealData then
         sealData = {}

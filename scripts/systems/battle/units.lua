@@ -2,11 +2,78 @@
 -- systems/battle/units.lua - 三国武灵录
 -- ============================================================================
 
+--- 士兵属性计算 (基础值 + 武将属性*加成系数)
+--- @param heroHp number 武将最终HP
+--- @param heroAtk number 武将最终ATK
+--- @param heroDef number 武将最终DEF
+--- @param levelMult number 等级成长倍率 (1 + (lv-1)*0.15)
+--- @param hpMult number|nil 兵种HP倍率
+--- @param atkMult number|nil 兵种ATK倍率
+--- @param defMult number|nil 兵种DEF倍率
+--- @return number hp
+--- @return number atk
+--- @return number def
+function CalcSoldierStats(heroHp, heroAtk, heroDef, levelMult, hpMult, atkMult, defMult)
+    local lm = levelMult or 1.0
+    local hpM = hpMult or 1.0
+    local atkM = atkMult or 1.0
+    local defM = defMult or 1.0
+    local hp  = (SOLDIER_BASE_HP  + heroHp  * SOLDIER_HP_SCALE)  * lm * hpM
+    local atk = (SOLDIER_BASE_ATK + heroAtk * SOLDIER_ATK_SCALE) * lm * atkM
+    local def = (SOLDIER_BASE_DEF + heroDef * SOLDIER_DEF_SCALE) * lm * defM
+    return hp, atk, def
+end
+
 
 --- 获取车道中心Y坐标 (横屏: 车道沿Y轴分布, laneIdx: 1~5)
 function GetLaneCenterY(laneIdx)
     return BATTLE_ZONE.top + (laneIdx - 0.5) * LANE_WIDTH
 end
+
+--- 获取单位行为模式 (从 ownerSlotIdx 查找对应英雄槽位的 behaviorMode)
+--- 敌方单位始终 "attack"，玩家单位查槽位设定，兜底 gameState.behaviorMode
+function GetUnitBehaviorMode(u)
+    if not u.isPlayer then return "attack" end
+    -- 优先检查兵种指令: 有移动/进攻指令时覆盖行为模式
+    local order = GetTroopOrder(u)
+    if order then
+        return order.type == "attack" and "attack" or "move"
+    end
+    if u.ownerSlotIdx then
+        local slot = PLAYER_SLOTS[u.ownerSlotIdx]
+        if slot and slot.behaviorMode then
+            return slot.behaviorMode
+        end
+    end
+    return gameState.behaviorMode or "free"
+end
+
+
+--- 获取兵种指令 (玩家通过底部兵种按钮下达的移动/进攻指令)
+--- @param u table 单位对象
+--- @return table|nil 指令 {type="move"|"attack", x, y, time} 或 nil
+function GetTroopOrder(u)
+    if not u.isPlayer then return nil end
+    if not u.troopType then return nil end
+    local orders = gameState.troopOrders
+    if not orders then return nil end
+    return orders[u.troopType]
+end
+
+
+--- 将单位朝兵种指令目标移动 (move或attack指令通用)
+--- @return boolean 是否已到达目标附近
+function MoveTowardTroopOrder(u, dt, order)
+    local dx = order.x - u.x
+    local dy = order.y - u.y
+    local dist = math.sqrt(dx * dx + dy * dy)
+    if dist < 20 then return true end  -- 已到达
+    local spd = u.speed
+    u.x = u.x + (dx / dist) * spd * dt
+    u.y = u.y + (dy / dist) * spd * 0.6 * dt
+    return false
+end
+
 
 --- 兼容旧代码: GetLaneCenterX 现在返回车道中心Y坐标
 --- (横屏改造: 车道由X轴划分改为Y轴划分)
@@ -79,15 +146,17 @@ end
 
 function GetUnitClassForCard(card, isPlayer)
     if isPlayer then
-        return UNIT_CLASS[card.unitClass] or UNIT_CLASS.SWORD
+        return UNIT_CLASS[card.unitClass] or UNIT_CLASS.INFANTRY_LIGHT
     elseif gameState.isRanked then
-        return UNIT_CLASS[card.unitClass] or UNIT_CLASS.SWORD
+        return UNIT_CLASS[card.unitClass] or UNIT_CLASS.INFANTRY_LIGHT
     else return UNIT_CLASS[card.unitClass] or UNIT_CLASS.DEMON_WARRIOR end
 end
 
 
 function SpawnPlayerUnit()
     if #playerUnits >= GetPlayerUnitCap() then return end
+    -- 驻军派兵上限: 本场战斗派出的总兵力不超过出征驻军数
+    if battleGarrisonCap > 0 and battlePlayerTotalSpawned >= battleGarrisonCap then return end
     local filledSlots = {}
     for si, slot in ipairs(PLAYER_SLOTS) do
         if slot.filled and slot.card then table.insert(filledSlots, { slot = slot, idx = si }) end
@@ -102,18 +171,12 @@ function SpawnPlayerUnit()
         local totalW = 0
         for i, entry in ipairs(filledSlots) do
             local isFront = (entry.idx <= 3)
-            local ucN = (entry.slot.card.unitClass or "SWORD")
+            local ucDef = UNIT_CLASS[entry.slot.card.unitClass or "INFANTRY_LIGHT"]
             local w = 1.0  -- 默认权重
-            if ucN == "SHIELD" or ucN == "CAVALRY" or ucN == "LANCER" or ucN == "BEAST" or ucN == "SWORD" then
-                w = isFront and 1.5 or 0.8   -- 近战放前排概率+50%，放后排概率-20%
-            elseif ucN == "ARCHER" or ucN == "MAGE" or ucN == "ICE_MAGE" then
+            if ucDef and ucDef.isRanged then
                 w = isFront and 0.8 or 1.5   -- 远程放后排概率+50%，放前排概率-20%
-            elseif ucN == "HEALER" or ucN == "PUPPETEER" then
-                w = isFront and 0.7 or 1.6   -- 军医道士/驯兽使放后排概率+60%
-            elseif ucN == "ASSASSIN" then
-                w = 1.2                       -- 夜影刺客任意位置略高
-            elseif ucN == "TALISMAN" or ucN == "SWARM" then
-                w = isFront and 1.4 or 0.9   -- 火牛突袭/蜂巢蝗群偏前排（冲锋/近战虫群）
+            else
+                w = isFront and 1.5 or 0.8   -- 近战放前排概率+50%，放后排概率-20%
             end
             weights[i] = w
             totalW = totalW + w
@@ -137,13 +200,13 @@ function SpawnPlayerUnit()
         -- 应用装备百分比增幅
         local eqB = GetEquipmentBonus()
         cachedEqBonus = eqB  -- 缓存供单位属性注入
-        local ss = SOLDIER_STAT_SCALE
-        atk = cStats.atk * (1 + eqB.atkPct / 100) * lm * ss
-        def = cStats.def * (1 + eqB.defPct / 100) * lm * ss * 0.5
-        hp  = cStats.hp  * (1 + eqB.hpPct / 100)  * lm * ss * 0.6
+        local eHp  = cStats.hp  * (1 + eqB.hpPct / 100)
+        local eAtk = cStats.atk * (1 + eqB.atkPct / 100)
+        local eDef = cStats.def * (1 + eqB.defPct / 100)
+        hp, atk, def = CalcSoldierStats(eHp, eAtk, eDef, lm, uc.hpMult, uc.atkMult, uc.defMult)
         breakDmgAdd = cStats.breakDmgAdd or 0
     else
-        uc = UNIT_CLASS.SWORD; atk = 56; def = 14; hp = 180
+        uc = UNIT_CLASS.INFANTRY_LIGHT; atk = 56; def = 14; hp = 180
     end
 
     local bz = BATTLE_ZONE
@@ -157,10 +220,12 @@ function SpawnPlayerUnit()
         alive = true, isPlayer = true,
         isRanged = uc.isRanged, unitClass = uc,
         animTimer = math.random() * 6.28, flashTimer = 0,
-        isHealer = (uc == UNIT_CLASS.HEALER),
+        isHealer = (uc.isHealer == true),
         cloudSeed = math.random() * 100,
         breakDmgAdd = breakDmgAdd,
     }
+    unit.homeX = unit.x
+    unit.homeY = unit.y
     -- 装备套装额外词条注入 (与兵符属性同名, 战斗中叠加生效)
     if cachedEqBonus then
         local eb = cachedEqBonus
@@ -177,6 +242,7 @@ function SpawnPlayerUnit()
         unit.equipDeathExplosionPct = eb.deathExplosionPct or 0
     end
     table.insert(playerUnits, unit)
+    battlePlayerTotalSpawned = battlePlayerTotalSpawned + 1
 end
 
 
@@ -192,15 +258,14 @@ function SpawnEnemyUnit()
         local slot = filledSlots[math.random(1, #filledSlots)]
         local card = slot.card
         uc = GetUnitClassForCard(card, false)
-        local ss = SOLDIER_STAT_SCALE
-        atk = card.atk * ss; def = card.def * ss * 0.5; hp = card.hp * ss * 0.6
+        hp, atk, def = CalcSoldierStats(card.hp, card.atk, card.def, 1.0, uc.hpMult, uc.atkMult, uc.defMult)
     else
         uc = UNIT_CLASS.DEMON_WARRIOR
         atk = 52; def = 12; hp = 160
     end
 
     local bz = BATTLE_ZONE
-    table.insert(enemyUnits, {
+    local eu = {
         x = bz.enemyDeployLeft + 10 + math.random() * (bz.enemyDeployRight - bz.enemyDeployLeft - 20),
         y = bz.top + 20 + math.random() * (bz.bottom - bz.top - 40),
         hp = hp, maxHp = hp, atk = atk, def = def,
@@ -212,7 +277,10 @@ function SpawnEnemyUnit()
         animTimer = math.random() * 6.28, flashTimer = 0,
         isHealer = false,
         cloudSeed = math.random() * 100,
-    })
+    }
+    eu.homeX = eu.x
+    eu.homeY = eu.y
+    table.insert(enemyUnits, eu)
 end
 
 
@@ -237,6 +305,10 @@ end
 
 --- 从指定槽位生成一个战斗单位 (overrideLaneIdx: 手动部署时指定车道)
 function SpawnUnitFromSlot(slot, isPlayer, overrideLaneIdx)
+    -- 驻军派兵上限: 玩家方总兵力不超过出征驻军数
+    if isPlayer and battleGarrisonCap > 0 and battlePlayerTotalSpawned >= battleGarrisonCap then
+        return
+    end
     local card = slot.card
     local uc = GetUnitClassForCard(card, isPlayer)
     local lm = 1 + ((card.level or 1) - 1) * GameConfig.LEVEL_GROWTH_RATE
@@ -255,23 +327,21 @@ function SpawnUnitFromSlot(slot, isPlayer, overrideLaneIdx)
     local laneCY = GetLaneCenterY(laneIdx)
     local spawnY = laneCY + (math.random() - 0.5) * LANE_WIDTH * 0.6
 
-    local ss = SOLDIER_STAT_SCALE
-    -- 大型兵种属性加成（数量少但单体更强）
-    local hpM = uc.hpMult or 1.0
-    local atkM = uc.atkMult or 1.0
-    local unitHp = cStats.hp * lm * ss * 0.6 * hpM
+    local unitHp, unitAtk, unitDef = CalcSoldierStats(cStats.hp, cStats.atk, cStats.def, lm, uc.hpMult, uc.atkMult, uc.defMult)
     local unit = {
-        x = isPlayer and (bz.playerDeployLeft + 10 + math.random() * 20) or (bz.enemyDeployLeft + 10 + math.random() * 20),
+        -- 部队在英雄列前方出生，使用完整部署区间
+        x = isPlayer and (bz.playerDeployLeft + math.random() * (bz.playerDeployRight - bz.playerDeployLeft))
+            or (bz.enemyDeployLeft + math.random() * (bz.enemyDeployRight - bz.enemyDeployLeft)),
         y = spawnY,
         hp = unitHp, maxHp = unitHp,
-        atk = cStats.atk * lm * ss * atkM, def = cStats.def * lm * ss * 0.5,
+        atk = unitAtk, def = unitDef,
         speed = uc.speed + math.random() * 5,
         atkTimer = math.random() * 0.5, atkCooldown = uc.atkCd,
         atkRange = uc.atkRange,
         alive = true, isPlayer = isPlayer,
         isRanged = uc.isRanged, unitClass = uc,
         animTimer = math.random() * 6.28, flashTimer = 0,
-        isHealer = (uc == UNIT_CLASS.HEALER),
+        isHealer = (uc.isHealer == true),
         cloudSeed = math.random() * 100,
         breakDmgAdd = cStats.breakDmgAdd or 0,
         laneIdx = laneIdx,  -- 所属车道
@@ -279,6 +349,39 @@ function SpawnUnitFromSlot(slot, isPlayer, overrideLaneIdx)
         summonCount = 0,    -- 傀儡操师已召唤数
         troopType = card.troopType or "infantry", -- 兵种克制类型 (已在G_systems.lua中批量注入)
     }
+    -- 记录所属英雄槽位索引 (供独立行为模式查找)
+    if isPlayer then
+        for si = 1, #PLAYER_SLOTS do
+            if PLAYER_SLOTS[si] == slot then unit.ownerSlotIdx = si; break end
+        end
+    end
+    -- 记录出生位置作为阵型原点 (供弓兵返回阵位)
+    unit.homeX = unit.x
+    unit.homeY = unit.y
+
+    -- ===== 五维属性差异化加成 (仅玩家方, 基于武将 stats5) =====
+    if isPlayer and card.stats5 then
+        local s5 = card.stats5
+        -- str(武力): ATK加成, 每点+0.3%
+        if s5.str > 0 then
+            unit.atk = unit.atk * (1 + s5.str * 0.003)
+        end
+        -- vit(体力): HP加成, 每点+0.3%
+        if s5.vit > 0 then
+            unit.hp = unit.hp * (1 + s5.vit * 0.003)
+            unit.maxHp = unit.hp
+        end
+        -- spd(速度): 移速+攻速加成, 每点+0.2%
+        if s5.spd > 0 then
+            local spdMul = 1 + s5.spd * 0.002
+            unit.speed = unit.speed * spdMul
+            unit.atkCooldown = unit.atkCooldown / spdMul
+        end
+        -- tec(技力): 暴击率加成, 每点+0.1% (存储到单位上, 供战斗伤害判定使用)
+        unit.stats5CritRate = (s5.tec or 0) * 0.001
+        -- int(智力): 技能伤害加成, 存储在单位上供技能系统读取
+        unit.stats5IntBonus = (s5.int or 0) * 0.003
+    end
 
     -- 六欲兵符战斗属性注入
     local sb = isPlayer and slot.cachedSealBonus or nil
@@ -330,6 +433,26 @@ function SpawnUnitFromSlot(slot, isPlayer, overrideLaneIdx)
         unit.equipDeathExplosionPct = eb.deathExplosionPct or 0
     end
 
+    -- 阵型+战术属性注入 (仅玩家方SLG战斗)
+    if isPlayer then
+        -- 战术攻防乘数
+        local tacAtkM = rawget(_G, "battleTacticUnitAtkMult") or 1.0
+        local tacDefM = rawget(_G, "battleTacticUnitDefMult") or 1.0
+        if tacAtkM ~= 1.0 then unit.atk = unit.atk * tacAtkM end
+        if tacDefM ~= 1.0 then unit.def = unit.def * tacDefM end
+        -- 阵型弓兵攻击加成 (isRanged 单位)
+        local archerBonus = rawget(_G, "battleFormationArcherAtkBonus") or 0
+        if archerBonus > 0 and unit.isRanged then
+            unit.atk = unit.atk * (1 + archerBonus)
+        end
+        -- 战术克制触发率注入 (叠加到兵符克制率)
+        local counterRateMult = rawget(_G, "battleTacticUnitCounterRate") or 1.0
+        if counterRateMult ~= 1.0 then
+            unit.sealCounterRate  = (unit.sealCounterRate  or 0) * counterRateMult
+            unit.equipCounterRate = (unit.equipCounterRate or 0) * counterRateMult
+        end
+    end
+
     -- 腐蝇虫群: 一次生成多个小单位
     if uc.swarmCount and uc.swarmCount > 1 then
         for si = 1, uc.swarmCount do
@@ -342,6 +465,7 @@ function SpawnUnitFromSlot(slot, isPlayer, overrideLaneIdx)
             swarmUnit.isSwarmling = true
             if isPlayer then
                 table.insert(playerUnits, swarmUnit)
+                battlePlayerTotalSpawned = battlePlayerTotalSpawned + 1
             else table.insert(enemyUnits, swarmUnit) end
         end
         return  -- 虫群不再插入主单位
@@ -349,6 +473,7 @@ function SpawnUnitFromSlot(slot, isPlayer, overrideLaneIdx)
 
     if isPlayer then
         table.insert(playerUnits, unit)
+        battlePlayerTotalSpawned = battlePlayerTotalSpawned + 1
     else
         table.insert(enemyUnits, unit)
     end
@@ -367,7 +492,7 @@ function SpawnPuppet(master, units, isPlayerSide)
         atkTimer = math.random() * 0.5, atkCooldown = 0.8,
         atkRange = 35,
         alive = true, isPlayer = isPlayerSide,
-        isRanged = false, unitClass = UNIT_CLASS.PUPPETEER,
+        isRanged = false, unitClass = UNIT_CLASS.INFANTRY_LIGHT,
         animTimer = math.random() * 6.28, flashTimer = 0,
         cloudSeed = math.random() * 100,
         breakDmgAdd = 0,
@@ -425,6 +550,32 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
 
             local ucId = u.unitClass and u.unitClass.id or 1
 
+            -- ★ 兵种指令优先: 玩家下达兵种移动/进攻指令时, 覆盖默认AI
+            do
+                local troopOrder = GetTroopOrder(u)
+                if troopOrder and u.isPlayer then
+                    local arrived = MoveTowardTroopOrder(u, dt, troopOrder)
+                    if not arrived then
+                        -- 还没到目标位置 → 移动中, 跳过默认AI
+                        -- 路上被近身攻击时仍然反击 (攻击范围缩半)
+                        local blockT, blockD = FindBlockingEnemy(u, targets, u.atkRange * 0.5, isPlayerSide)
+                        if blockT and blockD <= u.atkRange * 0.5 then
+                            AttackTarget(u, blockT, dt, isPlayerSide)
+                        end
+                        u.speed = origSpeed
+                        goto continueUnit
+                    end
+                    -- 已到达目标位置
+                    if troopOrder.type == "move" then
+                        -- 移动指令到达后驻守
+                        ReturnToFormationPosition(u, dt)
+                        u.speed = origSpeed
+                        goto continueUnit
+                    end
+                    -- attack指令到达后 → 落入正常AI在目标点战斗
+                end
+            end
+
             if u.isHealer then
                 -- 腐灵祭司: 跟随部队前进 + 沿途治疗 + 攻速光环
                 u.atkTimer = u.atkTimer + dt
@@ -434,7 +585,7 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                         u.atkTimer = 0; u.atkAnimTimer = 0.4
                         local heal = u.atk * 0.8
                         ally.hp = math.min(ally.maxHp, ally.hp + heal)
-                        AddFloatText(ally.x, ally.y - 15, "+" .. math.floor(heal), 0.7, { 80, 255, 120 }, 20)
+                        AddFloatText(ally.x, ally.y - 15, "+" .. math.floor(heal * TROOP_DISPLAY_SCALE), 0.7, { 80, 255, 120 }, 20)
                     end
                 end
                 -- ★ 腐灵祭司攻速光环: 周围80px内友军攻速提升20%
@@ -485,7 +636,7 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                                     local raw = u.atk * 1.2
                                     t.hp = t.hp - raw
                                     t.flashTimer = 0.15
-                                    AddFloatText(t.x, t.y - 10, math.floor(raw), 0.5, { 255, 200, 80 }, 14)
+                                    AddFloatText(t.x, t.y - 10, math.floor(raw * TROOP_DISPLAY_SCALE), 0.5, { 255, 200, 80 }, 18)
                                 end
                             end
                         end
@@ -499,10 +650,10 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                 end
 
             elseif ucId == 10 then
-                -- 讨伐巨兽: 行进优先+范围攻击，边走边打挡路敌人
+                -- 讨伐巨兽: 杀敌优先+范围攻击
                 local blockT, blockD = FindBlockingEnemy(u, targets, u.atkRange, isPlayerSide)
                 if blockT then
-                    -- 挡路敌人在攻击范围内 → 范围攻击，但不停下来
+                    -- 攻击范围内有敌人 → 停下来范围攻击
                     u.atkTimer = u.atkTimer + dt
                     if u.atkTimer >= u.atkCooldown then
                         u.atkTimer = 0; u.atkAnimTimer = 0.4
@@ -520,12 +671,25 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                             end
                         end
                         if hitCount > 0 then
-                            AddFloatText(u.x, u.y - 15, "震" .. hitCount .. "人", 0.6, { 255, 160, 50 }, 16)
+                            AddFloatText(u.x, u.y - 15, "震" .. hitCount .. "人", 0.6, { 255, 160, 50 }, 18)
                         end
                     end
+                else
+                    -- 没有攻击范围内的敌人 → 搜索附近敌人追击
+                    local nearT, nearD = FindNearestEnemy(u, targets, 200)
+                    if nearT then
+                        local tdx, tdy = nearT.x - u.x, nearT.y - u.y
+                        local dirX = tdx > 0 and 1 or (tdx < 0 and -1 or 0)
+                        local dirY = tdy > 0 and 1 or (tdy < 0 and -1 or 0)
+                        u.x = u.x + dirX * u.speed * dt
+                        if math.abs(tdy) > 5 then
+                            u.y = u.y + dirY * u.speed * 0.5 * dt
+                        end
+                    else
+                        -- 附近无敌人才向基地推进
+                        MoveTowardEnemyBase(u, dt, isPlayerSide)
+                    end
                 end
-                -- 始终向基地推进
-                MoveTowardEnemyBase(u, dt, isPlayerSide)
 
             elseif ucId == 13 then
                 -- 自爆亡魂: 全速冲向基地，碰到敌人也引爆
@@ -584,7 +748,7 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                     u.summonTimer = 0
                     u.summonCount = (u.summonCount or 0) + 1
                     SpawnPuppet(u, isPlayerSide and playerUnits or enemyUnits, isPlayerSide)
-                    AddFloatText(u.x, u.y - 15, "召唤傀儡", 0.6, { 180, 100, 255 }, 14)
+                    AddFloatText(u.x, u.y - 15, "召唤傀儡", 0.6, { 180, 100, 255 }, 18)
                 end
                 -- 远程攻击范围内敌人
                 local bestT, bestD = nil, u.atkRange + 1
@@ -596,9 +760,24 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                     end
                 end
                 if bestT and bestD <= u.atkRange then
+                    -- 攻击范围内有敌人 → 停下来远程攻击
                     AttackTarget(u, bestT, dt, isPlayerSide)
+                else
+                    -- 没有攻击目标 → 搜索附近敌人追击
+                    local nearT, nearD = FindNearestEnemy(u, targets, 200)
+                    if nearT then
+                        local tdx, tdy = nearT.x - u.x, nearT.y - u.y
+                        local dirX = tdx > 0 and 1 or (tdx < 0 and -1 or 0)
+                        local dirY = tdy > 0 and 1 or (tdy < 0 and -1 or 0)
+                        u.x = u.x + dirX * u.speed * dt
+                        if math.abs(tdy) > 5 then
+                            u.y = u.y + dirY * u.speed * 0.5 * dt
+                        end
+                    else
+                        -- 附近无敌人才向基地推进
+                        MoveTowardEnemyBase(u, dt, isPlayerSide)
+                    end
                 end
-                MoveTowardEnemyBase(u, dt, isPlayerSide)
 
             elseif ucId == 15 then
                 -- 霜骨冰巫(减速): 远程攻击附带减速效果，有目标时停下射击
@@ -625,7 +804,7 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                         local sd = u.unitClass.slowDuration or 2.0
                         bestT.zoneSlowUntil = gameState.gameTime + sd
                         bestT.zoneSlowFactor = sf
-                        AddFloatText(bestT.x, bestT.y - 10, math.floor(raw) .. " 冻", 0.5, { 100, 200, 255 }, 13)
+                        AddFloatText(bestT.x, bestT.y - 10, math.floor(raw * TROOP_DISPLAY_SCALE) .. " 冻", 0.5, { 100, 200, 255 }, 18)
                         if bestT.hp <= 0 then bestT.alive = false end
                         -- 冰蓝弹道特效
                         AddProjectile(u.x, u.y, bestT.x, bestT.y, {100, 200, 255}, isPlayerSide)
@@ -646,31 +825,38 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                 end
 
             elseif ucId == 16 or u.isSwarmling then
-                -- 腐蝇虫群: 极快攻速，近距离群攻，血薄
+                -- 蜂巢蝗群: 杀敌优先，极快攻速近距离群攻
                 local blockT, blockD = FindBlockingEnemy(u, targets, u.atkRange, isPlayerSide)
                 if not blockT then
-                    -- 虫群也搜索附近任意敌人（小范围）
-                    for _, t in ipairs(targets) do
-                        if t.alive then
-                            local tdx, tdy = t.x - u.x, t.y - u.y
-                            local td = math.sqrt(tdx * tdx + tdy * tdy)
-                            if td <= u.atkRange + 15 then
-                                blockT = t; blockD = td; break
-                            end
-                        end
-                    end
+                    -- 搜索附近任意敌人
+                    local nearT, nearD = FindNearestEnemy(u, targets, 150)
+                    if nearT then blockT = nearT; blockD = nearD end
                 end
                 if blockT then
-                    u.atkTimer = u.atkTimer + dt
-                    if u.atkTimer >= u.atkCooldown then
-                        u.atkTimer = 0; u.atkAnimTimer = 0.4
-                        local raw = math.max(1, u.atk * 0.8)
-                        blockT.hp = blockT.hp - raw
-                        blockT.flashTimer = 0.1
-                        if blockT.hp <= 0 then blockT.alive = false end
+                    if blockD <= u.atkRange + 15 then
+                        -- 在攻击范围内 → 停下来打
+                        u.atkTimer = u.atkTimer + dt
+                        if u.atkTimer >= u.atkCooldown then
+                            u.atkTimer = 0; u.atkAnimTimer = 0.4
+                            local raw = math.max(1, u.atk * 0.8)
+                            blockT.hp = blockT.hp - raw
+                            blockT.flashTimer = 0.1
+                            if blockT.hp <= 0 then blockT.alive = false end
+                        end
+                    else
+                        -- 有敌人但不在攻击范围 → 追击
+                        local tdx, tdy = blockT.x - u.x, blockT.y - u.y
+                        local dirX = tdx > 0 and 1 or (tdx < 0 and -1 or 0)
+                        local dirY = tdy > 0 and 1 or (tdy < 0 and -1 or 0)
+                        u.x = u.x + dirX * u.speed * dt
+                        if math.abs(tdy) > 5 then
+                            u.y = u.y + dirY * u.speed * 0.5 * dt
+                        end
                     end
+                else
+                    -- 附近无敌人才推进
+                    MoveTowardEnemyBase(u, dt, isPlayerSide)
                 end
-                MoveTowardEnemyBase(u, dt, isPlayerSide)
 
             elseif ucId == 3 then
                 -- 墓碑守卫: 防御型AI，不主动进攻，在自家半场站岗防御
@@ -729,7 +915,7 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                 end
 
             elseif ucId == 2 or ucId == 4 or ucId == 7 then
-                -- 亡魂弩手/冥火术士/邪骨射手: 远程攻击AI，有目标时停下射击+弹道特效
+                -- 远程射手(连弩射手/火攻术士/山贼弓手): 杀敌优先，有目标停下射击+弹道特效
                 local bestT, bestD = nil, u.atkRange + 1
                 for _, t in ipairs(targets) do
                     if t.alive then
@@ -739,24 +925,48 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                     end
                 end
                 if bestT and bestD <= u.atkRange then
-                    -- 有目标：停下来射击
+                    -- 攻击范围内有目标：停下来射击
                     local prevTimer = u.atkTimer
                     AttackTarget(u, bestT, dt, isPlayerSide)
                     if u.atkTimer < prevTimer then
                         -- 攻击命中瞬间生成弹道特效
                         local projColor
                         if ucId == 4 then
-                            projColor = {180, 130, 255}      -- 冥火术士: 紫色
+                            projColor = {180, 130, 255}      -- 火攻术士: 紫色
                         elseif ucId == 7 then
-                            projColor = {255, 80, 60}    -- 邪骨射手: 暗红
-                        else projColor = {200, 230, 255} end               -- 亡魂弩手: 淡蓝
+                            projColor = {255, 80, 60}    -- 山贼弓手: 暗红
+                        else projColor = {200, 230, 255} end               -- 连弩射手: 淡蓝
                         AddProjectile(u.x, u.y, bestT.x, bestT.y, projColor, isPlayerSide)
                     end
                     u.rangedTarget = bestT
                 else
-                    -- 无目标才向基地推进
+                    -- 攻击范围内无目标 → 根据行为指令决定
                     u.rangedTarget = nil
-                    MoveTowardEnemyBase(u, dt, isPlayerSide)
+                    local bMode = GetUnitBehaviorMode(u)
+                    local troopOrder = GetTroopOrder(u)
+                    local nearT, nearD = FindNearestEnemy(u, targets, 250)
+                    if troopOrder then
+                        -- 有兵种指令 → 朝指令目标移动
+                        MoveTowardTroopOrder(u, dt, troopOrder)
+                    elseif bMode == "hold" then
+                        -- 驻守: 原地不动，返回阵位
+                        ReturnToFormationPosition(u, dt)
+                    elseif bMode == "attack" and nearT then
+                        -- 进攻: 向敌人前推
+                        local tdx, tdy = nearT.x - u.x, nearT.y - u.y
+                        u.x = u.x + (tdx > 0 and 1 or -1) * u.speed * dt
+                        if math.abs(tdy) > 5 then
+                            u.y = u.y + (tdy > 0 and 1 or -1) * u.speed * 0.5 * dt
+                        end
+                    elseif nearT and nearD > u.atkRange then
+                        -- 自由: 仅调整Y轴接近
+                        local tdy = nearT.y - u.y
+                        if math.abs(tdy) > 5 then
+                            u.y = u.y + (tdy > 0 and 1 or -1) * u.speed * 0.5 * dt
+                        end
+                    else
+                        ReturnToFormationPosition(u, dt)
+                    end
                 end
 
             elseif ucId == 11 then
@@ -783,8 +993,8 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                             prioTarget.hp = prioTarget.hp - raw
                             prioTarget.flashTimer = 0.15
                             local dmgColor = isBehind and { 255, 80, 200 } or { 255, 200, 80 }
-                            local dmgText = isCrit and "暴击!" .. math.floor(raw) or math.floor(raw)
-                            AddFloatText(prioTarget.x, prioTarget.y - 10, dmgText, 0.6, dmgColor, isCrit and 18 or 14)
+                            local dmgText = isCrit and "暴击!" .. math.floor(raw * TROOP_DISPLAY_SCALE) or math.floor(raw * TROOP_DISPLAY_SCALE)
+                            AddFloatText(prioTarget.x, prioTarget.y - 10, dmgText, 0.6, dmgColor, isCrit and 22 or 18)
                             if prioTarget.hp <= 0 then prioTarget.alive = false end
                         end
                     else
@@ -804,18 +1014,33 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                     end
                 else
                     u.stealthing = false
-                    -- 没有后排目标 → 边打挡路敌人边向基地推进
+                    -- 没有后排目标 → 杀敌优先，找最近的敌人打
                     local blockT, blockD = FindBlockingEnemy(u, targets, u.atkRange, isPlayerSide)
                     if blockT then
+                        -- 攻击范围内有敌人 → 停下来打
                         AttackTarget(u, blockT, dt, isPlayerSide)
+                    else
+                        -- 搜索更大范围
+                        local nearT, nearD = FindNearestEnemy(u, targets, 200)
+                        if nearT then
+                            local tdx, tdy = nearT.x - u.x, nearT.y - u.y
+                            local dirX = tdx > 0 and 1 or (tdx < 0 and -1 or 0)
+                            local dirY = tdy > 0 and 1 or (tdy < 0 and -1 or 0)
+                            u.x = u.x + dirX * u.speed * dt
+                            if math.abs(tdy) > 5 then
+                                u.y = u.y + dirY * u.speed * 0.5 * dt
+                            end
+                        else
+                            MoveTowardEnemyBase(u, dt, isPlayerSide)
+                        end
                     end
-                    MoveTowardEnemyBase(u, dt, isPlayerSide)
                 end
 
             elseif ucId == 12 then
-                -- 骨矛枪兵: 行进优先+贯穿攻击，边走边打挡路敌人
+                -- 骨矛枪兵: 杀敌优先+贯穿攻击
                 local blockT, blockD = FindBlockingEnemy(u, targets, u.atkRange, isPlayerSide)
                 if blockT then
+                    -- 攻击范围内有敌人 → 停下来贯穿攻击
                     u.atkTimer = u.atkTimer + dt
                     if u.atkTimer >= u.atkCooldown then
                         u.atkTimer = 0; u.atkAnimTimer = 0.4
@@ -837,15 +1062,68 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                             local raw = math.max(1, u.atk * atkDefMod)
                             t.hp = t.hp - raw
                             t.flashTimer = 0.15
-                            AddFloatText(t.x, t.y - 10, math.floor(raw), 0.5, { 200, 220, 255 }, 13)
+                            AddFloatText(t.x, t.y - 10, math.floor(raw * TROOP_DISPLAY_SCALE), 0.5, { 200, 220, 255 }, 18)
                         end
                     end
+                else
+                    -- 无挡路敌人 → 搜索附近敌人追击或推进
+                    local nearT, nearD = FindNearestEnemy(u, targets, 200)
+                    if nearT then
+                        local tdx, tdy = nearT.x - u.x, nearT.y - u.y
+                        u.x = u.x + (tdx > 0 and 1 or -1) * u.speed * dt
+                        if math.abs(tdy) > 5 then
+                            u.y = u.y + (tdy > 0 and 1 or -1) * u.speed * 0.5 * dt
+                        end
+                    else
+                        MoveTowardEnemyBase(u, dt, isPlayerSide)
+                    end
                 end
-                -- 始终向基地推进
-                MoveTowardEnemyBase(u, dt, isPlayerSide)
+
+            elseif u.isRanged then
+                -- ★ 通用远程AI: 所有 isRanged=true 的新弓兵子兵种走此分支
+                local bestT, bestD = nil, u.atkRange + 1
+                for _, t in ipairs(targets) do
+                    if t.alive then
+                        local tdx, tdy = t.x - u.x, t.y - u.y
+                        local td = math.sqrt(tdx * tdx + tdy * tdy)
+                        if td < bestD then bestD = td; bestT = t end
+                    end
+                end
+                if bestT and bestD <= u.atkRange then
+                    local prevTimer = u.atkTimer
+                    AttackTarget(u, bestT, dt, isPlayerSide)
+                    if u.atkTimer < prevTimer then
+                        AddProjectile(u.x, u.y, bestT.x, bestT.y, {200, 230, 255}, isPlayerSide)
+                    end
+                    u.rangedTarget = bestT
+                else
+                    -- 根据行为指令决定远程移动
+                    u.rangedTarget = nil
+                    local bMode = GetUnitBehaviorMode(u)
+                    local troopOrder = GetTroopOrder(u)
+                    local nearT, nearD = FindNearestEnemy(u, targets, 250)
+                    if troopOrder then
+                        MoveTowardTroopOrder(u, dt, troopOrder)
+                    elseif bMode == "hold" then
+                        ReturnToFormationPosition(u, dt)
+                    elseif bMode == "attack" and nearT then
+                        local tdx, tdy = nearT.x - u.x, nearT.y - u.y
+                        u.x = u.x + (tdx > 0 and 1 or -1) * u.speed * dt
+                        if math.abs(tdy) > 5 then
+                            u.y = u.y + (tdy > 0 and 1 or -1) * u.speed * 0.5 * dt
+                        end
+                    elseif nearT and nearD > u.atkRange then
+                        local tdy = nearT.y - u.y
+                        if math.abs(tdy) > 5 then
+                            u.y = u.y + (tdy > 0 and 1 or -1) * u.speed * 0.5 * dt
+                        end
+                    else
+                        ReturnToFormationPosition(u, dt)
+                    end
+                end
 
             else
-                -- 骷髅剑兵/炼狱战鬼/铁棺重卫: 近战行进优先AI
+                -- 默认近战AI: 杀敌优先
                 -- 嘲讽响应: 如果被墓碑守卫嘲讽，优先攻击墓碑守卫
                 if u.tauntedBy and u.tauntedBy.alive and u.tauntTimer and u.tauntTimer > 0 then
                     u.tauntTimer = u.tauntTimer - dt
@@ -860,13 +1138,47 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                     end
                 else
                     u.tauntedBy = nil
-                    -- 只攻击挡路的敌人（同车道+前方+攻击范围内），不追击不偏离路线
+                    local bMode = GetUnitBehaviorMode(u)
+                    local troopOrder = GetTroopOrder(u)
+                    -- 杀敌优先: 先找攻击范围内的敌人
                     local blockT, blockD = FindBlockingEnemy(u, targets, u.atkRange, isPlayerSide)
                     if blockT then
+                        -- 攻击范围内有敌人 → 停下来打
                         AttackTarget(u, blockT, dt, isPlayerSide)
+                    elseif troopOrder then
+                        -- 有兵种指令 → 朝指令目标移动
+                        local arrived = MoveTowardTroopOrder(u, dt, troopOrder)
+                        if arrived and troopOrder.type == "attack" then
+                            -- 到达进攻目标附近 → 搜索敌人攻击
+                            local nearT = FindNearestEnemy(u, targets, 200)
+                            if nearT then
+                                local tdx, tdy = nearT.x - u.x, nearT.y - u.y
+                                u.x = u.x + (tdx > 0 and 1 or -1) * u.speed * dt
+                                if math.abs(tdy) > 5 then
+                                    u.y = u.y + (tdy > 0 and 1 or -1) * u.speed * 0.5 * dt
+                                end
+                            end
+                        end
+                    elseif bMode == "hold" then
+                        -- 驻守模式: 不追击不推进，返回阵位
+                        ReturnToFormationPosition(u, dt)
+                    else
+                        -- 进攻/自由模式: 搜索更大范围最近的敌人
+                        local nearT, nearD = FindNearestEnemy(u, targets, 200)
+                        if nearT then
+                            -- 有敌人在感知范围内 → 追击
+                            local tdx, tdy = nearT.x - u.x, nearT.y - u.y
+                            local dirX = tdx > 0 and 1 or (tdx < 0 and -1 or 0)
+                            local dirY = tdy > 0 and 1 or (tdy < 0 and -1 or 0)
+                            u.x = u.x + dirX * u.speed * dt
+                            if math.abs(tdy) > 5 then
+                                u.y = u.y + dirY * u.speed * 0.5 * dt
+                            end
+                        else
+                            -- 感知范围内无敌人 → 向前推进
+                            MoveTowardEnemyBase(u, dt, isPlayerSide)
+                        end
                     end
-                    -- 始终向基地推进（即使在攻击也继续行进）
-                    MoveTowardEnemyBase(u, dt, isPlayerSide)
                 end
 
                 -- ★ 敌军差异化 (仅限炼狱战鬼ucId==6)
@@ -883,7 +1195,7 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                                 if ed <= explR then
                                     t.hp = t.hp - explDmg
                                     t.flashTimer = 0.2
-                                    AddFloatText(t.x, t.y - 10, math.floor(explDmg), 0.5, { 200, 50, 50 }, 14)
+                                    AddFloatText(t.x, t.y - 10, math.floor(explDmg * TROOP_DISPLAY_SCALE), 0.5, { 200, 50, 50 }, 18)
                                 end
                             end
                         end
@@ -907,6 +1219,7 @@ function UpdateUnits(dt, units, targets, isPlayerSide)
                 end
             end
 
+            ::continueUnit::
             -- 恢复原始速度 (区域减速只在本帧生效)
             u.speed = origSpeed
         end
@@ -915,6 +1228,7 @@ end
 
 
 --- 向敌方基地推进 (横屏: 沿X轴前进, 车道修正沿Y轴)
+--- 单位到达战场边界后被钳制，不再穿越临界线
 function MoveTowardEnemyBase(u, dt, isPlayerSide)
     local targetX = isPlayerSide and BATTLE_ZONE.enemyLine or BATTLE_ZONE.playerLine
     local laneCY = GetLaneCenterY(u.laneIdx or 3)
@@ -928,6 +1242,28 @@ function MoveTowardEnemyBase(u, dt, isPlayerSide)
         end
         u.x = u.x + dirX * u.speed * dt
         u.y = u.y + yCorrect
+    end
+    -- 边界钳制: 不允许越过临界线
+    if isPlayerSide then
+        u.x = math.min(u.x, BATTLE_ZONE.enemyLine - 5)
+    else
+        u.x = math.max(u.x, BATTLE_ZONE.playerLine + 5)
+    end
+end
+
+
+--- 远程单位返回阵型原始位置 (不前推，保持后排)
+--- 到达 homeX/homeY 附近后停止移动
+function ReturnToFormationPosition(u, dt)
+    local hx = u.homeX or u.x
+    local hy = u.homeY or u.y
+    local dx = hx - u.x
+    local dy = hy - u.y
+    local dist = math.sqrt(dx * dx + dy * dy)
+    if dist > 5 then
+        local spd = u.speed * 0.8
+        u.x = u.x + (dx / dist) * spd * dt
+        u.y = u.y + (dy / dist) * spd * dt
     end
 end
 
@@ -1009,6 +1345,22 @@ function FindBlockingEnemy(unit, targets, atkRange, isPlayerSide)
 end
 
 
+--- 寻找最近的存活敌人 (不限车道, 用于追击)
+function FindNearestEnemy(unit, targets, searchRange)
+    local best, bestD = nil, (searchRange or 200) + 1
+    for _, t in ipairs(targets) do
+        if t.alive then
+            local ddx = t.x - unit.x
+            local ddy = t.y - unit.y
+            local d = math.sqrt(ddx * ddx + ddy * ddy)
+            if d < bestD then bestD = d; best = t end
+        end
+    end
+    if best then return best, bestD end
+    return nil, 99999
+end
+
+
 --- 攻击目标 (从原UpdateUnits提取)
 function AttackTarget(u, t, dt, isPlayerSide)
     u.atkTimer = u.atkTimer + dt
@@ -1016,12 +1368,14 @@ function AttackTarget(u, t, dt, isPlayerSide)
         u.atkTimer = 0; u.atkAnimTimer = 0.4
         local atkDefMod = u.atk / (u.atk + t.def)
         local raw = math.max(1, u.atk * atkDefMod)
+        -- 溃不成军: 战力下降50%
+        if u.routDebuff then raw = raw * 0.5 end
         -- 兵种克制倍率 (战争版)
         if u.troopType and t.troopType and rawget(_G, "GetTroopCounterMult") then
             raw = raw * GetTroopCounterMult(u.troopType, t.troopType)
         end
-        -- 暴击率: 基础10% + 兵符加成 + 装备词条加成
-        local critChance = 0.1 + (u.sealCritRate or 0) / 100 + (u.equipCritRate or 0) / 100
+        -- 暴击率: 基础10% + 五维tec加成 + 兵符加成 + 装备词条加成
+        local critChance = 0.1 + (u.stats5CritRate or 0) + (u.sealCritRate or 0) / 100 + (u.equipCritRate or 0) / 100
         local isCrit = math.random() < critChance
         if isCrit then raw = raw * 2.0 end
         -- 铁棺重卫护盾抗性: 减少受到的伤害
@@ -1104,7 +1458,7 @@ function AttackTarget(u, t, dt, isPlayerSide)
                 })
             end
         end
-        AddFloatText(t.x, t.y - 15, math.floor(raw) .. (isCrit and "!" or ""),
+        AddFloatText(t.x, t.y - 15, math.floor(raw * TROOP_DISPLAY_SCALE) .. (isCrit and "!" or ""),
             0.7, isCrit and { 255, 220, 50 } or (isPlayerSide and { 255, 255, 255 } or { 255, 100, 100 }),
             isCrit and 26 or 20)
     end
@@ -1144,4 +1498,47 @@ function AddFloatText(x, y, text, duration, color, fontSize)
         color = color or { 255, 255, 255 },
         fontSize = fontSize or 12,
     })
+end
+
+
+--- 同侧单位分离碰撞 (防止完全重叠, 最小间距18px, 推力60px/s)
+function SeparateUnits(dt)
+    local MIN_DIST = 18
+    local PUSH_SPEED = 60
+    local function separate(units)
+        local n = #units
+        if n < 2 then return end
+        for i = 1, n - 1 do
+            local a = units[i]
+            if a.alive then
+                for j = i + 1, n do
+                    local b = units[j]
+                    if b.alive then
+                        local dx = b.x - a.x
+                        local dy = b.y - a.y
+                        local dist = math.sqrt(dx * dx + dy * dy)
+                        if dist < MIN_DIST and dist > 0.1 then
+                            local overlap = (MIN_DIST - dist) * 0.5
+                            local nx, ny = dx / dist, dy / dist
+                            local push = math.min(overlap, PUSH_SPEED * dt)
+                            a.x = a.x - nx * push
+                            a.y = a.y - ny * push
+                            b.x = b.x + nx * push
+                            b.y = b.y + ny * push
+                        elseif dist <= 0.1 then
+                            -- 几乎完全重叠: 随机方向推开
+                            local angle = math.random() * 6.28
+                            local push = PUSH_SPEED * dt
+                            a.x = a.x - math.cos(angle) * push
+                            a.y = a.y - math.sin(angle) * push
+                            b.x = b.x + math.cos(angle) * push
+                            b.y = b.y + math.sin(angle) * push
+                        end
+                    end
+                end
+            end
+        end
+    end
+    separate(playerUnits)
+    separate(enemyUnits)
 end

@@ -1,48 +1,48 @@
 -- ============================================================================
--- systems/ad.lua - 涓夊浗姝︾伒褰?"
+-- systems/ad.lua - 三国武灵录
 -- ============================================================================
 ---@diagnostic disable: undefined-global
 
 
--- 骞垮憡闄愬埗宸茬Щ闄わ紝浠呯伒鐭冲箍鍛婁繚鐣欐瘡鏃?0娆¤鏁?"
+-- 广告限制已移除，仅灵石广告保留每日20次计数
 
---- 瀹夊叏鐨勫箍鍛婂洖璋冨寘瑁呭櫒锛氶槻姝㈠洖璋冨唴寮傚父瀵艰嚧娓告垙宕╂簝
---- @param callback function 鍘熷鍥炶皟
---- @return function 瀹夊叏鍖呰鍚庣殑鍥炶皟
+--- 安全的广告回调包装器：防止回调内异常导致游戏崩溃
+--- @param callback function 原始回调
+--- @return function 安全包装后的回调
 function SafeAdCallback(callback)
     return function(result)
         local ok, err = pcall(function()
             ResumeAfterAd()
-            -- 鐪熷疄骞垮憡鎴愬姛: 閫掑姣忔棩骞垮憡鎬昏鏁?"
+            -- 真实广告成功: 递增每日广告总计数
             if result and result.success then
                 IncrementDailyAdTotal()
             end
             if callback then callback(result) end
         end)
         if not ok then
-            print("[骞垮憡] 鍥炶皟寮傚父(宸插畨鍏ㄥ鐞?: " .. tostring(err))
-            -- 纭繚鍗充娇鍥炶皟宕╂簝锛屾父鎴忎粛鐒朵繚瀛樿繘搴?"
+            print("[广告] 回调异常(已安全处理): " .. tostring(err))
+            -- 确保即使回调崩溃，游戏仍然保存进度
             pcall(SaveGameProgress)
         end
     end
 end
 
 
---- 妫€鏌ュ箍鍛婃槸鍚﹀彲浠ユ挱鏀撅紙鏃犻檺鍒讹紝濮嬬粓鍙湅锛?"
+--- 检查广告是否可以播放（无限制，始终可看）
 --- @return boolean canWatch 濮嬬粓杩斿洖true
 function CanWatchAd()
-    -- 鍏嶅箍鍛婄壒鏉? 鐩存帴杩斿洖 false, 璋冪敤澶勮蛋 else(DEV) 鍒嗘敮鐩存帴缁欏鍔?"
+    -- 免广告特权: 直接返回 false, 调用处走 else(DEV) 分支直接给奖励
     if playerInfo.ad_free then return false end
     return true
 end
 
 
---- 妫€鏌ヤ粖鏃ユ垬鏂楀箍鍛婃槸鍚﹀凡鍏嶉櫎 (姣忔棩鍏嶅箍鍛婂崱: 鐪嬫弧5娆″箍鍛婂悗鎴樻枟涓箍鍛婅嚜鍔ㄨ烦杩?"
---- @return boolean isFree 鎴樻枟骞垮憡鏄惁鍏嶉櫎
+--- 检查今日战斗广告是否已免除 (每日免广告卡: 看满5次广告后战斗中广告自动跳过)
+--- @return boolean isFree 战斗广告是否免除
 function IsBattleAdFree()
-    -- 姘镐箙鍏嶅箍鍛婄壒鏉冧紭鍏?"
+    -- 永久免广告特权优先
     if playerInfo.ad_free then return true end
-    -- 璺ㄦ棩閲嶇疆
+    -- 璺ㄦ棩重置
     local today = os.date("%Y-%m-%d")
     if gameSettings.dailyAdDate ~= today then
         gameSettings.dailyAdCount = 0
@@ -52,22 +52,22 @@ function IsBattleAdFree()
 end
 
 
---- 妫€鏌ヤ粖鏃ュ箍鍛婃€绘鏁版槸鍚﹀凡杈句笂闄?(姣忔棩鏈€澶?0娆?"
---- 璺ㄦ棩鑷姩閲嶇疆; 棣栨瀹夎 dailyTotalAdDate="" 浼氳Е鍙戦噸缃负0, 涓嶄細璇皝
---- @return boolean limitReached 鏄惁杈惧埌涓婇檺
+--- 检查今日广告总次数是否已达上限 (每日最多20次)
+--- 跨日自动重置; 首次安装 dailyTotalAdDate="" 会触发重置为0, 不会误封
+--- @return boolean limitReached 是否达到上限
 function IsDailyAdLimitReached()
     local today = os.date("%Y-%m-%d")
     if gameSettings.dailyTotalAdDate ~= today then
         gameSettings.dailyTotalAdCount = 0
         gameSettings.dailyTotalAdDate = today
-        SaveSettings()  -- 璺ㄦ棩閲嶇疆鍚庢寔涔呭寲
+        SaveSettings()  -- 跨日重置后持久化
     end
     return gameSettings.dailyTotalAdCount >= 20
 end
 
 
---- 璁板綍涓€娆℃垚鍔熺殑骞垮憡瑙傜湅锛堟瘡鏃ヤ笂闄愯鏁?1, 鑷姩淇濆瓨锛?"
---- 鍙湪鐪熷疄骞垮憡鎴愬姛鍥炶皟涓皟鐢? DEV妯″紡涓嶈鏁?"
+--- 记录一次成功的广告观看（每日上限计数+1, 自动保存）
+--- 只在真实广告成功回调中调用, DEV模式不计数
 function IncrementDailyAdTotal()
     local today = os.date("%Y-%m-%d")
     if gameSettings.dailyTotalAdDate ~= today then
@@ -75,55 +75,55 @@ function IncrementDailyAdTotal()
         gameSettings.dailyTotalAdDate = today
     end
     gameSettings.dailyTotalAdCount = gameSettings.dailyTotalAdCount + 1
-    print("[骞垮憡] 浠婃棩骞垮憡瑙傜湅: " .. gameSettings.dailyTotalAdCount .. "/20")
+    print("[广告] 今日棩广告瑙傜湅: " .. gameSettings.dailyTotalAdCount .. "/20")
     SaveSettings()
 end
 
 
---- 甯︽瘡鏃ヤ笂闄愭鏌ョ殑骞垮憡鏄剧ず (鏇夸唬鐩存帴璋冪敤 sdk:ShowRewardVideoAd)
---- @param wrappedCallback function SafeAdCallback 鍖呰鍚庣殑鍥炶皟
+--- 带每日上限检查的广告显示 (替代直接调用 sdk:ShowRewardVideoAd)
+--- @param wrappedCallback function SafeAdCallback 包装后的回调
 function ShowAdSafe(wrappedCallback)
     if IsDailyAdLimitReached() then
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "浠婃棩骞垮憡宸茶揪涓婇檺(20娆?", 1.5, {255, 180, 80}, 14)
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "今日广告已达上限(20次)", 1.5, {255, 180, 80}, 18)
         return
     end
-    -- 閫氳繃绱㈠紩璋冪敤閬垮厤琚?replace_all 鏇挎崲
+    -- 通过索引调用避免被 replace_all 替换
     sdk["ShowRewardVideoAd"](sdk, wrappedCallback)
 end
 
 
 function ReportAdWatch()
-    -- 鏈湴璁℃暟锛堟棤璁轰簯鏄惁鍙敤閮芥洿鏂帮級
+    -- 本地计数（无论云是否可用都更新）
     welfareState.localAdCount = (welfareState.localAdCount or 0) + 1
-    print("[骞垮憡] 鏈湴骞垮憡璁℃暟: " .. tostring(welfareState.localAdCount))
+    print("[广告] 本地广告计数: " .. tostring(welfareState.localAdCount))
 
-    -- 鏈湴鍏堣鏇存柊璐＄尞姒滐紙绔嬪嵆鍙锛?"
+    -- 本地先行更新贡献榜（立即可见）
     UpdateContribRankLocally()
 
     if CloudAPI.IsAvailable() then
-        print("[骞垮憡] CloudAPI 鍙敤锛屼笂鎶?ad_watch_count +1")
+        print("[广告] clientCloud 可用，上报 ad_watch_count +1")
         CloudAPI:Add(PROJECT_PREFIX .. "ad_watch_count", 1, {
             ok = function()
-                print("[骞垮憡] 涓婃姤鎴愬姛锛屽悗鍙板埛鏂版帓琛屾")
-                -- 涓婃姤鎴愬姛鍚庡湪鍚庡彴鍒锋柊鎺掕姒滐紙鑾峰彇鍏朵粬鐜╁鐨勬渶鏂版暟鎹級
+                print("[广告] 上报成功，后台刷新排行榜")
+                -- 上报成功后在后台刷新排行榜（获取其他玩家的最新数据）
                 welfareState.contribLoading = false
                 LoadContribRank()
             end,
             error = function(err)
-                print("[骞垮憡] 涓婃姤澶辫触: " .. tostring(err))
-                -- 涓婃姤澶辫触涔熸棤濡紝鏈湴鏁版嵁宸插厛琛屾洿鏂?"
+                print("[广告] 上报失败: " .. tostring(err))
+                -- 上报失败也无妨，本地数据已先行更新
             end,
         })
     else
-        print("[骞垮憡] CloudAPI 涓嶅彲鐢紝浠呮湰鍦拌鏁?")
+        print("[广告] clientCloud 不可用，仅本地计数")
     end
 end
 
 
---- 绂忓埄涓績涓撶敤骞垮憡涓婃姤锛堜粎涓婃姤璐＄尞姒滐級
+--- 福利中心专用广告上报（仅上报贡献榜）
 function ReportAdWatchWelfare()
     welfareState.localAdCount = (welfareState.localAdCount or 0) + 1
-    print("[骞垮憡-绂忓埄] 绂忓埄绛惧埌骞垮憡 | 绱: " .. tostring(welfareState.localAdCount))
+    print("[广告-福利] 福利签到广告 | 累: " .. tostring(welfareState.localAdCount))
     UpdateContribRankLocally()
     if CloudAPI.IsAvailable() then
         CloudAPI:Add(PROJECT_PREFIX .. "ad_watch_count", 1, {
@@ -132,46 +132,46 @@ function ReportAdWatchWelfare()
                 LoadContribRank()
             end,
             error = function(err)
-                print("[骞垮憡-绂忓埄] 涓婃姤澶辫触: " .. tostring(err))
+                print("[广告-福利] 上报失败: " .. tostring(err))
             end,
         })
     end
 end
 
 
---- 鐪嬪箍鍛婅幏鍙栬檸绗?"
+--- 看广告获取玉壁
 function WatchAdForJade()
     local reward = 2000
     if sdk then
         ShowAdSafe(SafeAdCallback(function(result)
             if result.success then
                 playerInfo.jade = playerInfo.jade + reward
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "+" .. reward .. " 铏庣", 1.5, { 120, 255, 180 }, 16)
-                print("=== 骞垮憡濂栧姳: +" .. reward .. " 铏庣 ===")
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "+" .. reward .. " 玉壁", 1.5, { 120, 255, 180 }, 18)
+                print("=== 广告奖励: +" .. reward .. " 玉壁 ===")
                 ReportAdWatch()
                 SaveGameProgress()
             end
         end))
     else
         if not IsMobilePlatform() then
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "浠呯Щ鍔ㄧ鍙鐪嬪箍鍛?", 1.5, { 200, 150, 100 }, 14)
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "仅移动端可观看广告", 1.5, { 200, 150, 100 }, 18)
             return
         end
         playerInfo.jade = playerInfo.jade + reward
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "+" .. reward .. " 铏庣", 1.5, { 120, 255, 180 }, 16)
-        print("=== [DEV] 骞垮憡濂栧姳: +" .. reward .. " 铏庣 ===")
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "+" .. reward .. " 玉壁", 1.5, { 120, 255, 180 }, 18)
+        print("=== [DEV] 广告奖励: +" .. reward .. " 玉壁 ===")
         ReportAdWatch()
     end
 end
 
 
---- 澶辫触鍚庣湅骞垮憡鑾峰彇棰濆铏庣
+--- 失败后看广告获取额外玉壁
 function WatchAdForRevive()
     if IsBattleAdFree() then
         local bonus = GameConfig.AD_REVIVE_BONUS_JADE
         playerInfo.jade = playerInfo.jade + bonus
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "鍏嶅箍鍛婂崱宸茶嚜鍔ㄩ鍙?+" .. bonus .. " 铏庣", 1.5, { 120, 255, 180 }, 16)
-        print("=== [鍏嶅箍鍛婂崱] 鑷姩棰嗗彇澶辫触濂栧姳: +" .. bonus .. " 铏庣 ===")
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "免广告卡已自动领取 +" .. bonus .. " 玉壁", 1.5, { 120, 255, 180 }, 18)
+        print("=== [免广告卡] 自动领取失败奖励: +" .. bonus .. " 玉壁 ===")
         SaveGameProgress()
         return
     end
@@ -180,36 +180,36 @@ function WatchAdForRevive()
             if result.success then
                 local bonus = GameConfig.AD_REVIVE_BONUS_JADE
                 playerInfo.jade = playerInfo.jade + bonus
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "+" .. bonus .. " 铏庣", 1.5, { 255, 220, 100 }, 16)
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "+" .. bonus .. " 玉壁", 1.5, { 255, 220, 100 }, 18)
                 ReportAdWatch()
                 SaveGameProgress()
             end
         end))
     else
         if not IsMobilePlatform() then
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "浠呯Щ鍔ㄧ鍙鐪嬪箍鍛?", 1.5, { 200, 150, 100 }, 14)
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "仅移动端可观看广告", 1.5, { 200, 150, 100 }, 18)
             return
         end
         local bonus = GameConfig.AD_REVIVE_BONUS_JADE
         playerInfo.jade = playerInfo.jade + bonus
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "+" .. bonus .. " 铏庣", 1.5, { 255, 220, 100 }, 16)
-        print("=== [DEV] 澶辫触骞垮憡濂栧姳: +" .. bonus .. " 铏庣 ===")
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "+" .. bonus .. " 玉壁", 1.5, { 255, 220, 100 }, 18)
+        print("=== [DEV] 失败广告奖励: +" .. bonus .. " 玉壁 ===")
         ReportAdWatch()
     end
 end
 
 
---- 鎴樻枟鑳滃埄鍚庣湅骞垮憡缈诲€嶅鍔?"
+--- 战斗胜利后看广告翻倍奖励
 function WatchAdForDoubleReward()
-    if gameState.adDoubledReward then return end  -- 宸查杩?"
+    if gameState.adDoubledReward then return end  -- 已领过
     local bonusJade = gameState.winJade or 0
     if bonusJade <= 0 then return end
     if IsBattleAdFree() then
         gameState.adDoubledReward = true
         playerInfo.jade = playerInfo.jade + bonusJade
         gameState.winJade = bonusJade * 2
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "鍏嶅箍鍛婂崱宸茶嚜鍔ㄧ炕鍊?+" .. bonusJade .. " 铏庣", 1.5, { 120, 255, 180 }, 18)
-        print("=== [鍏嶅箍鍛婂崱] 鑷姩缈诲€嶅鍔? +" .. bonusJade .. " 铏庣 ===")
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "免广告卡已自动翻倍 +" .. bonusJade .. " 玉壁", 1.5, { 120, 255, 180 }, 18)
+        print("=== [免广告卡] 自动翻倍奖励: +" .. bonusJade .. " 玉壁 ===")
         SaveGameProgress()
         return
     end
@@ -218,23 +218,23 @@ function WatchAdForDoubleReward()
             if result.success then
                 gameState.adDoubledReward = true
                 playerInfo.jade = playerInfo.jade + bonusJade
-                gameState.winJade = bonusJade * 2  -- 鏇存柊鏄剧ず涓虹炕鍊嶅悗鐨勫€?"
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "缈诲€? +" .. bonusJade .. " 铏庣", 1.5, { 120, 255, 180 }, 18)
-                print("=== 骞垮憡缈诲€嶅鍔? +" .. bonusJade .. " 铏庣 ===")
+                gameState.winJade = bonusJade * 2  -- 更新显示为翻倍后的值
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "缈诲€? +" .. bonusJade .. " 玉壁", 1.5, { 120, 255, 180 }, 18)
+                print("=== 广告翻倍奖励: +" .. bonusJade .. " 玉壁 ===")
                 ReportAdWatch()
                 SaveGameProgress()
             end
         end))
     else
         if not IsMobilePlatform() then
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "浠呯Щ鍔ㄧ鍙鐪嬪箍鍛?", 1.5, { 200, 150, 100 }, 14)
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "仅移动端可观看广告", 1.5, { 200, 150, 100 }, 18)
             return
         end
         gameState.adDoubledReward = true
         playerInfo.jade = playerInfo.jade + bonusJade
         gameState.winJade = bonusJade * 2
-        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "缈诲€? +" .. bonusJade .. " 铏庣", 1.5, { 120, 255, 180 }, 18)
-        print("=== [DEV] 骞垮憡缈诲€嶅鍔? +" .. bonusJade .. " 铏庣 ===")
+        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.3, "缈诲€? +" .. bonusJade .. " 玉壁", 1.5, { 120, 255, 180 }, 18)
+        print("=== [DEV] 广告翻倍奖励: +" .. bonusJade .. " 玉壁 ===")
         ReportAdWatch()
     end
 end

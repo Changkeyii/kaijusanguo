@@ -191,23 +191,6 @@ function HandleSidebarButtonClick(dx, dy)
         friendsUI.confirmPopup = nil; friendsUI.inputActive = false
         friendsUI.searchId = ""; friendsUI.searchResult = nil; friendsUI.searchNotFound = false
         PushPhase("FRIENDS"); phaseChangeCooldown = 0.3; PlaySFX(AUDIO.sfx_click); return true
-    elseif menuBtnRects.formation and HitR(menuBtnRects.formation) then
-        -- 编队: 进入时先自动编队
-        ValidateFormation()
-        local ownedCount = AutoFillFormation()
-        formationUI = formationUI or {}
-        formationUI.scrollY = 0; formationUI.scrollVel = 0
-        formationUI.isDragging = false; formationUI.dragStartY = nil; formationUI.dragLastY = nil
-        formationUI.tab = 0  -- 0=全部
-        formationUI.cardRects = {}; formationUI.slotRects = {}
-        formationUI.confirmPopup = nil
-        formationUI.ownedCount = ownedCount
-        if ownedCount < 10 then
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "武灵不足10人, 已全部自动上阵", 2.0, { 255, 220, 100 }, 14)
-        else
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "已自动编队, 可手动调整上阵武灵", 2.0, { 120, 220, 100 }, 14)
-        end
-        PushPhase("FORMATION"); phaseChangeCooldown = 0.3; PlaySFX(AUDIO.sfx_click); return true
     elseif menuBtnRects.trade and HitR(menuBtnRects.trade) then
         -- 交易行
         PushPhase("TRADE"); phaseChangeCooldown = 0.3
@@ -320,7 +303,7 @@ function HandleEndPressDragRelease(sx, sy, touchId)
                 local st = MARCH_STRATEGIES[strategyWheelState.selected]
                 gameState.autoMarchStrategy = st.id
                 gameState.autoMarch = true
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "策略: " .. st.name, 1.2, st.color, 16)
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "策略: " .. st.name, 1.2, st.color, 18)
                 PlaySFX(AUDIO.sfx_march)
                 strategyWheelState.show = false
                 strategyWheelState.selected = 0
@@ -333,7 +316,7 @@ function HandleEndPressDragRelease(sx, sy, touchId)
             if gameState.autoMarch then PlaySFX(AUDIO.sfx_march) end
             local txt = gameState.autoMarch and "自动行军 开启" or "自动行军 关闭"
             local clr = gameState.autoMarch and { 120, 255, 160 } or { 200, 180, 160 }
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, txt, 1.0, clr, 16)
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, txt, 1.0, clr, 18)
             return true
         end
     end
@@ -350,7 +333,7 @@ function HandleEndPressDragRelease(sx, sy, touchId)
            and tdx >= BATTLE_ZONE.left - 10 and tdx <= BATTLE_ZONE.right + 10 then
             CastSkill(skillTargeting.skillIdx, tdx, tdy)
         else
-            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "释放取消", 0.8, { 180, 180, 180 }, 12)
+            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.45, "释放取消", 0.8, { 180, 180, 180 }, 18)
         end
         return true
     end
@@ -361,39 +344,7 @@ function HandleEndPressDragRelease(sx, sy, touchId)
         return true
     end
 
-    -- 打桩选将滚动结束
-    if gameState.phase == "DUMMY_SELECT" and dummyState.isDragging then
-        dummyState.isDragging = false
-        local dx, dy = ScreenToDesign(sx, sy)
-        local dragDist = math.abs(dy - (dummyState.dragStartY or dy))
-        if dragDist < 10 then
-            -- 视为点击，检查卡牌选择
-            for ci, rect in pairs(dummyState.cardRects) do
-                if dx >= rect.x and dx <= rect.x + rect.w and
-                   dy >= rect.y and dy <= rect.y + rect.h then
-                    local foundIdx = nil
-                    for si, sel in ipairs(dummyState.selected) do
-                        if sel == ci then foundIdx = si; break end
-                    end
-                    if foundIdx then
-                        table.remove(dummyState.selected, foundIdx)
-                        PlaySFX(AUDIO.sfx_click)
-                    else
-                        if #dummyState.selected < 4 then
-                            table.insert(dummyState.selected, ci)
-                            PlaySFX(AUDIO.sfx_click)
-                        else
-                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.4, "最多选择4名武灵", 1.0, { 255, 200, 80 }, 16)
-                        end
-                    end
-                    break
-                end
-            end
-        end
-        dummyState.dragStartY = nil
-        dummyState.dragLastY = nil
-        return true
-    end
+
 
     -- 天命赐福贡献榜滚动释放
     if gameState.phase == "WELFARE" and welfareState.contribScroll.isDragging then
@@ -414,60 +365,6 @@ function HandleEndPressDragRelease(sx, sy, touchId)
         battlePassUIState.isDragging = false
         battlePassUIState.dragStartY = nil
         battlePassUIState.dragLastY = nil
-        return true
-    end
-
-    -- 编队界面滚动释放 + 卡牌点击
-    if gameState.phase == "FORMATION" and formationUI and formationUI.isDragging then
-        formationUI.isDragging = false
-        local _, dy = ScreenToDesign(sx, sy)
-        local dragDist = math.abs(dy - (formationUI.dragStartY or dy))
-        formationUI.dragStartY = nil; formationUI.dragLastY = nil
-        if dragDist < 10 then
-            -- 拖拽距离不足 → 当作点击 (添加/移除卡牌)
-            formationUI.scrollVel = 0
-            local dx2, dy2 = ScreenToDesign(sx, sy)
-            local FORMATION_MAX = 10
-            local ownedCount = formationUI.ownedCount or GetOwnedHeroCount()
-            local canManualEdit = ownedCount >= 10
-            local targetCount = math.min(FORMATION_MAX, ownedCount)
-            if formationUI.cardRects then
-                for _, cr in ipairs(formationUI.cardRects) do
-                    if cr and dx2 >= cr.x and dx2 <= cr.x + cr.w and dy2 >= cr.y and dy2 <= cr.y + cr.h then
-                        -- 不满10人时禁止手动调整
-                        if not canManualEdit then
-                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "武灵不足10人, 无法调整编队", 1.5, { 255, 180, 80 }, 14)
-                            PlaySFX(AUDIO.sfx_click)
-                            break
-                        end
-                        local cardIdx = cr.cardIdx
-                        -- 检查是否已在编队
-                        local alreadyIn = false
-                        for _, idx in ipairs(gameSettings.formation) do
-                            if idx == cardIdx then alreadyIn = true; break end
-                        end
-                        if alreadyIn then
-                            -- 已在编队 → 移除
-                            for fi = #gameSettings.formation, 1, -1 do
-                                if gameSettings.formation[fi] == cardIdx then
-                                    table.remove(gameSettings.formation, fi); break
-                                end
-                            end
-                            SaveSettings()
-                            PlaySFX(AUDIO.sfx_click)
-                        elseif #gameSettings.formation < targetCount then
-                            -- 未满 → 添加
-                            table.insert(gameSettings.formation, cardIdx)
-                            SaveSettings()
-                            PlaySFX(AUDIO.sfx_click)
-                        else
-                            AddFloatText(DESIGN_W / 2, DESIGN_H * 0.35, "编队已满(" .. targetCount .. "人)", 1.5, { 220, 160, 80 }, 14)
-                        end
-                        break
-                    end
-                end
-            end
-        end
         return true
     end
 
@@ -549,8 +446,6 @@ function HandleEndPressDragRelease(sx, sy, touchId)
         local curScroll
         if welfareState.rankTab == "realm" then
             curScroll = welfareState.realmScroll
-        elseif welfareState.rankTab == "dummy" then
-            curScroll = welfareState.dummyScroll
         else curScroll = welfareState.powerScroll end
         if curScroll.isDragging then
             curScroll.isDragging = false
@@ -711,7 +606,7 @@ function HandleEndPressDragRelease(sx, sy, touchId)
 end
 
 function EndPress(sx, sy, touchId)
-    if gameState.isBanned then return end  -- 封禁玩家拦截一切操作
+    if gameState.isBanned then return end
     if CloudManager.IsCloudLoading() then return end  -- 云数据加载中拦截操作
     local curFrame = time:GetFrameNumber()
     if curFrame == _lastEndFrame then return end
@@ -770,7 +665,7 @@ function TryDrop()
                     -- 放回原位
                     srcSlot.filled = true
                     srcSlot.card = dragState.card
-                    AddFloatText(slot.cx, slot.cy - 25, "放回", 0.8, { 180, 200, 255 }, 12)
+                    AddFloatText(slot.cx, slot.cy - 25, "放回", 0.8, { 180, 200, 255 }, 18)
                 elseif slot.filled and slot.card then
                     -- 目标有卡牌 >> 交换
                     local targetCard = slot.card
@@ -780,12 +675,12 @@ function TryDrop()
                     SetupSlotHero(srcSlot, targetCard)
                     SpawnPlaceEffect(slot.cx, slot.cy, dragState.card.quality)
                     SpawnPlaceEffect(srcSlot.cx, srcSlot.cy, targetCard.quality)
-                    AddFloatText(slot.cx, slot.cy - 25, "换位!", 1.0, { 255, 220, 120 }, 12)
+                    AddFloatText(slot.cx, slot.cy - 25, "换位!", 1.0, { 255, 220, 120 }, 18)
                 else
                     -- 目标为空 >> 直接移入
                     SetupSlotHero(slot, dragState.card)
                     SpawnPlaceEffect(slot.cx, slot.cy, dragState.card.quality)
-                    AddFloatText(slot.cx, slot.cy - 25, dragState.card.name .. " 移位!", 1.0, { 200, 255, 200 }, 12)
+                    AddFloatText(slot.cx, slot.cy - 25, dragState.card.name .. " 移位!", 1.0, { 200, 255, 200 }, 18)
                 end
                 dragState.card = nil
                 placed = true
@@ -821,16 +716,16 @@ function TryDrop()
                 slot.card.atk = slot.card.atk * 1.15
                 slot.card.def = slot.card.def * 1.1
                 slot.card.hp = slot.card.hp * 1.2
-                AddFloatText(slot.cx, slot.cy - 40, "合成! Lv" .. slot.card.level, 1.5, { 255, 220, 60 }, 14)
+                AddFloatText(slot.cx, slot.cy - 40, "合成! Lv" .. slot.card.level, 1.5, { 255, 220, 60 }, 18)
             elseif oldCard then
                 -- 被替换的卡牌回到背包
                 table.insert(inventory, {
                     cardIdx = oldCard.cardIdx or 1,
                     constellation = oldCard.constellation or 0,
                 })
-                AddFloatText(slot.cx, slot.cy - 25, "替换!", 1.0, { 255, 180, 80 }, 12)
+                AddFloatText(slot.cx, slot.cy - 25, "替换!", 1.0, { 255, 180, 80 }, 18)
             end
-            AddFloatText(slot.cx, slot.cy - 25, slot.card.name .. " 上阵!", 1.2, { 200, 255, 200 }, 12)
+            AddFloatText(slot.cx, slot.cy - 25, slot.card.name .. " 上阵!", 1.2, { 200, 255, 200 }, 18)
             dragState.card = nil
             placed = true
             RefreshBaseStats()
@@ -841,14 +736,42 @@ function TryDrop()
     -- === 未放到槽位上 ===
     if not placed then
         if dragState.fromSlot then
-            if gameState.battlePhase == "SHOP" then
-                -- SHOP阶段: 从石台拖出 >> 兑换军资
-                local card = dragState.card
-                local refund = GameConfig.CARD_COST[card.quality] or 3
-                gameState.gold = gameState.gold + refund
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.5,
-                    card.name .. " >> +" .. refund .. "军资", 1.2, { 255, 220, 80 }, 14)
-                RefreshBaseStats()
+            if gameState.battlePhase == "DEPLOY" then
+                -- DEPLOY阶段: 先检查是否拖到战场车道区域 → 切换deployLane
+                local ddx, ddy = LogicalToDesign(dragState.lx, dragState.ly)
+                local srcIdx = dragState.fromSlotIdx
+                local srcSlot = srcIdx and PLAYER_SLOTS[srcIdx]
+                local bz = BATTLE_ZONE
+                local hitLane = false
+                if srcSlot and ddy >= bz.top and ddy <= bz.bottom
+                   and ddx >= bz.playerLine and ddx <= bz.enemyLine then
+                    -- 在战场区域: 检测车道
+                    local laneIdx = math.floor((ddy - bz.top) / LANE_WIDTH) + 1
+                    laneIdx = math.max(1, math.min(NUM_LANES, laneIdx))
+                    -- 恢复卡牌到原位并更新deployLane
+                    srcSlot.filled = true
+                    srcSlot.card = dragState.card
+                    srcSlot.deployLane = laneIdx
+                    local laneColors = {
+                        { 80, 180, 255 }, { 100, 220, 120 }, { 255, 210, 60 },
+                        { 255, 150, 60 }, { 220, 100, 180 },
+                    }
+                    local lc = laneColors[laneIdx] or { 200, 180, 160 }
+                    AddFloatText(srcSlot.cx, srcSlot.cy - 25,
+                        dragState.card.name .. " → " .. laneIdx .. "路", 1.0, lc, 18)
+                    SpawnPlaceEffect(srcSlot.cx, srcSlot.cy, dragState.card.quality)
+                    if rawget(_G, "PlaySFX") then PlaySFX(AUDIO.sfx_click) end
+                    hitLane = true
+                end
+                if not hitLane then
+                -- 未拖到车道: 放回原位 (取消操作)
+                local srcIdx2 = dragState.fromSlotIdx
+                local srcSlot2 = srcIdx2 and PLAYER_SLOTS[srcIdx2]
+                if srcSlot2 then
+                    srcSlot2.filled = true
+                    srcSlot2.card = dragState.card
+                end
+                end
             else
                 -- FIGHT阶段: 检查是否拖到战场区域进行部署
                 local ddx, ddy = LogicalToDesign(dragState.lx, dragState.ly)
@@ -897,19 +820,8 @@ function TryDrop()
                             "部署 ×" .. spawned .. "!", 1.2, { 200, 255, 200 }, 16)
                     end
                 else
-                    -- 拖出战场区域: 检查是否拖到底部卡牌区/商店区
-                    -- 只有拖到商店区域(屏幕底部)才下阵换军资, 其余放回原位
-                    local shopTopY = screenH - SHOP_RESERVED_H
-                    if srcSlot and dragState.ly >= shopTopY then
-                        -- 拖到底部卡牌区: 下阵换军资
-                        local card = dragState.card
-                        local refund = GameConfig.CARD_COST[card.quality] or 3
-                        gameState.gold = gameState.gold + refund
-                        AddFloatText(DESIGN_W / 2, DESIGN_H * 0.5,
-                            card.name .. " 下阵 >> +" .. refund .. "军资", 1.2, { 255, 220, 80 }, 14)
-                        RefreshBaseStats()
-                    elseif srcSlot then
-                        -- 其他区域: 放回原位 (取消操作)
+                    -- 拖出战场区域: 放回原位 (取消操作)
+                    if srcSlot then
                         srcSlot.filled = true
                         srcSlot.card = dragState.card
                     end
@@ -920,7 +832,7 @@ function TryDrop()
             if shopItem then
                 shopItem.sold = false
                 gameState.gold = gameState.gold + shopItem.cost
-                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.6, "已退还军资", 1.0, { 180, 220, 255 }, 12)
+                AddFloatText(DESIGN_W / 2, DESIGN_H * 0.6, "已退还军资", 1.0, { 180, 220, 255 }, 18)
             end
         end
     end

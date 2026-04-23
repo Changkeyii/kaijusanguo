@@ -1,4 +1,4 @@
--- ui/screens_combat.lua
+-- ui/screens_combat.lua (dummy cleanup done)
 
 local function DrawScreenOverlay(W, H, topAlpha, bottomAlpha)
     local topGrad = nvgLinearGradient(vg, 0, 0, 0, H * 0.18,
@@ -40,6 +40,16 @@ local function DrawButton(x, y, w, h, label, opts)
     local shadowColor = opts.shadowColor or nvgRGBA(0, 0, 0, 130)
     local fontSize = opts.fontSize or 26
 
+    -- 按压缩放反馈
+    local AnimBtn = require("ui.anim")
+    local now = gameState.gameTime or 0
+    local sc = AnimBtn.GetBtnScaleFor(now, x, y, w, h)
+    if sc < 0.999 then
+        local cx, cy = x + w * 0.5, y + h * 0.5
+        nvgSave(vg)
+        nvgTranslate(vg, cx, cy); nvgScale(vg, sc, sc); nvgTranslate(vg, -cx, -cy)
+    end
+
     local grad = nvgLinearGradient(vg, x, y, x, y + h, fillTop, fillBottom)
     nvgBeginPath(vg)
     nvgRoundedRect(vg, x, y, w, h, radius)
@@ -58,11 +68,13 @@ local function DrawButton(x, y, w, h, label, opts)
     nvgText(vg, x + w / 2 + 1, y + h / 2 + 1, label, nil)
     nvgFillColor(vg, textColor)
     nvgText(vg, x + w / 2, y + h / 2, label, nil)
+
+    if sc < 0.999 then nvgRestore(vg) end
 end
 
 local function DrawTopBar(W, title, accent)
     local topY = 14
-    local backW, backH = 100, 36
+    local backW, backH = 100, 42
     local backX = 14
 
     DrawButton(backX, topY, backW, backH, "< 返回", {
@@ -717,193 +729,3 @@ function DrawRankedSelectScreen()
     rankedState.rankBtnRect = { x = rankX, y = rankY, w = rankW, h = rankH }
 end
 
-function DrawDummySelectScreen()
-    if gameState.phase ~= "DUMMY_SELECT" then return end
- 
-    local W = DESIGN_W
-    local H = DESIGN_H
-    local cx = W / 2
-    local leftW = 220
-    local rightX = leftW + 8
-    local scrollY = dummyState.scrollY or 0
-
-    DrawCombatBg(W, H)
-    DrawScreenOverlay(W, H, 150, 140)
-    nvgFontFaceId(vg, GetMainFont())
-
-    local topBar = DrawTopBar(leftW, "30s 木桩挑战", nvgRGBA(255, 140, 110, 240))
-    dummyState.backBtnRect = { x = topBar.x, y = topBar.y, w = topBar.w, h = topBar.h }
-
-    local titleY = topBar.centerY + 22
-    nvgFontSize(vg, 18)
-    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-    DrawWhiteInkText(leftW / 2, titleY, "选择出战武灵（最多4名）")
-
-    local slotY = titleY + 18
-    local slotW = 46
-    local slotH = 62
-    local slotGap = 6
-    local totalSlotW = 4 * slotW + 3 * slotGap
-    local slotX = (leftW - totalSlotW) / 2
-
-    for i = 1, 4 do
-        local x = slotX + (i - 1) * (slotW + slotGap)
-        DrawSoftPanel(x, slotY, slotW, slotH, 4, nvgRGBA(25, 28, 40, 205), nvgRGBA(90, 80, 70, 80))
-        if dummyState.selected[i] then
-            local cardId = dummyState.selected[i]
-            local card = HERO_CARDS[cardId]
-            DrawInventoryCard(
-                x + 3,
-                slotY + 3,
-                slotW - 6,
-                (slotW - 6) / CARD_RATIO,
-                card,
-                playerHeroes[cardId] and playerHeroes[cardId].constellation or 0,
-                false,
-                true
-            )
-        else
-            nvgFontSize(vg, 24)
-            nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-            nvgFillColor(vg, nvgRGBA(230, 220, 200, 120))
-            nvgText(vg, x + slotW / 2, slotY + slotH / 2, "+", nil)
-        end
-    end
-
-    local startW = 180
-    local startH = 40
-    local startX = (leftW - startW) / 2
-    local startY = slotY + slotH + 14
-    local canStart = #dummyState.selected >= 1
-    DrawButton(startX, startY, startW, startH, "开始测试(" .. #dummyState.selected .. "/4)", {
-        fillTop = canStart and nvgRGBA(225, 80, 60, 230) or nvgRGBA(80, 80, 80, 200),
-        fillBottom = canStart and nvgRGBA(160, 35, 25, 235) or nvgRGBA(60, 60, 60, 210),
-        stroke = canStart and nvgRGBA(255, 180, 150, 140) or nvgRGBA(140, 140, 140, 80),
-        textColor = canStart and nvgRGBA(255, 240, 220, 240) or nvgRGBA(210, 210, 210, 120),
-        fontSize = 24,
-    })
-    dummyState.startBtnRect = canStart and { x = startX, y = startY, w = startW, h = startH } or nil
-
-    local gridY = topBar.y + topBar.h + 8
-    local gridH = H - gridY - 8
-    dummyState.gridH = gridH
-    dummyState.cardRects = {}
-
-    nvgSave(vg)
-    nvgScissor(vg, rightX, gridY, W - rightX, gridH)
-
-    local gridW = W - rightX - 12
-    local cols = 6
-    local cellW = math.floor((gridW - (cols - 1) * 6) / cols)
-    local cardImgW = cellW - 6
-    local cellH = math.floor(cardImgW / CARD_RATIO + 22)
-    local cardIdx = 0
-
-    for ci = 1, #HERO_CARDS do
-        if playerHeroes[ci] and playerHeroes[ci].owned then
-            local col = cardIdx % cols
-            local row = math.floor(cardIdx / cols)
-            local x = rightX + 4 + col * (cellW + 6)
-            local y = gridY + row * (cellH + 6) - scrollY
-            cardIdx = cardIdx + 1
-
-            local selected = false
-            for _, chosen in ipairs(dummyState.selected) do
-                if chosen == ci then
-                    selected = true
-                    break
-                end
-            end
-
-            if y + cellH >= gridY and y <= gridY + gridH then
-                DrawInventoryCard(x, y, cellW, cellH, HERO_CARDS[ci], playerHeroes[ci].constellation, false)
-                if selected then
-                    nvgBeginPath(vg)
-                    nvgRoundedRect(vg, x, y, cellW, cellH, 4)
-                    nvgStrokeColor(vg, nvgRGBA(90, 235, 130, 220))
-                    nvgStrokeWidth(vg, 2)
-                    nvgStroke(vg)
-
-                    nvgFontSize(vg, 16)
-                    nvgTextAlign(vg, NVG_ALIGN_RIGHT + NVG_ALIGN_TOP)
-                    nvgFillColor(vg, nvgRGBA(90, 255, 150, 240))
-                    nvgText(vg, x + cellW - 4, y + 3, "已选", nil)
-                end
-                dummyState.cardRects[ci] = { x = x, y = y, w = cellW, h = cellH }
-            end
-        end
-    end
-
-    local totalRows = math.ceil(cardIdx / cols)
-    dummyState.contentH = math.max(0, totalRows * (cellH + 6) - 6)
-    nvgRestore(vg)
-end
-
-function DrawDummyResultScreen()
-    if gameState.phase ~= "DUMMY_RESULT" then return end
-
-    local W = DESIGN_W
-    local H = DESIGN_H
-    local cx = W / 2
-    local t = menuAnimTimer or 0
-
-    DrawCombatBg(W, H)
-    DrawScreenOverlay(W, H, 150, 150)
-    nvgFontFaceId(vg, GetMainFont())
-    nvgTextAlign(vg, NVG_ALIGN_CENTER + NVG_ALIGN_MIDDLE)
-
-    nvgFontSize(vg, 36)
-    nvgFillColor(vg, nvgRGBA(255, 120, 90, 240))
-    nvgText(vg, cx, 40, "挑战完成!", nil)
-
-    nvgFontSize(vg, 24)
-    DrawWhiteInkText(cx, 72, "30秒总伤害统计")
-
-    local totalDamage = math.floor(dummyState.totalDamage or 0)
-    local pulse = 0.9 + 0.1 * math.sin(t * 3)
-    nvgFontSize(vg, 52)
-    nvgFillColor(vg, nvgRGBA(255, 210, 80, math.floor(240 * pulse)))
-    nvgText(vg, cx, 115, tostring(totalDamage), nil)
-
-    local dps = (dummyState.totalDamage or 0) / 30
-    nvgFontSize(vg, 26)
-    nvgFillColor(vg, nvgRGBA(140, 205, 255, 225))
-    nvgText(vg, cx, 150, string.format("DPS: %.0f", dps), nil)
-
-    nvgFontSize(vg, 22)
-    DrawWhiteInkText(cx, 180, "出战阵容")
-
-    local cardW = 65
-    local gap = 10
-    local count = #dummyState.selected
-    local totalW = count * cardW + math.max(0, count - 1) * gap
-    local startX = cx - totalW / 2
-
-    for i, cardId in ipairs(dummyState.selected) do
-        local card = HERO_CARDS[cardId]
-        local x = startX + (i - 1) * (cardW + gap)
-        DrawInventoryCard(
-            x,
-            195,
-            cardW,
-            math.floor((cardW - 6) / CARD_RATIO + 22),
-            card,
-            playerHeroes[cardId] and playerHeroes[cardId].constellation or 0,
-            false
-        )
-    end
-
-    local btnW = 180
-    local btnH = 42
-    local btnX = cx - btnW / 2
-    local btnY = H - 62
-    DrawButton(btnX, btnY, btnW, btnH, "返回选择界面", {
-        fillTop = nvgRGBA(210, 170, 70, 225),
-        fillBottom = nvgRGBA(155, 110, 35, 230),
-        stroke = nvgRGBA(255, 220, 150, 135),
-        textColor = nvgRGBA(70, 30, 0, 240),
-        shadowColor = nvgRGBA(255, 240, 220, 40),
-        fontSize = 24,
-    })
-    dummyState.resultBackRect = { x = btnX, y = btnY, w = btnW, h = btnH }
-end

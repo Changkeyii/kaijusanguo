@@ -67,7 +67,7 @@ IMG = {
     comic1 = -1,            -- 新手引导漫画1 (保留兼容)
     comic2 = -1,            -- 新手引导漫画2 (保留兼容)
     -- 战令专用图标 (替代 emoji)
-    bpIconJade = -1,        -- 虎符图标 (替代💰)
+    bpIconJade = -1,        -- 玉壁图标 (替代💰)
     bpIconFrag = -1,        -- 残片图标 (替代🔮)
     bpIconEquip = -1,       -- 装备图标 (替代⚔)
     bpIconExp = -1,         -- 经验图标 (替代⭐)
@@ -112,13 +112,10 @@ blockingLoadState = {
     totalCount = 0,
 }
 
--- 新手引导资源加载状态 (PROFILE 页底部进度条)
-tutorialLoadState = {
-    ready = false,
-    progress = 0,
-    completedCount = 0,
-    totalCount = 0,
-}
+-- 云存档加载完成标志 (与 blockingLoadState.ready 同时满足才跳出 LOADING)
+saveLoadComplete = false
+
+
 
 -- 下载面板 UI 状态 & 模块初始化标记
 downloadUI = {
@@ -133,31 +130,11 @@ toastState = {
     text = "",
     timer = 0,       -- 剩余显示时间
     duration = 2.0,  -- 总持续时间
+    category = "info", -- 分类: info/success/warning/error/reward
+    startTime = 0,     -- 出现时的 gameTime
 }
 
--- ============================================================================
--- 新手引导系统状态 (全局变量，避免 200 upvalue 限制)
--- ============================================================================
-tutorialState = {
-    active = false,          -- 教程是否正在进行
-    step = 0,                -- 当前引导步骤
-    -- (1=已移除) 2=引导设置 3=引导UI调整 4=等关闭调整
-    -- 5=引导抽卡 6=抽卡中 7=引导放武灵 8=引导放置武灵
-    -- 9=引导换战场 10=引导开战 11=引导刷新 12=拖拽派放 13=自由战斗
-    -- 14=胜利过渡 15=奖励弹窗
-    fadeTimer = 0,           -- 淡入淡出计时器
-    hintTimer = 0,           -- 提示文字动画计时
-    stepTimer = 0,           -- 步骤持续时间
-    skipBtnRect = nil,       -- 跳过按钮区域
-    fingerY = 0,             -- 手指动画 Y 偏移
-    waitingGachaConfirm = false,  -- 等待抽卡结果确认
-    unitSpawned = false,     -- 是否已释放小兵
-    skillUsed = false,       -- 是否已释放技能
-    heroPlaced = false,      -- 是否已放置武灵
-    exitConfirm = false,     -- 退出确认弹窗
-    exitConfirmBtnRect = nil,
-    exitCancelBtnRect = nil,
-}
+
 
 menuAnimTimer = 0
 -- 首页菜单按钮区域 (设计坐标)
@@ -188,8 +165,8 @@ audioState = {
 
 -- 音频资源路径
 AUDIO = {
-    bgm_menu   = "audio/music_1775782199778.ogg",
-    bgm_battle = "audio/music_1775782199778.ogg",
+    bgm_menu   = "audio/music_1776829948921.ogg",
+    bgm_battle = "audio/music_1776829948921.ogg",
     sfx_click  = "audio/sfx/sfx_button_click.ogg",
     sfx_cast   = "audio/sfx/sfx_skill_cast.ogg",
     sfx_slash  = "audio/sfx/sfx_sword_slash.ogg",
@@ -205,96 +182,96 @@ AUDIO = {
 -- ============================================================================
 cdkState = {
     codes = {
-        -- 虎符奖励兑换码 (每人终身限兑一次, 共50码)
-        -- ▸ 50 虎符 (15码)
-        ["RK7N-4QXB"] = { jade = 50, desc = "50虎符" },
-        ["VF3W-8DTP"] = { jade = 50, desc = "50虎符" },
-        ["H6YJ-M2BR"] = { jade = 50, desc = "50虎符" },
-        ["W9QZ-5KNG"] = { jade = 50, desc = "50虎符" },
-        ["TX4D-7FLV"] = { jade = 50, desc = "50虎符" },
-        ["BN2P-8HKR"] = { jade = 50, desc = "50虎符" },
-        ["J5VT-3YGW"] = { jade = 50, desc = "50虎符" },
-        ["Q8BK-6XFD"] = { jade = 50, desc = "50虎符" },
-        ["NH3R-9MZJ"] = { jade = 50, desc = "50虎符" },
-        ["G7WF-4TPX"] = { jade = 50, desc = "50虎符" },
-        ["P6DK-2BVN"] = { jade = 50, desc = "50虎符" },
-        ["L9TJ-5HRQ"] = { jade = 50, desc = "50虎符" },
-        ["ZN4W-7KBG"] = { jade = 50, desc = "50虎符" },
-        ["D8FX-3VYH"] = { jade = 50, desc = "50虎符" },
-        ["K5MP-6JTR"] = { jade = 50, desc = "50虎符" },
-        -- ▸ 150 虎符 (12码)
-        ["MRK4-9JNX"] = { jade = 150, desc = "150虎符" },
-        ["FWQ8-T2DZ"] = { jade = 150, desc = "150虎符" },
-        ["Y6HP-B3KR"] = { jade = 150, desc = "150虎符" },
-        ["XNG5-W9FJ"] = { jade = 150, desc = "150虎符" },
-        ["Q7ZL-D8MK"] = { jade = 150, desc = "150虎符" },
-        ["BTV3-Y6HX"] = { jade = 150, desc = "150虎符" },
-        ["KJW9-P4FD"] = { jade = 150, desc = "150虎符" },
-        ["NRX2-H7BQ"] = { jade = 150, desc = "150虎符" },
-        ["VDT5-L3YK"] = { jade = 150, desc = "150虎符" },
-        ["WGF8-Z2NP"] = { jade = 150, desc = "150虎符" },
-        ["HXK6-R9TJ"] = { jade = 150, desc = "150虎符" },
-        ["PLM4-V7WG"] = { jade = 150, desc = "150虎符" },
-        -- ▸ 300 虎符 (10码)
-        ["7KRN-3XFP"] = { jade = 300, desc = "300虎符" },
-        ["4BTV-YH9M"] = { jade = 300, desc = "300虎符" },
-        ["2WDJ-QZ6K"] = { jade = 300, desc = "300虎符" },
-        ["9FXB-PT4V"] = { jade = 300, desc = "300虎符" },
-        ["5NKW-DR8T"] = { jade = 300, desc = "300虎符" },
-        ["8HQL-BX5F"] = { jade = 300, desc = "300虎符" },
-        ["3TZR-NW7G"] = { jade = 300, desc = "300虎符" },
-        ["6MBX-JD2K"] = { jade = 300, desc = "300虎符" },
-        ["VFN9-HTXR"] = { jade = 300, desc = "300虎符" },
-        ["4YJQ-KG3D"] = { jade = 300, desc = "300虎符" },
-        -- ▸ 600 虎符 (7码)
-        ["WK7R-3NXB"] = { jade = 600, desc = "600虎符" },
-        ["HV4J-8MTZ"] = { jade = 600, desc = "600虎符" },
-        ["QX5D-9FRW"] = { jade = 600, desc = "600虎符" },
-        ["BN8K-2TYG"] = { jade = 600, desc = "600虎符" },
-        ["TG3V-7KBR"] = { jade = 600, desc = "600虎符" },
-        ["FJ6X-4DHN"] = { jade = 600, desc = "600虎符" },
-        ["YM2P-5VFK"] = { jade = 600, desc = "600虎符" },
-        -- ▸ 1200 虎符 (4码)
-        ["9XBK-3VRN"] = { jade = 1200, desc = "1200虎符" },
-        ["4TWG-NJ8X"] = { jade = 1200, desc = "1200虎符" },
-        ["7FDR-Q5BV"] = { jade = 1200, desc = "1200虎符" },
-        ["2KNX-YT6R"] = { jade = 1200, desc = "1200虎符" },
-        -- ▸ 2500 虎符 (2码)
-        ["M7XK-3BVR"] = { jade = 2500, desc = "2500虎符" },
-        ["P4NT-6KWD"] = { jade = 2500, desc = "2500虎符" },
-        -- ▸ 1000 虎符 (10码)
-        ["KW7N2P"] = { jade = 1000, desc = "1000虎符" },
-        ["TX4B9R"] = { jade = 1000, desc = "1000虎符" },
-        ["MJ6F3D"] = { jade = 1000, desc = "1000虎符" },
-        ["VH8K5G"] = { jade = 1000, desc = "1000虎符" },
-        ["QR2W7N"] = { jade = 1000, desc = "1000虎符" },
-        ["BF9T4X"] = { jade = 1000, desc = "1000虎符" },
-        ["DK3P6J"] = { jade = 1000, desc = "1000虎符" },
-        ["YN5V8H"] = { jade = 1000, desc = "1000虎符" },
-        ["GT7M2L"] = { jade = 1000, desc = "1000虎符" },
-        ["XJ4R9W"] = { jade = 1000, desc = "1000虎符" },
-        -- ▸ 2000 虎符 (10码)
-        ["NP3K8V"] = { jade = 2000, desc = "2000虎符" },
-        ["WR6T2F"] = { jade = 2000, desc = "2000虎符" },
-        ["HX9D5B"] = { jade = 2000, desc = "2000虎符" },
-        ["JM4G7N"] = { jade = 2000, desc = "2000虎符" },
-        ["FK8W3R"] = { jade = 2000, desc = "2000虎符" },
-        ["TV2X6P"] = { jade = 2000, desc = "2000虎符" },
-        ["BG5N9J"] = { jade = 2000, desc = "2000虎符" },
-        ["QD7H4K"] = { jade = 2000, desc = "2000虎符" },
-        ["YW3F8T"] = { jade = 2000, desc = "2000虎符" },
-        ["RN6V2M"] = { jade = 2000, desc = "2000虎符" },
-        -- ▸ 5000 虎符 (10码)
-        ["VT8R3K"] = { jade = 5000, desc = "5000虎符" },
-        ["DW5N7J"] = { jade = 5000, desc = "5000虎符" },
-        ["BK6P4T"] = { jade = 5000, desc = "5000虎符" },
-        ["NJ9W2V"] = { jade = 5000, desc = "5000虎符" },
-        ["XR3M8F"] = { jade = 5000, desc = "5000虎符" },
-        ["GD7K5H"] = { jade = 5000, desc = "5000虎符" },
-        ["TN4V6B"] = { jade = 5000, desc = "5000虎符" },
-        ["WP8J3R"] = { jade = 5000, desc = "5000虎符" },
-        ["FM5X9D"] = { jade = 5000, desc = "5000虎符" },
-        ["RH2G6Y"] = { jade = 5000, desc = "5000虎符" },
+        -- 玉壁奖励兑换码 (每人终身限兑一次, 共50码)
+        -- ▸ 50 玉壁 (15码)
+        ["RK7N-4QXB"] = { jade = 50, desc = "50玉壁" },
+        ["VF3W-8DTP"] = { jade = 50, desc = "50玉壁" },
+        ["H6YJ-M2BR"] = { jade = 50, desc = "50玉壁" },
+        ["W9QZ-5KNG"] = { jade = 50, desc = "50玉壁" },
+        ["TX4D-7FLV"] = { jade = 50, desc = "50玉壁" },
+        ["BN2P-8HKR"] = { jade = 50, desc = "50玉壁" },
+        ["J5VT-3YGW"] = { jade = 50, desc = "50玉壁" },
+        ["Q8BK-6XFD"] = { jade = 50, desc = "50玉壁" },
+        ["NH3R-9MZJ"] = { jade = 50, desc = "50玉壁" },
+        ["G7WF-4TPX"] = { jade = 50, desc = "50玉壁" },
+        ["P6DK-2BVN"] = { jade = 50, desc = "50玉壁" },
+        ["L9TJ-5HRQ"] = { jade = 50, desc = "50玉壁" },
+        ["ZN4W-7KBG"] = { jade = 50, desc = "50玉壁" },
+        ["D8FX-3VYH"] = { jade = 50, desc = "50玉壁" },
+        ["K5MP-6JTR"] = { jade = 50, desc = "50玉壁" },
+        -- ▸ 150 玉壁 (12码)
+        ["MRK4-9JNX"] = { jade = 150, desc = "150玉壁" },
+        ["FWQ8-T2DZ"] = { jade = 150, desc = "150玉壁" },
+        ["Y6HP-B3KR"] = { jade = 150, desc = "150玉壁" },
+        ["XNG5-W9FJ"] = { jade = 150, desc = "150玉壁" },
+        ["Q7ZL-D8MK"] = { jade = 150, desc = "150玉壁" },
+        ["BTV3-Y6HX"] = { jade = 150, desc = "150玉壁" },
+        ["KJW9-P4FD"] = { jade = 150, desc = "150玉壁" },
+        ["NRX2-H7BQ"] = { jade = 150, desc = "150玉壁" },
+        ["VDT5-L3YK"] = { jade = 150, desc = "150玉壁" },
+        ["WGF8-Z2NP"] = { jade = 150, desc = "150玉壁" },
+        ["HXK6-R9TJ"] = { jade = 150, desc = "150玉壁" },
+        ["PLM4-V7WG"] = { jade = 150, desc = "150玉壁" },
+        -- ▸ 300 玉壁 (10码)
+        ["7KRN-3XFP"] = { jade = 300, desc = "300玉壁" },
+        ["4BTV-YH9M"] = { jade = 300, desc = "300玉壁" },
+        ["2WDJ-QZ6K"] = { jade = 300, desc = "300玉壁" },
+        ["9FXB-PT4V"] = { jade = 300, desc = "300玉壁" },
+        ["5NKW-DR8T"] = { jade = 300, desc = "300玉壁" },
+        ["8HQL-BX5F"] = { jade = 300, desc = "300玉壁" },
+        ["3TZR-NW7G"] = { jade = 300, desc = "300玉壁" },
+        ["6MBX-JD2K"] = { jade = 300, desc = "300玉壁" },
+        ["VFN9-HTXR"] = { jade = 300, desc = "300玉壁" },
+        ["4YJQ-KG3D"] = { jade = 300, desc = "300玉壁" },
+        -- ▸ 600 玉壁 (7码)
+        ["WK7R-3NXB"] = { jade = 600, desc = "600玉壁" },
+        ["HV4J-8MTZ"] = { jade = 600, desc = "600玉壁" },
+        ["QX5D-9FRW"] = { jade = 600, desc = "600玉壁" },
+        ["BN8K-2TYG"] = { jade = 600, desc = "600玉壁" },
+        ["TG3V-7KBR"] = { jade = 600, desc = "600玉壁" },
+        ["FJ6X-4DHN"] = { jade = 600, desc = "600玉壁" },
+        ["YM2P-5VFK"] = { jade = 600, desc = "600玉壁" },
+        -- ▸ 1200 玉壁 (4码)
+        ["9XBK-3VRN"] = { jade = 1200, desc = "1200玉壁" },
+        ["4TWG-NJ8X"] = { jade = 1200, desc = "1200玉壁" },
+        ["7FDR-Q5BV"] = { jade = 1200, desc = "1200玉壁" },
+        ["2KNX-YT6R"] = { jade = 1200, desc = "1200玉壁" },
+        -- ▸ 2500 玉壁 (2码)
+        ["M7XK-3BVR"] = { jade = 2500, desc = "2500玉壁" },
+        ["P4NT-6KWD"] = { jade = 2500, desc = "2500玉壁" },
+        -- ▸ 1000 玉壁 (10码)
+        ["KW7N2P"] = { jade = 1000, desc = "1000玉壁" },
+        ["TX4B9R"] = { jade = 1000, desc = "1000玉壁" },
+        ["MJ6F3D"] = { jade = 1000, desc = "1000玉壁" },
+        ["VH8K5G"] = { jade = 1000, desc = "1000玉壁" },
+        ["QR2W7N"] = { jade = 1000, desc = "1000玉壁" },
+        ["BF9T4X"] = { jade = 1000, desc = "1000玉壁" },
+        ["DK3P6J"] = { jade = 1000, desc = "1000玉壁" },
+        ["YN5V8H"] = { jade = 1000, desc = "1000玉壁" },
+        ["GT7M2L"] = { jade = 1000, desc = "1000玉壁" },
+        ["XJ4R9W"] = { jade = 1000, desc = "1000玉壁" },
+        -- ▸ 2000 玉壁 (10码)
+        ["NP3K8V"] = { jade = 2000, desc = "2000玉壁" },
+        ["WR6T2F"] = { jade = 2000, desc = "2000玉壁" },
+        ["HX9D5B"] = { jade = 2000, desc = "2000玉壁" },
+        ["JM4G7N"] = { jade = 2000, desc = "2000玉壁" },
+        ["FK8W3R"] = { jade = 2000, desc = "2000玉壁" },
+        ["TV2X6P"] = { jade = 2000, desc = "2000玉壁" },
+        ["BG5N9J"] = { jade = 2000, desc = "2000玉壁" },
+        ["QD7H4K"] = { jade = 2000, desc = "2000玉壁" },
+        ["YW3F8T"] = { jade = 2000, desc = "2000玉壁" },
+        ["RN6V2M"] = { jade = 2000, desc = "2000玉壁" },
+        -- ▸ 5000 玉壁 (10码)
+        ["VT8R3K"] = { jade = 5000, desc = "5000玉壁" },
+        ["DW5N7J"] = { jade = 5000, desc = "5000玉壁" },
+        ["BK6P4T"] = { jade = 5000, desc = "5000玉壁" },
+        ["NJ9W2V"] = { jade = 5000, desc = "5000玉壁" },
+        ["XR3M8F"] = { jade = 5000, desc = "5000玉壁" },
+        ["GD7K5H"] = { jade = 5000, desc = "5000玉壁" },
+        ["TN4V6B"] = { jade = 5000, desc = "5000玉壁" },
+        ["WP8J3R"] = { jade = 5000, desc = "5000玉壁" },
+        ["FM5X9D"] = { jade = 5000, desc = "5000玉壁" },
+        ["RH2G6Y"] = { jade = 5000, desc = "5000玉壁" },
     },
     redeemed = {},         -- 已兑换的CDK码 { ["CODE"] = true }
     inputOpen = false,     -- CDK输入弹窗是否打开
@@ -329,8 +306,8 @@ gameSettings = {
     hudOffsetY = 0,         -- 顶部HUD+倒计时 Y 偏移
     fontStyle = "misans",  -- 字体风格: "misans"(默认) / "kuaile"(快乐体) / "wenkai"(文楷) / "xingshu"(行书)
     defaultBattlefield = 1, -- 默认战场 (1-8, BATTLE_LAYOUTS索引, 1=默认)
-    tutorialCompleted = true,   -- 新手引导已移除(战争版)
-    tutorialRewardClaimed = true,  -- 新手引导已移除(战争版)
+    guideCompleted = false, -- 世界地图引导是否已完成/跳过
+
     battleCount = 0,            -- 累计战斗次数 (用于新手提示)
     shownMarchHint = false,     -- 是否已显示过出兵策略提示
     -- 每日免广告卡 (看满3次广告, 今日战斗中广告自动跳过)
@@ -384,7 +361,7 @@ playerInfo = {
     level = 1,
     exp = 0,
     rankIdx = 1,
-    jade = GameConfig.INITIAL_JADE,  -- 虎符 (抽卡货币)
+    jade = GameConfig.INITIAL_JADE,  -- 玉壁 (抽卡货币)
     avatarIdx = 1,                   -- 头像英雄索引 (HERO_CARDS 索引)
     profileSet = false,              -- 是否已设置过个人资料
     abyssTickets = 3,               -- 讨伐票 (初始赠送3张)
@@ -405,7 +382,7 @@ playerInfo = {
     totalExplores = 0,             -- 累计探索完成次数
     universalFrags = 0,            -- [已废弃] 保留兼容旧存档
     ad_free = false,               -- 免广告特权 (管理员邮件派发)
-    jadeUnlockedBigPull = false,   -- 虎符≥20万解锁连抽增强(10/50/100连抽)，一次解锁永久生效
+    jadeUnlockedBigPull = false,   -- 玉壁≥20万解锁连抽增强(10/50/100连抽)，一次解锁永久生效
 }
 
 -- ============================================================================
@@ -478,7 +455,7 @@ stageStars = {}             -- ["1"] = 3  (每关0-3星)
 stageStarClaimed = {}       -- ["1_1"] = true  (关卡idx_星级 已领取)
 stageChestClaimed = {}      -- ["1_10"] = true  (页码_星数阈值 已领取)
 
--- 首次达到1/2/3星的虎符奖励
+-- 首次达到1/2/3星的玉壁奖励
 STAGE_STAR_JADE = { 60, 100, 160 }
 
 -- 每页宝箱: 10/20/30星阈值
@@ -757,7 +734,7 @@ gachaTabRects = {}           -- tab切换按钮区域
 -- 武技残片系统 (全局, 避免200 local限制)
 skillFragments = {}  -- skillFragments[skillIdx] = 残片数量
 SKILL_MAX_LAYER = 5  -- 武技最高层数
-SKILL_MAX_REFUND_JADE = 30  -- 满层武技再合成返还虎符
+SKILL_MAX_REFUND_JADE = 30  -- 满层武技再合成返还玉壁
 skillLayers = {}     -- skillLayers[skillIdx] = 层数 (1~5), nil表示未解锁
 
 -- 武灵残片系统 (全局)
@@ -802,7 +779,7 @@ SEAL_MAX_SLOTS = 6        -- 每个武灵最多6孔
 SEAL_MAX_LEVEL = 10       -- 每个兵符最高10级 (强化难度大提升大)
 SEAL_GACHA_COST = 300     -- 兵符单抽费用 (×3)
 SEAL_GACHA_TEN_COST = 2700 -- 兵符十连费用 (9折)
-SEAL_DUPE_REFUND = 50     -- 重复兵符返还虎符
+SEAL_DUPE_REFUND = 50     -- 重复兵符返还玉壁
 
 --- 兵符经验需求表 (指数增长, 强化难度很大)
 SEAL_EXP_TABLE = {}

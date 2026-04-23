@@ -1,10 +1,10 @@
 -- ============================================================================
--- cloud_manager_features.lua - 涓夊浗姝︾伒褰?(浠?cloud_manager.lua 鎷嗗垎)
--- 鍔熻兘妯″潡: 鑱婂ぉ銆佹湰鍦癐O銆佹洿鏂板惊鐜€佸皝绂佺鐞嗐€佺鐞嗗憳銆侀偖浠?"
+-- cloud_manager_features.lua - 三国武灵录 (从 cloud_manager.lua 拆分)
+-- 功能模块: 聊天、本地IO、更新循环、封禁管理、管理员、邮件
 -- ============================================================================
 ---@diagnostic disable: undefined-global
 
--- 浠?core 妯″潡瀵煎叆甯搁噺鍜屽叡浜姸鎬?"
+-- 从 core 模块导入常量和共享状态
 local C = CloudManager._C
 local S = CloudManager._S
 local PREFIX = C.PREFIX
@@ -30,20 +30,20 @@ local function _getRankItemUserId(item)
 end
 
 -- ============================================================================
--- 闃佃惀鑱婂ぉ (浜戠鍚屾)
+-- 阵营聊天 (云端同步)
 -- ============================================================================
 
-local MAX_CHAT_HISTORY = 10   -- 姣忎汉鍦ㄦ帓琛屾淇濈暀鐨勬渶杩戞秷鎭暟
-local CHAT_POLL_INTERVAL = 12 -- 鑱婂ぉ杞闂撮殧(绉?"
+local MAX_CHAT_HISTORY = 10   -- 每人在排行榜保留的最近消息数
+local CHAT_POLL_INTERVAL = 12 -- 聊天轮询间隔(秒)
 CloudManager._chatLastPoll = 0
 CloudManager._chatLastSentTs = 0
-CloudManager._chatPendingMsgs = {}  -- 寰呭彂甯冪殑鏈湴娑堟伅闃熷垪
-CloudManager._chatMerged = {}       -- 鍚堝苟鍚庣殑鍏ㄩ儴娑堟伅 (鎸?ts 鎺掑簭)
-CloudManager._chatSeenTs = {}       -- 宸茶杩囩殑鏈€澶?ts (per uid)
+CloudManager._chatPendingMsgs = {}  -- 待发布的本地消息队列
+CloudManager._chatMerged = {}       -- 合并后的全部消息 (按 ts 排序)
+CloudManager._chatSeenTs = {}       -- 已见过的最大 ts (per uid)
 
---- 鍙戦€侀樀钀ヨ亰澶╂秷鎭?(鍐欏叆鏈湴闃熷垪 + 绔嬪嵆鍙戝竷鍒版帓琛屾)
----@param text string 娑堟伅鍐呭
----@param senderName string 鍙戦€佽€呮樀绉?"
+--- 发送阵营聊天消息 (写入本地队列 + 立即发布到排行榜)
+---@param text string 消息内容
+---@param senderName string 发送者昵称
 function CloudManager.SendFactionChat(text, senderName)
     if CloudManager._factionId == 0 then return false, "未加入阵营" end
     if not CloudAPI.IsAvailable() then return false, "云端不可用" end
@@ -59,15 +59,15 @@ function CloudManager.SendFactionChat(text, senderName)
         uid = CloudAPI.GetUserId(),
         av = avIdx,
     }
-    -- 杩藉姞鍒版湰鍦伴槦鍒?"
+    -- 追加到本地队列
     table.insert(CloudManager._chatPendingMsgs, msg)
-    -- 涔熻拷鍔犲埌鍚堝苟鍒楄〃浠ヤ究绔嬪埢鏄剧ず
+    -- 也追加到合并列表以便立刻显示
     table.insert(CloudManager._chatMerged, msg)
 
-    -- 鏍囪鑷繁鐨勬椂闂存埑宸茶锛岄槻姝㈣疆璇㈡椂閲嶅鎷夊彇鏈潯娑堟伅
+    -- 标记自己的时间戳已见，防止轮询时重复拉取本条消息
     CloudManager._chatSeenTs[CloudAPI.GetUserId()] = ts
 
-    -- 鍙戝竷鍒版帓琛屾 (淇濈暀鏈€杩?N 鏉?"
+    -- 发布到排行榜 (保留最近 N 条)
     local toPublish = {}
     local start = math.max(1, #CloudManager._chatPendingMsgs - MAX_CHAT_HISTORY + 1)
     for i = start, #CloudManager._chatPendingMsgs do
@@ -84,12 +84,12 @@ function CloudManager.SendFactionChat(text, senderName)
     return true
 end
 
---- 鐢熸垚绫诲瀷瀹夊叏鐨勮亰澶╁幓閲?key锛堥伩鍏?int/float tostring 宸紓瀵艰嚧鍘婚噸澶辫触锛?"
+--- 生成类型安全的聊天去重 key（避免 int/float tostring 差异导致去重失败）
 local function chatMsgKey(uid, ts)
     return string.format("%d_%d", math.floor(tonumber(uid) or 0), math.floor(tonumber(ts) or 0))
 end
 
---- 鎷夊彇闃佃惀鑱婂ぉ娑堟伅 (浠庢帓琛屾鑾峰彇鎵€鏈夋垚鍛樼殑鏈€杩戞秷鎭?"
+--- 拉取阵营聊天消息 (从排行榜获取所有成员的最近消息)
 ---@param callback? fun(messages: table[])
 function CloudManager.PollFactionChat(callback)
     if CloudManager._factionId == 0 then
@@ -111,7 +111,7 @@ function CloudManager.PollFactionChat(callback)
                     local seenTs = CloudManager._chatSeenTs[senderUid] or 0
                     for _, m in ipairs(chatData) do
                         if type(m) == "table" and m.ts and m.ts > seenTs then
-                            -- 鏂版秷鎭?"
+                            -- 新消息
                             newMsgs[#newMsgs + 1] = {
                                 text = m.text or "",
                                 name = m.name or "???",
@@ -122,7 +122,7 @@ function CloudManager.PollFactionChat(callback)
                             }
                         end
                     end
-                    -- 鏇存柊宸茶鏃堕棿鎴?"
+                    -- 更新已见时间戳
                     if #chatData > 0 then
                         local maxTs = seenTs
                         for _, m in ipairs(chatData) do
@@ -133,7 +133,7 @@ function CloudManager.PollFactionChat(callback)
                 end
             end
 
-            -- 鍚堝苟鍒板叏灞€鍒楄〃 (鍘婚噸, 浣跨敤绫诲瀷瀹夊叏鐨?key)
+            -- 合并到全局列表 (去重, 使用类型安全的 key)
             local existingTs = {}
             for _, m in ipairs(CloudManager._chatMerged) do
                 existingTs[chatMsgKey(m.uid, m.ts)] = true
@@ -145,10 +145,10 @@ function CloudManager.PollFactionChat(callback)
                 end
             end
 
-            -- 鎸?ts 鎺掑簭
+            -- 按 ts 排序
             table.sort(CloudManager._chatMerged, function(a, b) return (a.ts or 0) < (b.ts or 0) end)
 
-            -- 淇濈暀鏈€杩?50 鏉?"
+            -- 保留最近 50 条
             while #CloudManager._chatMerged > 50 do
                 table.remove(CloudManager._chatMerged, 1)
             end
@@ -161,27 +161,27 @@ function CloudManager.PollFactionChat(callback)
     }, KEYS.camp_chat)
 end
 
---- 鑾峰彇褰撳墠鍚堝苟鐨勮亰澶╂秷鎭垪琛?(渚沀I鐩存帴璇诲彇)
+--- 获取当前合并的聊天消息列表 (供UI直接读取)
 ---@return table[]
 function CloudManager.GetFactionChatMessages()
     return CloudManager._chatMerged
 end
 
 -- ============================================================================
--- 涓栫晫鑱婂ぉ (鍏ㄦ湇鍏叡棰戦亾, 鎺掕姒滃瓨鍌?"
+-- 世界聊天 (全服公共频道, 排行榜存储)
 -- ============================================================================
-local WORLD_CHAT_MAX_PER_USER = 5     -- 姣忎汉鍦ㄦ帓琛屾淇濈暀鐨勬渶杩戞秷鎭暟
-local WORLD_CHAT_POLL_INTERVAL = 6    -- 涓栫晫鑱婂ぉ杞闂撮殧(绉? - 鏇村疄鏃?"
-local WORLD_CHAT_MAX_MERGED = 100     -- 鏈湴鍚堝苟鍒楄〃鏈€澶ф潯鏁?"
+local WORLD_CHAT_MAX_PER_USER = 5     -- 每人在排行榜保留的最近消息数
+local WORLD_CHAT_POLL_INTERVAL = 6    -- 世界聊天轮询间隔(秒) - 更实时
+local WORLD_CHAT_MAX_MERGED = 100     -- 本地合并列表最大条数
 
 CloudManager._worldChatLastPoll = 0
 CloudManager._worldChatPendingMsgs = {}
 CloudManager._worldChatMerged = {}
 CloudManager._worldChatSeenTs = {}
 
---- 鍙戦€佷笘鐣岃亰澶╂秷鎭?"
----@param text string 娑堟伅鍐呭
----@param senderName string 鍙戦€佽€呭悕瀛?"
+--- 发送世界聊天消息
+---@param text string 消息内容
+---@param senderName string 发送者名字
 ---@return boolean, string?"
 function CloudManager.SendWorldChat(text, senderName)
     if not CloudAPI.IsAvailable() then return false, "云端不可用" end
@@ -189,7 +189,7 @@ function CloudManager.SendWorldChat(text, senderName)
 
     local avIdx = (rawget(_G, "playerInfo") and playerInfo.avatarIdx) or 1
     local ts = os.time()
-    -- 闃叉鍚屼竴绉掑唴閲嶅鍙戦€佺浉鍚屽唴瀹癸紙绉诲姩绔敭鐩樺洖杞?鎸夐挳鍙兘鍙岃Е鍙戯級
+    -- 防止同一秒内重复发送相同内容（移动端键盘回车+按钮可能双触发）
     if CloudManager._lastWorldChatTs == ts and CloudManager._lastWorldChatText == text then
         return true
     end
@@ -206,10 +206,10 @@ function CloudManager.SendWorldChat(text, senderName)
     table.insert(CloudManager._worldChatPendingMsgs, msg)
     table.insert(CloudManager._worldChatMerged, msg)
 
-    -- 鏍囪鑷繁鐨勬椂闂存埑宸茶锛岄槻姝㈣疆璇㈡椂閲嶅鎷夊彇鏈潯娑堟伅
+    -- 标记自己的时间戳已见，防止轮询时重复拉取本条消息
     CloudManager._worldChatSeenTs[CloudAPI.GetUserId()] = ts
 
-    -- 鍙戝竷鍒版帓琛屾 (淇濈暀鏈€杩?N 鏉?"
+    -- 发布到排行榜 (保留最近 N 条)
     local toPublish = {}
     local start = math.max(1, #CloudManager._worldChatPendingMsgs - WORLD_CHAT_MAX_PER_USER + 1)
     for i = start, #CloudManager._worldChatPendingMsgs do
@@ -225,7 +225,7 @@ function CloudManager.SendWorldChat(text, senderName)
     return true
 end
 
---- 鎷夊彇涓栫晫鑱婂ぉ娑堟伅 (浠庢帓琛屾鑾峰彇鏈€杩?0涓敤鎴风殑娑堟伅)
+--- 拉取世界聊天消息 (从排行榜获取最近30个用户的消息)
 ---@param callback? fun(messages: table[])
 function CloudManager.PollWorldChat(callback)
     if not CloudAPI.IsAvailable() then
@@ -263,7 +263,7 @@ function CloudManager.PollWorldChat(callback)
                 end
             end
 
-            -- 鍚堝苟鍒板叏灞€鍒楄〃 (鍘婚噸, 浣跨敤绫诲瀷瀹夊叏鐨?key)
+            -- 合并到全局列表 (去重, 使用类型安全的 key)
             local existingTs = {}
             for _, m in ipairs(CloudManager._worldChatMerged) do
                 existingTs[chatMsgKey(m.uid, m.ts)] = true
@@ -275,15 +275,15 @@ function CloudManager.PollWorldChat(callback)
                 end
             end
 
-            -- 鎸?ts 鎺掑簭
+            -- 按 ts 排序
             table.sort(CloudManager._worldChatMerged, function(a, b) return (a.ts or 0) < (b.ts or 0) end)
 
-            -- 淇濈暀鏈€杩?100 鏉?"
+            -- 保留最近 100 条
             while #CloudManager._worldChatMerged > WORLD_CHAT_MAX_MERGED do
                 table.remove(CloudManager._worldChatMerged, 1)
             end
 
-            -- 鎵归噺鏌ヨ nickname 瑕嗙洊 name 瀛楁
+            -- 批量查询 nickname 覆盖 name 字段
             local uidSet = {}
             local uidList = {}
             for _, m in ipairs(CloudManager._worldChatMerged) do
@@ -302,7 +302,7 @@ function CloudManager.PollWorldChat(callback)
                             for _, info in ipairs(nicknames) do
                                 nameMap[info.userId] = info.nickname
                             end
-                            -- 缂撳瓨鑷繁鐨?TapTap nickname锛屼緵鍙戦€佹椂鐩存帴浣跨敤
+                            -- 缓存自己的 TapTap nickname，供发送时直接使用
                             local myUid = CloudAPI.GetUserId()
                             if myUid and nameMap[myUid] and #nameMap[myUid] > 0 then
                                 CloudManager._myTapNickname = nameMap[myUid]
@@ -328,22 +328,22 @@ function CloudManager.PollWorldChat(callback)
     }, KEYS.world_chat)
 end
 
---- 鑾峰彇褰撳墠涓栫晫鑱婂ぉ娑堟伅鍒楄〃 (渚沀I鐩存帴璇诲彇)
+--- 获取当前世界聊天消息列表 (供UI直接读取)
 ---@return table[]
 function CloudManager.GetWorldChatMessages()
     return CloudManager._worldChatMerged
 end
 
 -- ============================================================================
--- 鍐呴儴宸ュ叿鍑芥暟
+-- 内部工具函数
 -- ============================================================================
 
---- 淇濆瓨鏈湴JSON (澶歞omain鏍煎紡)
+--- 保存本地JSON (多domain格式)
 function CloudManager._saveLocalJSON(allData)
     local cjson_m = rawget(_G, "cjson")
     if not cjson_m then return end
 
-    -- 濡傛灉娌′紶allData, 閲嶆柊鏀堕泦
+    -- 如果没传allData, 重新收集
     if not allData then
         allData = {}
         for name, _ in pairs(DOMAINS) do
@@ -368,7 +368,7 @@ function CloudManager._saveLocalJSON(allData)
     end
 end
 
---- 鍔犺浇鏈湴JSON
+--- 加载本地JSON
 ---@return table|nil
 function CloudManager._loadLocalJSON()
     if not fileSystem:FileExists("p_49dd_savegame.json") then
@@ -386,7 +386,7 @@ function CloudManager._loadLocalJSON()
     return nil
 end
 
---- 浠庡domain鏁版嵁鎭㈠娓告垙鐘舵€?"
+--- 从多domain数据恢复游戏状态
 function CloudManager._applyMultiDomain(saveObj)
     local domains = saveObj.domains
     if not domains then return end
@@ -420,7 +420,7 @@ function CloudManager._applyMultiDomain(saveObj)
 
     -- equip
     if domains.equip and domains.equip.playerEquipment then
-        -- 澶嶇敤 ApplySaveData 鐨勮澶囨仮澶嶉€昏緫 (鍚柊鏃ф牸寮忚縼绉?"
+        -- 复用 ApplySaveData 的装备恢复逻辑 (含新旧格式迁移)
         if rawget(_G, "ApplySaveData") then
             ApplySaveData({ playerEquipment = domains.equip.playerEquipment })
         end
@@ -468,7 +468,7 @@ function CloudManager._applyMultiDomain(saveObj)
         if d.limitedGachaPity then gachaState.limitedPityCounter = d.limitedGachaPity end
     end
 
-    -- welfare (澶嶇敤 ApplySaveData 鐨勬仮澶嶉€昏緫)
+    -- welfare (复用 ApplySaveData 的恢复逻辑)
     if domains.welfare then
         if rawget(_G, "ApplySaveData") then
             ApplySaveData(domains.welfare)
@@ -492,7 +492,7 @@ function CloudManager._applyMultiDomain(saveObj)
                 SyncPlayerDataToExploration()
             end
             Exploration.RestoreState(domains.explore.explorationState)
-            print("[CloudManager] 鎺㈢储鐘舵€佸凡鎭㈠")
+            print("[CloudManager] 探索状态已恢复")
         end
     end
 
@@ -510,7 +510,7 @@ function CloudManager._applyMultiDomain(saveObj)
             wms.playerFaction = wd.playerFaction or "shu"
             wms.phase = "MAP"
             wms.inited = true
-            -- 鎭㈠澶栦氦
+            -- 恢复外交
             if wd.diplomacy then
                 wms.diplomacy = wd.diplomacy
             else
@@ -520,26 +520,26 @@ function CloudManager._applyMultiDomain(saveObj)
                     qun = { relation = 40, treaty = nil },
                 }
             end
-            -- 鎭㈠鍩庢睜鏁版嵁
+            -- 恢复城池数据
             if wd.cityData then
                 for _, c in ipairs(WORLD_CITIES) do
                     local saved = wd.cityData[tostring(c.id)]
                     if saved then
                         wms.cityData[c.id] = {
                             owner = saved.owner or c.faction,
-                            garrison = saved.garrison or 50,
+                            garrison = saved.garrison or 5000,
                             level = saved.level or 1,
                             heroes = saved.heroes or {},
                             morale = saved.morale or 80,
                         }
                     else
                         wms.cityData[c.id] = {
-                            owner = c.faction, garrison = 50, level = 1, heroes = {}, morale = 80,
+                            owner = c.faction, garrison = 5000, level = 1, heroes = {}, morale = 80,
                         }
                     end
                 end
             end
-            -- 鎭㈠鍏电閫夋嫨 (key浠巗tring杞洖number)
+            -- 恢复兵种选择 (key从string转回number)
             wms.heroTroopChoice = {}
             if wd.heroTroopChoice then
                 for k, v in pairs(wd.heroTroopChoice) do
@@ -547,7 +547,7 @@ function CloudManager._applyMultiDomain(saveObj)
                     if idx then wms.heroTroopChoice[idx] = v end
                 end
             end
-            -- 鎭㈠宸插姝︽妧
+            -- 恢复已学武技
             wms.heroLearnedSkills = {}
             if wd.heroLearnedSkills then
                 for k, v in pairs(wd.heroLearnedSkills) do
@@ -555,20 +555,20 @@ function CloudManager._applyMultiDomain(saveObj)
                     if idx then wms.heroLearnedSkills[idx] = v end
                 end
             end
-            print("[CloudManager] 澶у湴鍥剧姸鎬佸凡鎭㈠, 鍥炲悎=" .. tostring(wms.turn))
+            print("[CloudManager] 大地图状态已恢复, 回合=" .. tostring(wms.turn))
         end
     end
 
-    -- 鍚戜笅鍏煎: level 涓?rankIdx 鍚屾
+    -- 向下兼容: level 与 rankIdx 同步
     playerInfo.level = playerInfo.rankIdx or 1
     if rawget(_G, "CheckPlayerLevelUp") then
         CheckPlayerLevelUp()
     end
 end
 
---- 鏋勫缓鏃ф牸寮忓瓨妗ｆ暟鎹?(鍚戜笅鍏煎)
+--- 构建旧格式存档数据 (向下兼容)
 function CloudManager._buildLegacyData(allData)
-    -- 鍚堝苟鎵€鏈塪omain鍒颁竴涓墎骞硉able (涓庢棫 SaveGameProgress 缁撴瀯涓€鑷?"
+    -- 合并所有domain到一个扁平table (与旧 SaveGameProgress 结构一致)
     local legacy = { savedAt = os.time() }
 
     if allData.core then
@@ -613,7 +613,7 @@ function CloudManager._buildLegacyData(allData)
         legacy.welfareState = d.welfareState
         legacy.cdkRedeemed = d.cdkRedeemed
         legacy.mailClaimed = d.mailClaimed
-        legacy.tutorialRewardClaimed = d.tutorialRewardClaimed
+
         legacy.sealData = d.sealData
         legacy.sealExpItems = d.sealExpItems
         legacy.sealInventory = d.sealInventory
@@ -629,68 +629,68 @@ function CloudManager._buildLegacyData(allData)
     return legacy
 end
 
--- 鈹€鈹€ 绀句氦杞瀹氭椂鍣?鈹€鈹€
+-- ── 社交轮询定时器 ──
 local socialPollTimer = 0
-local SOCIAL_POLL_INTERVAL = 15  -- 姣?5绉掕疆璇竴娆＄ぞ浜ょ姸鎬?"
-local socialPollBusy = false     -- 闃叉骞跺彂杞
+local SOCIAL_POLL_INTERVAL = 15  -- 每15秒轮询一次社交状态
+local socialPollBusy = false     -- 防止并发轮
 
---- 鏇存柊閲嶈瘯瀹氭椂鍣?+ 绀句氦杞 (鍦?HandleUpdate 涓皟鐢?"
+--- 更新重试定时器 + 社交轮询 (在 HandleUpdate 中调用)
 function CloudManager.Update(dt)
     if S.retryTimer > 0 then
         S.retryTimer = S.retryTimer - dt
         if S.retryTimer <= 0 and S.retryData then
-            print("[CloudManager] 閲嶈瘯浜戠鍚屾...")
+            print("[CloudManager] 重试云端同步...")
             CloudManager.SaveAll()
             S.retryData = nil
         end
     end
 
-    -- 绀句氦杞: 濂藉弸鍥炲 + 闃佃惀瀹℃壒缁撴灉
+    -- 社交轮询: 好友回复 + 阵营审批结果
     if not CloudAPI.IsAvailable() then return end
     socialPollTimer = socialPollTimer + dt
     if socialPollTimer >= SOCIAL_POLL_INTERVAL and not socialPollBusy then
         socialPollTimer = 0
         socialPollBusy = true
 
-        -- 1) 濂藉弸鍥炲杞: 妫€鏌ユ垜鍙戝嚭鐨勫ソ鍙嬭姹傛槸鍚﹁瀵规柟鍥炲
+        -- 1) 好友回复轮询: 检查我发出的好友请求是否被对方回复
         CloudManager.CheckMyRequestResponses(function(results)
             if results and #results > 0 then
                 for _, r in ipairs(results) do
                     if r.accepted then
-                        print("[绀句氦杞] 濂藉弸璇锋眰琚?" .. tostring(r.toUid) .. " 鍚屾剰, 宸蹭簰鍔?")
-                        if rawget(_G, "ShowToast") then ShowToast("浣犱笌玩家" .. tostring(r.toUid) .. "宸叉垚涓哄ソ鍙?") end
+                        print("[社交轮询] 好友请求被 " .. tostring(r.toUid) .. " 同意, 已互加!")
+                        if rawget(_G, "ShowToast") then ShowToast("你与玩家" .. tostring(r.toUid) .. "已成为好友!") end
                         if rawget(_G, "playerInfo") then
                             playerInfo.totalFriends = (playerInfo.totalFriends or 0) + 1
                         end
                     end
                 end
-                -- 鍒锋柊濂藉弸鐣岄潰
+                -- 刷新好友界面
                 if rawget(_G, "friendsUI") then
                     friendsUI.loaded = false; friendsUI.loading = false
                 end
             end
 
-            -- 2) 闃佃惀瀹℃壒杞: 妫€鏌ユ垜鐨勫叆钀ョ敵璇锋槸鍚﹁鎵瑰噯
+            -- 2) 阵营审批轮询: 检查我的入营申请是否被批准
             CloudManager.CheckMyFactionApplication(function(result)
                 socialPollBusy = false
                 if result == "approved" then
-                    print("[绀句氦杞] 鍏ヨ惀鐢宠宸查€氳繃!")
-                    if rawget(_G, "ShowToast") then ShowToast("浣犵殑鍏ヨ惀鐢宠宸查€氳繃!") end
+                    print("[社交轮询] 入营申请已通过!")
+                    if rawget(_G, "ShowToast") then ShowToast("你的入营申请已通过!") end
                     if rawget(_G, "playerInfo") then playerInfo.factionJoined = 1 end
                     if rawget(_G, "factionUI") then
                         factionUI.loaded = false; factionUI.loading = false
                         factionUI.applyStatus = nil
                     end
                 elseif result == "rejected" then
-                    print("[绀句氦杞] 鍏ヨ惀鐢宠琚嫆缁?")
-                    if rawget(_G, "ShowToast") then ShowToast("浣犵殑鍏ヨ惀鐢宠琚嫆缁?") end
+                    print("[社交轮询] 入营申请被拒绝")
+                    if rawget(_G, "ShowToast") then ShowToast("你的入营申请被拒绝") end
                     if rawget(_G, "factionUI") then factionUI.applyStatus = nil end
                 end
             end)
         end)
     end
 
-    -- 闃佃惀鑱婂ぉ杞
+    -- 阵营聊天轮询
     if CloudManager._factionId ~= 0 then
         CloudManager._chatLastPoll = (CloudManager._chatLastPoll or 0) + dt
         if CloudManager._chatLastPoll >= CHAT_POLL_INTERVAL then
@@ -699,7 +699,7 @@ function CloudManager.Update(dt)
         end
     end
 
-    -- 涓栫晫鑱婂ぉ杞 (濮嬬粓杩愯)
+    -- 世界聊天轮询 (始终运行)
     CloudManager._worldChatLastPoll = (CloudManager._worldChatLastPoll or 0) + dt
     if CloudManager._worldChatLastPoll >= WORLD_CHAT_POLL_INTERVAL then
         CloudManager._worldChatLastPoll = 0
@@ -711,40 +711,58 @@ end
 -- 渚挎嵎璁块棶
 -- ============================================================================
 
---- 鑾峰彇鎵€鏈塪omain key鍚?"
+--- 获取所有domain key名
 function CloudManager.GetDomainKeys()
     return DOMAINS
 end
 
---- 鑾峰彇鍓嶇紑
+--- 获取前缀
 function CloudManager.GetPrefix()
     return PREFIX
 end
 
---- 鑾峰彇涓婃鍚屾鏃堕棿
+--- 获取上次同步时间
 function CloudManager.GetLastSyncTime()
     return S.lastSyncTime
 end
 
---- 浜戠鏁版嵁鏄惁姝ｅ湪鍔犺浇涓?(LoadAll 寮傛鏈熼棿涓?true)
---- 鐢ㄤ簬 UI 灞傞樆鏂帺瀹舵搷浣? 闃叉鍦ㄤ簯鏁版嵁鍒拌揪鍓嶄骇鐢熻剰鏁版嵁
+--- 云端数据是否正在加载中 (LoadAll 异步期间为 true)
+--- 用于 UI 层阻断玩家操作, 防止在云数据到达前产生脏数据
+--- 内置 8 秒超时: 常驻服未就绪时避免永久阻塞
 ---@return boolean
 function CloudManager.IsCloudLoading()
-    return S.cloudLoadPending
+    if not S.cloudLoadPending then
+        return false
+    end
+    -- 超时保护: 云端加载超过 8 秒自动解锁，使用本地存档继续游戏
+    local CLOUD_LOAD_TIMEOUT = 8
+    if S.cloudLoadStartTime > 0 and (os.clock() - S.cloudLoadStartTime) > CLOUD_LOAD_TIMEOUT then
+        S.cloudLoadPending = false
+        S.cloudLoadStartTime = 0
+        print("[CloudManager] 云端加载超时(" .. CLOUD_LOAD_TIMEOUT .. "s), 自动解锁, 使用本地存档继续")
+        -- 执行延迟保存回调(如有)
+        if S.pendingSaveCallback then
+            local cb = S.pendingSaveCallback
+            S.pendingSaveCallback = nil
+            CloudManager.SaveAll(cb, true)
+        end
+        return false
+    end
+    return true
 end
 
 -- ============================================================================
--- 灏佺绯荤粺
+-- 封禁系统
 -- ============================================================================
 
---- 灏佺绛夌骇甯搁噺 (渚涘閮ㄤ娇鐢?"
+--- 封禁等级常量 (供外部使用)
 CloudManager.BAN_LEVEL_NONE   = BAN_LEVEL_NONE
 CloudManager.BAN_LEVEL_SOCIAL = BAN_LEVEL_SOCIAL
 CloudManager.BAN_LEVEL_CORE   = BAN_LEVEL_CORE
 CloudManager.BAN_LEVEL_FULL   = BAN_LEVEL_FULL
 
---- 妫€鏌ュ綋鍓嶇帺瀹舵槸鍚﹁灏佺 (鍚姩鏃惰皟鐢?"
---- 鍘熺悊: 鎵弿 ban_ts 鎺掕姒? 鎵惧埌绠＄悊鍛樺彂甯冪殑灏佺鍚嶅崟, 妫€鏌ヨ嚜宸辨槸鍚﹀湪鍒楄〃涓?"
+--- 检查当前玩家是否被封禁 (启动时调用)
+--- 原理: 扫描 ban_ts 排行榜, 找到管理员发布的封禁名单, 检查自己是否在列表中
 ---@param callback fun(level: number, reason: string)
 function CloudManager.CheckBanStatus(callback)
     if not CloudAPI.IsAvailable() then
@@ -756,7 +774,7 @@ function CloudManager.CheckBanStatus(callback)
     local myUid = CloudAPI.GetUserId()
     local myUidStr = tostring(myUid)
 
-    -- 鎵弿 ban_ts 鎺掕姒?(绠＄悊鍛橀€氳繃 SetInt 鍙戝竷, 鎸夋椂闂村€掑簭)
+    -- 扫描 ban_ts 排行榜 (管理员通过 SetInt 发布, 按时间倒序)
     CloudAPI:GetRankList(KEYS.ban_ts, 0, 50, {
         ok = function(rankList)
             local foundLevel = BAN_LEVEL_NONE
@@ -765,24 +783,24 @@ function CloudManager.CheckBanStatus(callback)
             for _, item in ipairs(rankList) do
                 local banData = item.score[KEYS.ban_data]
                 if type(banData) == "table" then
-                    -- 灏佺鍚嶅崟鏍煎紡: { bans = { ["uid"] = { level=1-3, reason="...", until=timestamp } } }
+                    -- 封禁名单格式: { bans = { ["uid"] = { level=1-3, reason="...", until=timestamp } } }
                     local bans = banData.bans
                     if type(bans) == "table" and bans[myUidStr] then
                         local entry = bans[myUidStr]
-                        -- 妫€鏌ユ槸鍚﹀凡杩囨湡
+                        -- 检查是否已过期
                         local untilTime = entry["until"] or 0
                         if untilTime == 0 or untilTime > os.time() then
                             local lvl = entry.level or BAN_LEVEL_FULL
                             if lvl > foundLevel then
                                 foundLevel = lvl
-                                foundReason = entry.reason or "杩濊鎿嶄綔"
+                                foundReason = entry.reason or "违规操作"
                             end
                         end
                     end
                 end
             end
 
-            -- 鍔犺浇闅愯棌鍚嶅崟 (绠＄悊鍛樼敤)
+-- 阵营聊天 (云端同步)
             if not CloudManager._hiddenPlayers then CloudManager._hiddenPlayers = {} end
             for _, item2 in ipairs(rankList) do
                 local bd2 = item2.score[KEYS.ban_data]
@@ -800,58 +818,58 @@ function CloudManager.CheckBanStatus(callback)
             S.banChecked = true
 
             if foundLevel > BAN_LEVEL_NONE then
-                print("[灏佺] 妫€娴嬪埌灏佺: 绛夌骇=" .. foundLevel .. " 鍘熷洜=" .. foundReason)
+                print("[封禁] 检测到封禁: 等级=" .. foundLevel .. " 原因=" .. foundReason)
             else
-                print("[灏佺] 鏈灏佺")
+                    print("[社交轮询] 入营申请被拒绝")
             end
 
             if callback then callback(foundLevel, foundReason) end
         end,
         error = function(_, reason)
-            print("[灏佺] 妫€鏌ュ皝绂佺姸鎬佸け璐? " .. tostring(reason))
+            print("[封禁] 检查封禁状态失败: " .. tostring(reason))
             S.banChecked = true
-            -- 缃戠粶澶辫触鏃朵笉灏佺 (瀹芥澗绛栫暐)
+-- 阵营聊天 (云端同步)
             if callback then callback(BAN_LEVEL_NONE, "") end
         end,
     }, KEYS.ban_data)
 end
 
---- 鑾峰彇褰撳墠灏佺绛夌骇
----@return number 0=鏃? 1=绀句氦, 2=鏍稿績, 3=鍏ㄥ皝
+--- 获取当前封禁等级
+---@return number 0=无, 1=社交, 2=核心, 3=全封
 function CloudManager.GetBanLevel()
     return S.banLevel
 end
 
---- 鑾峰彇灏佺鍘熷洜
+--- 获取封禁原因
 ---@return string
 function CloudManager.GetBanReason()
     return S.banReason
 end
 
---- 鏄惁宸插畬鎴愬皝绂佹鏌?"
+--- 是否已完成封禁检查
 ---@return boolean
 function CloudManager.IsBanChecked()
     return S.banChecked
 end
 
---- 妫€鏌ユ槸鍚﹁灏佺鍒版寚瀹氱瓑绾?"
----@param level number 瑕佹鏌ョ殑绛夌骇
+--- 检查是否被封禁到指定等级
+---@param level number 要检查的等级
 ---@return boolean
 function CloudManager.IsBanned(level)
     return S.banLevel >= (level or BAN_LEVEL_SOCIAL)
 end
 
---- 鑾峰彇灏佺绛夌骇鐨勪腑鏂囨弿杩?"
+--- 获取封禁等级的中文描述
 ---@param level number
 ---@return string
 function CloudManager.GetBanLevelName(level)
-    if level >= BAN_LEVEL_FULL then return "鍏ㄩ潰灏佺"
-    elseif level >= BAN_LEVEL_CORE then return "鏍稿績鍔熻兘灏佺"
-    elseif level >= BAN_LEVEL_SOCIAL then return "绀句氦灏佺"
-    else return "鏃?" end
+    if level >= BAN_LEVEL_FULL then return "全面封禁"
+    elseif level >= BAN_LEVEL_CORE then return "核心功能封禁"
+    elseif level >= BAN_LEVEL_SOCIAL then return "社交封禁"
+    else return "无" end
 end
 
---- 绠＄悊鍛? 鑾峰彇褰撳墠灏佺鍚嶅崟 (浠庢帓琛屾璇诲彇鑷繁鍙戝竷鐨?"
+--- 管理员: 获取当前封禁名单 (从排行榜读取自己发布的)
 ---@param callback fun(bans: table|nil, err: string|nil)
 function CloudManager.AdminGetBanList(callback)
     if not CloudAPI.IsAvailable() then
@@ -874,9 +892,9 @@ function CloudManager.AdminGetBanList(callback)
     })
 end
 
---- 绠＄悊鍛? 鍙戝竷灏佺鍚嶅崟 (瑕嗙洊寮忓啓鍏?"
---- bans 鏍煎紡: { ["uid_str"] = { level=1-3, reason="...", until=0 }, ... }
----@param bans table 灏佺鍚嶅崟
+--- 管理员: 发布封禁名单 (覆盖式写入)
+--- bans 格式: { ["uid_str"] = { level=1-3, reason="...", until=0 }, ... }
+---@param bans table 封禁名单
 ---@param callback fun(ok: boolean, err: string|nil)
 function CloudManager.AdminPublishBanList(bans, callback)
     if not CloudAPI.IsAvailable() then
@@ -889,7 +907,7 @@ function CloudManager.AdminPublishBanList(bans, callback)
         :Set(KEYS.ban_data, { bans = bans, updated = ts })
         :Save("admin_ban_update", {
             ok = function()
-                print("[绠＄悊鍛榏 灏佺鍚嶅崟宸插彂甯? 鏉＄洰鏁? " .. CloudManager._tableCount(bans))
+                print("[管理员] 封禁名单已发布, 条目数: " .. CloudManager._tableCount(bans))
                 if callback then callback(true, nil) end
             end,
             error = function(_, reason)
@@ -898,31 +916,31 @@ function CloudManager.AdminPublishBanList(bans, callback)
         })
 end
 
---- 绠＄悊鍛? 灏嗘帓琛屾鍒嗘暟璁句负鏋佸皬鍊兼潵闅愯棌 (SetInt 璁句负 -999999)
----@param targetUid number 鐩爣玩家UID
+--- 管理员: 将排行榜分数设为极小值来隐藏 (SetInt 设为 -999999)
+---@param targetUid number 目标玩家UID
 ---@param callback fun(ok: boolean, msg: string)
 function CloudManager.AdminHidePlayerRank(targetUid, callback)
-    -- 娉ㄦ剰: CloudAPI 鍙兘鎿嶄綔鑷繁鐨勬暟鎹? 鏃犳硶鐩存帴鍒犻櫎浠栦汉鎺掕姒?"
-    -- 闅愯棌绛栫暐: 灏嗚 UID 鍔犲叆鏈湴闅愯棌鍒楄〃, 鍦ㄦ帓琛屾娓叉煋鏃惰繃婊?"
+    -- 注意: clientCloud 只能操作自己的数据, 无法直接删除他人排行榜
+    -- 隐藏策略: 将该 UID 加入本地隐藏列表, 在排行榜渲染时过滤
     if not CloudManager._hiddenPlayers then
         CloudManager._hiddenPlayers = {}
     end
     CloudManager._hiddenPlayers[tostring(targetUid)] = true
-    -- 鎸佷箙鍖栧埌 ban_data 涓?"
+    -- 持久化到 ban_data 中
     CloudManager.AdminGetBanList(function(bans, err)
         if not bans then bans = {} end
         local uidStr = tostring(targetUid)
         if not bans[uidStr] then
-            bans[uidStr] = { level = 0, reason = "鎺掕姒滈殣钘?", ["until"] = 0 }
+            bans[uidStr] = { level = 0, reason = "排行榜隐藏", ["until"] = 0 }
         end
         bans[uidStr].rankHidden = true
         CloudManager.AdminPublishBanList(bans, function(ok)
-            if callback then callback(ok, ok and "宸查殣钘?" or "鎿嶄綔澶辫触") end
+            if callback then callback(ok, ok and "已隐藏" or "操作失败") end
         end)
     end)
 end
 
---- 绠＄悊鍛? 鎭㈠玩家鎺掕姒滄樉绀?"
+--- 管理员: 恢复玩家排行榜显示
 ---@param targetUid number
 ---@param callback fun(ok: boolean, msg: string)
 function CloudManager.AdminUnhidePlayerRank(targetUid, callback)
@@ -934,18 +952,18 @@ function CloudManager.AdminUnhidePlayerRank(targetUid, callback)
         local uidStr = tostring(targetUid)
         if bans[uidStr] then
             bans[uidStr].rankHidden = nil
-            -- 濡傛灉杩欐潯璁板綍鍙湁 rankHidden, level=0, 閭ｅ氨鍒犳帀鏁存潯
+            -- 如果这条记录只有 rankHidden, level=0, 那就删掉整条
             if (bans[uidStr].level or 0) == 0 then
                 bans[uidStr] = nil
             end
         end
         CloudManager.AdminPublishBanList(bans, function(ok)
-            if callback then callback(ok, ok and "宸叉仮澶嶆樉绀?" or "鎿嶄綔澶辫触") end
+            if callback then callback(ok, ok and "已恢复显示" or "操作失败") end
         end)
     end)
 end
 
---- 妫€鏌ユ煇涓帺瀹舵槸鍚﹁闅愯棌鎺掕姒?"
+--- 检查某个玩家是否被隐藏排行榜
 ---@param uid number|string
 ---@return boolean
 function CloudManager.IsPlayerRankHidden(uid)
@@ -953,8 +971,8 @@ function CloudManager.IsPlayerRankHidden(uid)
     return CloudManager._hiddenPlayers[tostring(uid)] == true
 end
 
---- 绠＄悊鍛? 鑾峰彇灏佺鍚嶅崟鎽樿锛堜緵 UI 鍒楄〃灞曠ず锛?"
---- 杩斿洖涓や釜鏁扮粍: tempBans(鏆傛椂灏佺), permBans(姘镐箙灏佺/宸插垹闄?"
+--- 管理员: 获取封禁名单摘要（供 UI 列表展示）
+--- 返回两个数组: tempBans(暂时封禁), permBans(永久封禁/已删除)
 ---@param callback fun(tempBans: table, permBans: table, err: string|nil)
 function CloudManager.AdminGetBanListSummary(callback)
     CloudManager.AdminGetBanList(function(bans, err)
@@ -980,19 +998,19 @@ function CloudManager.AdminGetBanListSummary(callback)
                 end
             end
         end
-        -- 鎸?UID 鎺掑簭
+        -- 按 UID 排序
         table.sort(tempList, function(a, b) return a.uid < b.uid end)
         table.sort(permList, function(a, b) return a.uid < b.uid end)
         if callback then callback(tempList, permList, nil) end
     end)
 end
 
---- 绠＄悊鍛? 姘镐箙灏佺锛堟爣璁颁负宸插垹闄わ紝鍏ㄩ潰灏佺 + 鎺掕姒滈殣钘忥級
----@param targetUid number|string 鐩爣UID
+--- 管理员: 永久封禁（标记为已删除，全面封禁 + 排行榜隐藏）
+---@param targetUid number|string 目标UID
 ---@param callback fun(ok: boolean, msg: string)
 function CloudManager.AdminPermanentBan(targetUid, callback)
     local uidStr = tostring(targetUid)
-    -- 鍔犲叆闅愯棌鍒楄〃
+    -- 加入隐藏列表
     if not CloudManager._hiddenPlayers then CloudManager._hiddenPlayers = {} end
     CloudManager._hiddenPlayers[uidStr] = true
 
@@ -1000,36 +1018,36 @@ function CloudManager.AdminPermanentBan(targetUid, callback)
         if not bans then bans = {} end
         bans[uidStr] = bans[uidStr] or {}
         bans[uidStr].level = 3          -- BAN_LEVEL_FULL
-        bans[uidStr].reason = "姘镐箙灏佺(鏁版嵁宸插垹闄?"
+        bans[uidStr].reason = "永久封禁(数据已删除)"
         bans[uidStr]["until"] = 0       -- 姘镐箙
-        bans[uidStr].rankHidden = true  -- 闅愯棌鎺掕姒?"
-        bans[uidStr].permanent = true   -- 鏍囪涓烘案涔呭皝绂?"
+        bans[uidStr].rankHidden = true  -- 隐藏排行榜
+        bans[uidStr].permanent = true   -- 标记为永久封禁
         CloudManager.AdminPublishBanList(bans, function(ok)
-            if callback then callback(ok, ok and "宸叉案涔呭皝绂?" or "鎿嶄綔澶辫触") end
+            if callback then callback(ok, ok and "已永久封禁" or "操作失败") end
         end)
     end)
 end
 
---- 绠＄悊鍛? 灏嗘殏鏃跺皝绂佹仮澶嶏紙瀹屽叏瑙ｇ锛屽寘鎷帓琛屾锛?"
+--- 管理员: 将暂时封禁恢复（完全解禁，包括排行榜）
 ---@param targetUid number|string
 ---@param callback fun(ok: boolean, msg: string)
 function CloudManager.AdminFullUnban(targetUid, callback)
     local uidStr = tostring(targetUid)
-    -- 绉诲嚭闅愯棌鍒楄〃
+    -- 移出隐藏列表
     if CloudManager._hiddenPlayers then
         CloudManager._hiddenPlayers[uidStr] = nil
     end
 
     CloudManager.AdminGetBanList(function(bans, err)
         if not bans then bans = {} end
-        bans[uidStr] = nil  -- 瀹屽叏绉婚櫎
+        bans[uidStr] = nil  -- 瀹屽叏移除
         CloudManager.AdminPublishBanList(bans, function(ok)
-            if callback then callback(ok, ok and "宸插畬鍏ㄨВ绂?" or "鎿嶄綔澶辫触") end
+            if callback then callback(ok, ok and "已完全解禁" or "操作失败") end
         end)
     end)
 end
 
---- 鍐呴儴宸ュ叿: 璁＄畻table鍏冪礌鏁?"
+--- 内部工具: 计算table元素数
 function CloudManager._tableCount(t)
     local n = 0
     if type(t) == "table" then for _ in pairs(t) do n = n + 1 end end
@@ -1037,14 +1055,14 @@ function CloudManager._tableCount(t)
 end
 
 -- ============================================================================
--- 棰戠巼闄愬埗
+-- 频率限制
 -- ============================================================================
 
---- 妫€鏌ユ搷浣滃喎鍗?(閫氳繃杩斿洖true/false琛ㄧず鏄惁鍙墽琛?"
---- 濡傛灉鍙墽琛? 鍚屾椂鏇存柊鏃堕棿鎴?"
----@param action string 鎿嶄綔鍚嶇О
----@param cooldownSeconds number 鍐峰嵈绉掓暟
----@return boolean 鏄惁鍏佽鎵ц
+--- 检查操作冷却 (通过返回true/false表示是否可执行)
+--- 如果可执行, 同时更新时间戳
+---@param action string 操作名称
+---@param cooldownSeconds number 冷却秒数
+---@return boolean
 function CloudManager._checkCooldown(action, cooldownSeconds)
     local now = os.time()
     local lastTime = S.cooldownTimestamps[action] or 0
@@ -1055,10 +1073,10 @@ function CloudManager._checkCooldown(action, cooldownSeconds)
     return true
 end
 
---- 鑾峰彇鎿嶄綔鍓╀綑鍐峰嵈鏃堕棿
+--- 获取操作剩余冷却时间
 ---@param action string
 ---@param cooldownSeconds number
----@return number 鍓╀綑绉掓暟 (0=鍙墽琛?"
+---@return number 剩余秒数 (0=可执行)
 function CloudManager.GetCooldownRemaining(action, cooldownSeconds)
     local now = os.time()
     local lastTime = S.cooldownTimestamps[action] or 0
@@ -1068,49 +1086,49 @@ function CloudManager.GetCooldownRemaining(action, cooldownSeconds)
 end
 
 -- ============================================================================
--- 璐熷€奸槻鎶?"
+-- 负值防护
 -- ============================================================================
 
---- 娓呯悊鍏抽敭璧勬簮鐨勮礋鍊?(闃叉浣滃紛/鏁版嵁寮傚父)
+--- 清理关键资源的负值 (防止作弊/数据异常)
 function CloudManager._sanitizeResources()
     if not rawget(_G, "playerInfo") then return end
     local pi = playerInfo
-    -- 铏庣 (jade)
+    -- 玉壁 (jade)
     if (pi.jade or 0) < 0 then
-        print("[瀹夊叏] 铏庣涓鸿礋鍊?" .. tostring(pi.jade) .. "), 寮哄埗褰掗浂")
+        print("[安全] 玉壁为负值(" .. tostring(pi.jade) .. "), 强制归零")
         pi.jade = 0
     end
     -- 鐏电煶 (lingshi)
     if (pi.lingshi or 0) < 0 then
-        print("[瀹夊叏] 鐏电煶涓鸿礋鍊?" .. tostring(pi.lingshi) .. "), 寮哄埗褰掗浂")
+        print("[安全] 灵石为负值(" .. tostring(pi.lingshi) .. "), 强制归零")
         pi.lingshi = 0
     end
-    -- 缁忛獙 (exp)
+    -- 经验 (exp)
     if (pi.exp or 0) < 0 then
-        print("[瀹夊叏] 缁忛獙涓鸿礋鍊?" .. tostring(pi.exp) .. "), 寮哄埗褰掗浂")
+        print("[安全] 经验为负值(" .. tostring(pi.exp) .. "), 强制归零")
         pi.exp = 0
     end
     -- 绛夌骇 (rankIdx)
     if (pi.rankIdx or 1) < 1 then
-        print("[瀹夊叏] 绛夌骇涓鸿礋鍊?" .. tostring(pi.rankIdx) .. "), 寮哄埗褰?")
+        print("[安全] 等级为负值(" .. tostring(pi.rankIdx) .. "), 强制归1")
         pi.rankIdx = 1
         pi.level = 1
     end
-    -- 娣辨笂闂ㄧエ
+    -- 深渊门票
     if (pi.abyssTickets or 0) < 0 then
-        print("[瀹夊叏] 娣辨笂闂ㄧエ涓鸿礋鍊? 寮哄埗褰掗浂")
+        print("[安全] 深渊门票为负值, 强制归零")
         pi.abyssTickets = 0
     end
 end
 
 -- ============================================================================
--- 瀛樻。鍝堝笇鏍￠獙
+-- 存档哈希校验
 -- ============================================================================
 
---- 璁＄畻瀛樻。鍝堝笇 (绠€鍗曟贩娣嗘牎楠? 闈炲姞瀵嗙骇鍒?"
---- 鍘熺悊: 鎻愬彇鍏抽敭瀛楁 鈫?鏁板€兼眰鍜?鈫?娣峰悎uid鍜宻ecret 鈫?鍙栨ā寰楀埌鏍￠獙鍊?"
----@param allData table 鎵€鏈塪omain鏁版嵁 (鎴杁omain鍚嶁啋data鐨勬槧灏?"
----@return number hash鍊?"
+--- 计算存档哈希 (简单混淆校验, 非加密级别)
+--- 原理: 提取关键字段 → 数值求和 → 混合uid和secret → 取模得到校验值
+---@param allData table 所有domain数据 (或domain名→data的映射)
+---@return number hash值
 function CloudManager._computeSaveHash(allData)
     local uid = 0
     if CloudAPI.IsAvailable() then
@@ -1119,7 +1137,7 @@ function CloudManager._computeSaveHash(allData)
 
     local sum = 0
 
-    -- 浠?core 鎻愬彇鍏抽敭瀛楁
+    -- 从 core 提取关键字段
     local coreData = allData.core or allData[DOMAINS.core]
     if coreData and coreData.playerInfo then
         local pi = coreData.playerInfo
@@ -1133,7 +1151,7 @@ function CloudManager._computeSaveHash(allData)
         sum = sum + (pi.exp or 0)
     end
 
-    -- 浠?progress 鎻愬彇
+    -- 从 progress 提取
     local progData = allData.progress or allData[DOMAINS.progress]
     if progData then
         sum = sum + (progData.stageMaxUnlocked or 0) * 53
@@ -1141,41 +1159,41 @@ function CloudManager._computeSaveHash(allData)
         sum = sum + (progData.rankedHighestScore or 0) * 3
     end
 
-    -- 娣峰悎 uid 鍜?secret
+    -- 混合 uid 和 secret
     local mixed = (uid * HASH_SEED + sum) ~ HASH_SECRET
-    -- 纭繚姝ｆ暣鏁?(Lua 5.4 鏁存暟鍙兘涓鸿礋)
+    -- 确保正整数 (Lua 5.4 整数可能为负)
     if mixed < 0 then mixed = -mixed end
-    return mixed % 999999937  -- 澶х礌鏁板彇妯?"
+    return mixed % 999999937  -- 大素数取模
 end
 
---- 妫€鏌ュ瓨妗ｅ搱甯屾槸鍚︿笉鍖归厤
----@return boolean true=鍝堝笇涓嶅尮閰?鍙兘琚鏀?"
+--- 检查存档哈希是否不匹配
+---@return boolean true=哈希不匹配(可能被篡改)
 function CloudManager.IsHashMismatch()
     return CloudManager._hashMismatch == true
 end
 
 -- ============================================================================
--- 闃佃惀鑱屼綅鏌ヨ (瀵煎嚭渚涘閮ㄤ娇鐢?"
+-- 阵营职位查询 (导出供外部使用)
 -- ============================================================================
 
---- 瀵煎嚭鑱屼綅瀹氫箟琛?(渚沀I娓叉煋鐢?"
+--- 导出职位定义表 (供UI渲染用)
 CloudManager.FACTION_ROLES = FACTION_ROLES
 
---- 鑾峰彇鎸囧畾瑙掕壊鐨勪腑鏂囧悕
+--- 获取指定角色的中文名
 ---@param role string
 ---@return string
 function CloudManager.GetRoleName(role)
     return _getRoleName(role)
 end
 
---- 鑾峰彇鎸囧畾瑙掕壊鐨勭瓑绾?"
+--- 获取指定角色的等级
 ---@param role string
 ---@return number
 function CloudManager.GetRoleLevel(role)
     return _getRoleLevel(role)
 end
 
---- 鑾峰彇鎵€鏈夊彲鍒嗛厤鑱屼綅鍒楄〃 (涓嶅惈 leader, 渚沀I涓嬫媺妗嗙敤)
+--- 获取所有可分配职位列表 (不含 leader, 供UI下拉框用)
 ---@return table[] { id, name, level, max }
 function CloudManager.GetAssignableRoles()
     local result = {}
@@ -1191,40 +1209,40 @@ function CloudManager.GetAssignableRoles()
     return result
 end
 
---- 鑾峰彇闃佃惀鎴愬憳鐨勮亴浣嶄俊鎭?(甯︿腑鏂囧悕)
+--- 获取阵营成员的职位信息 (带中文名)
 ---@param userId number
 ---@return string role, string roleName
 function CloudManager.GetMemberRole(userId)
     local meta = CloudManager._factionMeta
     if not meta or not meta.roles then
-        return "member", "鎴愬憳"
+        return "member", "成员"
     end
     local role = meta.roles[tostring(userId)] or "member"
     return role, _getRoleName(role)
 end
 
---- 鑾峰彇鑱屼綅绛夌骇鏁板€?(鏁板瓧瓒婂ぇ鏉冮檺瓒婇珮, leader=6, member=0)
+--- 获取职位等级数值 (数字越大权限越高, leader=6, member=0)
 function CloudManager.GetRoleLevel(role)
     return _getRoleLevel(role)
 end
 
 -- ============================================================================
--- 閭欢绯荤粺 (鍏叡淇＄妯″紡: 鍙戜欢浜哄啓 outbox, 鏀朵欢浜鸿疆璇㈡壂鎻?"
+-- 邮件系统 (公共信箱模式: 发件人写 outbox, 收件人轮询扫描)
 -- ============================================================================
 
-local MAIL_MAX_OUTBOX = 20         -- 姣忎汉鍙戜欢绠辨渶澶氫繚鐣?0灏?"
-local MAIL_EXPIRE_DAYS = 7        -- 閭欢7澶╄繃鏈?"
-local MAIL_POLL_CD = 30           -- 杞鍐峰嵈绉掓暟
+local MAIL_MAX_OUTBOX = 20         -- 每人发件箱最多保留20封
+local MAIL_EXPIRE_DAYS = 7        -- 邮件7天过期
+local MAIL_POLL_CD = 30           -- 轮询冷却秒数
 
-CloudManager._mailOutbox = {}     -- 鏈湴鍙戜欢绠辩紦瀛?"
-CloudManager._mailOutboxLoaded = false -- 鏄惁宸蹭粠浜戠鍔犺浇杩囧彂浠剁
-CloudManager._mailInbox = {}      -- 鎵弿鍒扮殑鏀朵欢鍒楄〃
-CloudManager._mailLastPoll = 0    -- 涓婃杞鏃堕棿
+CloudManager._mailOutbox = {}     -- 本地发件箱缓存
+CloudManager._mailOutboxLoaded = false -- 是否已从云端加载过发件箱
+CloudManager._mailInbox = {}      -- 扫描到的收件列表
+CloudManager._mailLastPoll = 0    -- 上次轮询时间
 CloudManager._mailLoading = false
-CloudManager._mailClaimed = {}    -- 宸查鍙栫殑閭欢ID闆嗗悎 {[mailId]=true}
-CloudManager.ADMIN_UIDS = {}      -- 绠＄悊鍛楿ID鍒楄〃, 鐢?main.lua 璁剧疆
+CloudManager._mailClaimed = {}    -- 已领取的邮件ID集合 {[mailId]=true}
+CloudManager.ADMIN_UIDS = {}      -- 管理员UID列表, 由 main.lua 设置
 
---- 浠庝簯绔姞杞藉凡鏈夊彂浠剁锛堥槻姝㈤噸鍚悗瑕嗙洊锛?"
+--- 从云端加载已有发件箱（防止重启后覆盖）
 ---@param callback? fun(ok:boolean)
 function CloudManager.LoadMailOutbox(callback)
     if CloudManager._mailOutboxLoaded then
@@ -1241,7 +1259,7 @@ function CloudManager.LoadMailOutbox(callback)
             ok = function(values, iscores)
                 local outbox = values and values[KEYS.mail_outbox]
                 if outbox and type(outbox) == "table" then
-                    -- 杩囨护杩囨湡閭欢
+                    -- 过滤过期邮件
                     local now = os.time()
                     local kept = {}
                     for _, m in ipairs(outbox) do
@@ -1250,28 +1268,28 @@ function CloudManager.LoadMailOutbox(callback)
                         end
                     end
                     CloudManager._mailOutbox = kept
-                    print("[邮件] 浜戠鍙戜欢绠卞姞杞芥垚鍔? " .. #kept .. " 灏?")
+                    print("[邮件] 云端发件箱加载成功: " .. #kept .. " 封")
                 else
                     CloudManager._mailOutbox = {}
-                    print("[邮件] 浜戠鍙戜欢绠变负绌?")
+                    print("[邮件] 云端发件箱为空")
                 end
                 CloudManager._mailOutboxLoaded = true
                 if callback then callback(true) end
             end,
             error = function(_, reason)
-                print("[邮件] 浜戠鍙戜欢绠卞姞杞藉け璐? " .. tostring(reason))
-                -- 鍔犺浇澶辫触涔熸爣璁帮紝閬垮厤鍙嶅閲嶈瘯闃诲鍙戜俊
+                print("[邮件] 云端发件箱加载失败: " .. tostring(reason))
+                -- 加载失败也标记，避免反复重试阻塞发信
                 CloudManager._mailOutboxLoaded = true
                 if callback then callback(false) end
             end,
         })
 end
 
---- 鍙戦€侀偖浠剁粰鎸囧畾玩家
----@param targetUid number 鐩爣玩家 UID
----@param subject string 鏍囬
+--- 发送邮件给指定玩家
+---@param targetUid number 目标玩家 UID
+---@param subject string 标题
 ---@param body string 姝ｆ枃
----@param rewards? table 闄勪欢濂栧姳 [{type,amount,label}] (浠呯鐞嗗憳鍙彂)
+---@param rewards? table 附件奖励 [{type,amount,label}] (仅管理员可发)
 ---@param callback? fun(ok:boolean, msg:string)
 function CloudManager.SendMail(targetUid, subject, body, rewards, callback)
     if not CloudAPI.IsAvailable() then
@@ -1279,11 +1297,11 @@ function CloudManager.SendMail(targetUid, subject, body, rewards, callback)
         return
     end
 
-    -- 濡傛灉鍙戜欢绠辨湭浠庝簯绔姞杞借繃锛屽厛鍔犺浇鍐嶅彂閫侊紙闃叉瑕嗙洊鏃ч偖浠讹級
+    -- 如果发件箱未从云端加载过，先加载再发送（防止覆盖旧邮件）
     if not CloudManager._mailOutboxLoaded then
-        print("[邮件] 鍙戜欢绠辨湭鍔犺浇锛屽厛浠庝簯绔姞杞?..")
+        print("[邮件] 发件箱未加载，先从云端加载...")
         CloudManager.LoadMailOutbox(function(ok)
-            -- 鏃犺鍔犺浇鎴愬姛澶辫触閮界户缁彂閫?"
+            -- 无论加载成功失败都继续发送
             CloudManager.SendMail(targetUid, subject, body, rewards, callback)
         end)
         return
@@ -1292,7 +1310,7 @@ function CloudManager.SendMail(targetUid, subject, body, rewards, callback)
     local myUid = CloudAPI.GetUserId()
     local myName = rawget(_G, "playerInfo") and playerInfo.name or ("玩家" .. tostring(myUid))
 
-    -- 鍙湁绠＄悊鍛樺彲浠ュ彂甯﹀鍔辩殑閭欢
+    -- 只有管理员可以发带奖励的邮件
     if rewards and #rewards > 0 then
         if not CloudManager.IsAdmin() then
             if callback then callback(false, "仅管理员可发带奖励邮件") end
@@ -1312,9 +1330,9 @@ function CloudManager.SendMail(targetUid, subject, body, rewards, callback)
         time = os.time(),
     }
 
-    -- 鍔犲叆鏈湴鍙戜欢绠?"
+    -- 加入本地发件箱
     table.insert(CloudManager._mailOutbox, 1, mailItem)
-    -- 瑁佸壀杩囧 / 杩囨湡
+    -- 裁剪过长 / 杩囨湡
     local now = os.time()
     local kept = {}
     for i, m in ipairs(CloudManager._mailOutbox) do
@@ -1324,7 +1342,7 @@ function CloudManager.SendMail(targetUid, subject, body, rewards, callback)
     end
     CloudManager._mailOutbox = kept
 
-    -- 涓婁紶鍒颁簯绔?"
+    -- 上传到云端
     CloudAPI:BatchSet()
         :SetInt(KEYS.mail_ts, os.time())
         :Set(KEYS.mail_outbox, CloudManager._mailOutbox)
@@ -1340,21 +1358,21 @@ function CloudManager.SendMail(targetUid, subject, body, rewards, callback)
         })
 end
 
---- 骞挎挱閭欢 (绠＄悊鍛樺悜鎵€鏈変汉鍙?"
----@param subject string 鏍囬
+--- 广播邮件 (管理员向所有人发)
+---@param subject string 标题
 ---@param body string 姝ｆ枃
----@param rewards? table 闄勪欢濂栧姳
+---@param rewards? table 附件奖励
 ---@param callback? fun(ok:boolean, msg:string)
 function CloudManager.BroadcastMail(subject, body, rewards, callback)
     if not CloudManager.IsAdmin() then
-        if callback then callback(false, "浠呯鐞嗗憳鍙箍鎾?") end
+        if callback then callback(false, "仅管理员可广播") end
         return
     end
-    -- to=0 琛ㄧず骞挎挱缁欐墍鏈変汉
+    -- to=0 表示广播给所有人
     CloudManager.SendMail(0, subject, body, rewards, callback)
 end
 
---- 杞鏀朵欢绠?(鎵弿鎵€鏈夌帺瀹剁殑 outbox, 杩囨护鍙戠粰鑷繁鐨?"
+--- 轮询收件箱 (扫描所有玩家的 outbox, 过滤发给自己的)
 ---@param callback? fun(mails:table)
 function CloudManager.PollInbox(callback)
     if not CloudAPI.IsAvailable() then
@@ -1382,13 +1400,13 @@ function CloudManager.PollInbox(callback)
                 local outbox = entry.score and entry.score[KEYS.mail_outbox]
                 if outbox and type(outbox) == "table" then
                     for _, m in ipairs(outbox) do
-                        -- to==myUid 鎴?to==0(骞挎挱)
+                        -- to==myUid 或 to==0(广播)
                         if (m.to == myUid or m.to == 0) and (m.time or 0) > expireThreshold then
-                            -- 骞挎挱閭欢涓嶆樉绀鸿嚜宸卞彂缁欒嚜宸辩殑
+                            -- 骞挎挱邮件涓嶆樉绀鸿嚜宸卞彂缁欒嚜宸辩殑
                             if not (m.to == 0 and senderId == myUid) then
                                 inbox[#inbox + 1] = {
                                     id = m.id,
-                                    from = senderId,  -- 濮嬬粓浣跨敤骞冲彴璁よ瘉ID锛屼笉淇′换鑷姤m.from
+                                    from = senderId,  -- 始终使用平台认证ID，不信任自报m.from
                                     fromName = m.fromName or ("玩家" .. tostring(senderId)),
                                     subject = m.subject or "",
                                     body = m.body or "",
@@ -1401,29 +1419,29 @@ function CloudManager.PollInbox(callback)
                     end
                 end
             end
-            -- 鎸夋椂闂撮檷搴?"
+            -- 按时间降序
             table.sort(inbox, function(a, b) return a.time > b.time end)
             CloudManager._mailInbox = inbox
             CloudManager._mailLastPoll = now
             CloudManager._mailLoading = false
-            print("[邮件] 鏀朵欢绠卞埛鏂? " .. #inbox .. " 灏?")
+            print("[邮件] 收件箱刷新: " .. #inbox .. " 封")
             if callback then callback(inbox) end
         end,
         error = function(_, reason)
             CloudManager._mailLoading = false
-            print("[邮件] 鏀朵欢绠卞埛鏂板け璐? " .. tostring(reason))
+            print("[邮件] 收件箱刷新失败: " .. tostring(reason))
             if callback then callback(CloudManager._mailInbox) end
         end,
     }, KEYS.mail_outbox)
 end
 
---- 寮哄埗鍒锋柊鏀朵欢绠?(閲嶇疆鍐峰嵈)
+--- 强制刷新收件箱 (重置冷却)
 function CloudManager.ForceRefreshInbox(callback)
     CloudManager._mailLastPoll = 0
     CloudManager.PollInbox(callback)
 end
 
---- 鍒ゆ柇褰撳墠玩家鏄惁涓虹鐞嗗憳
+--- 判断当前玩家是否为管理员
 ---@return boolean
 function CloudManager.IsAdmin()
     if not CloudAPI.IsAvailable() then return false end
@@ -1435,13 +1453,13 @@ function CloudManager.IsAdmin()
     return false
 end
 
---- 鏍囪閭欢宸查鍙?"
+--- 标记邮件已领取
 ---@param mailId string
 function CloudManager.ClaimMail(mailId)
     CloudManager._mailClaimed[mailId] = true
 end
 
---- 妫€鏌ラ偖浠舵槸鍚﹀凡棰嗗彇
+--- 检查邮件是否已领取
 ---@param mailId string
 ---@return boolean
 function CloudManager.IsMailClaimed(mailId)

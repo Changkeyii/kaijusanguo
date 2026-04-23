@@ -4,7 +4,16 @@
 
 ---@diagnostic disable: undefined-global
 
-local ClientNet = require("network.Client")
+-- 从全局获取 Client 模块（Client.lua 启动时注册到 _G._ClientNet）
+-- 避免 require("network.Client") 导致循环依赖
+---@type table
+local ClientNet
+local function getClient()
+    if not ClientNet then
+        ClientNet = _G._ClientNet
+    end
+    return ClientNet
+end
 
 local CloudAPI = CloudAPI or {
     enabled = false,
@@ -26,12 +35,26 @@ local function normalizeSelf(maybeSelf, ...)
     return maybeSelf, ...
 end
 
+--- 安全调用 getClient().CallCloud，客户端未就绪时触发 error 回调
+local function safeCallCloud(method, params, cbs)
+    local cli = getClient()
+    if not cli then
+        if cbs and cbs.error then cbs.error("client_not_ready") end
+        return
+    end
+    return cli.CallCloud(method, params, cbs)
+end
+
 local function tryStartClient()
     if not isNetworkRuntime() then
         return false
     end
     CloudAPI.enabled = true
-    return ClientNet.Start() == true
+    local cli = getClient()
+    if not cli then
+        return false
+    end
+    return cli.Start() == true
 end
 
 local function ensureRetryLoop()
@@ -43,7 +66,9 @@ local function ensureRetryLoop()
 end
 
 function HandleCloudApiRetry(eventType, eventData)
-    if ClientNet.IsReady() then
+    local cli = getClient()
+    if not cli then return end
+    if cli.IsReady() then
         return
     end
 
@@ -73,21 +98,32 @@ function CloudAPI.IsAvailable()
 end
 
 function CloudAPI.IsReady()
-    return CloudAPI.enabled and ClientNet.IsReady()
+    local cli = getClient()
+    return CloudAPI.enabled and cli ~= nil and cli.IsReady()
 end
 
 function CloudAPI.GetUserId()
     return tonumber(CloudAPI.userId) or 0
 end
 
-function CloudAPI._OnServerReady(netState)
+function CloudAPI._OnServerReady(netSt)
     CloudAPI.enabled = true
-    CloudAPI.userId = netState and netState.userId or 0
+    CloudAPI.userId = netSt and netSt.userId or 0
+
+    -- 补偿同步: 初次加载时服务端未就绪，跳过了云端路径，现在服务端就绪了，补拉云端数据
+    local CloudMgr = rawget(_G, "CloudManager")
+    if CloudMgr and CloudMgr._S and CloudMgr._S.cloudSyncNeeded then
+        CloudMgr._S.cloudSyncNeeded = false
+        print("[CloudAPI] 服务端就绪, 触发补偿云端同步")
+        CloudMgr.LoadAll(function(source)
+            print("[CloudAPI] 补偿同步完成, source=" .. tostring(source))
+        end)
+    end
 end
 
 function CloudAPI.Set(maybeSelf, key, value, callbacks)
     key, value, callbacks = normalizeSelf(maybeSelf, key, value, callbacks)
-    return ClientNet.CallCloud("set", {
+    return safeCallCloud("set", {
         key = key,
         value = value,
     }, {
@@ -102,7 +138,7 @@ end
 
 function CloudAPI.SetInt(maybeSelf, key, value, callbacks)
     key, value, callbacks = normalizeSelf(maybeSelf, key, value, callbacks)
-    return ClientNet.CallCloud("set_int", {
+    return safeCallCloud("set_int", {
         key = key,
         value = math.floor(tonumber(value) or 0),
     }, {
@@ -117,7 +153,7 @@ end
 
 function CloudAPI.Add(maybeSelf, key, delta, callbacks)
     key, delta, callbacks = normalizeSelf(maybeSelf, key, delta, callbacks)
-    return ClientNet.CallCloud("add_int", {
+    return safeCallCloud("add_int", {
         key = key,
         delta = math.floor(tonumber(delta) or 0),
     }, {
@@ -135,7 +171,7 @@ end
 -- callbacks.error(reason)
 function CloudAPI.TradeBuy(maybeSelf, coreKey, price, callbacks)
     coreKey, price, callbacks = normalizeSelf(maybeSelf, coreKey, price, callbacks)
-    return ClientNet.CallCloud("trade_buy", {
+    return safeCallCloud("trade_buy", {
         coreKey = tostring(coreKey),
         price   = math.floor(tonumber(price) or 0),
     }, {
@@ -152,7 +188,7 @@ end
 
 function CloudAPI.Get(maybeSelf, key, callbacks)
     key, callbacks = normalizeSelf(maybeSelf, key, callbacks)
-    return ClientNet.CallCloud("get", {
+    return safeCallCloud("get", {
         key = key,
     }, {
         ok = function(payload)
@@ -168,7 +204,7 @@ end
 function CloudAPI.GetRankList(maybeSelf, key, start, count, callbacks, ...)
     key, start, count, callbacks = normalizeSelf(maybeSelf, key, start, count, callbacks)
     local fields = { ... }
-    return ClientNet.CallCloud("get_rank_list", {
+    return safeCallCloud("get_rank_list", {
         key = key,
         start = tonumber(start) or 0,
         count = tonumber(count) or 20,
@@ -185,7 +221,7 @@ end
 
 function CloudAPI.GetRankTotal(maybeSelf, key, callbacks)
     key, callbacks = normalizeSelf(maybeSelf, key, callbacks)
-    return ClientNet.CallCloud("get_rank_total", {
+    return safeCallCloud("get_rank_total", {
         key = key,
     }, {
         ok = function(payload)
@@ -199,7 +235,7 @@ end
 
 function CloudAPI.GetUserRank(maybeSelf, targetUserId, key, callbacks)
     targetUserId, key, callbacks = normalizeSelf(maybeSelf, targetUserId, key, callbacks)
-    return ClientNet.CallCloud("get_user_rank", {
+    return safeCallCloud("get_user_rank", {
         userId = tonumber(targetUserId) or 0,
         key = key,
     }, {
@@ -229,7 +265,7 @@ function CloudAPI.BatchSet()
     end
 
     function builder:Save(reason, callbacks)
-        return ClientNet.CallCloud("batch_set", {
+        return safeCallCloud("batch_set", {
             ops = ops,
             reason = reason,
         }, {
@@ -255,7 +291,7 @@ function CloudAPI.BatchGet()
     end
 
     function builder:Fetch(callbacks)
-        return ClientNet.CallCloud("batch_get", {
+        return safeCallCloud("batch_get", {
             keys = keys,
         }, {
             ok = function(payload)

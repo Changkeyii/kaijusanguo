@@ -3,4 +3,4 @@
 require "ui.social_mail_clean"
 require "ui.social_faction_clean"
 require "ui.social_trade_clean"
-require "ui.social_friends_clean"
+require "ui.social_friends"
